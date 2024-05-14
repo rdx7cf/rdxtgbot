@@ -12,10 +12,8 @@
 #include <tgbot/tgbot.h>
 
 #include "database.h"
-
 #include "bot_commands.h"
-#include "filesystem.h"
-#include "multithreading.h"
+#include "to_filelog.h"
 
 // Probably it would be a good idea to inherit from Tg::Bot a custom User class in order to save last user's message.
 // The temporary solution for saving the users database is done. However it's not that effective as I want. If someone decide to spam the bot with messages, it will permanently be comparing names...
