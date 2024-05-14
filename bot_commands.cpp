@@ -8,12 +8,14 @@ void anymsg(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std
     if(bot.getApi().blockedByUser(message->chat->id))
         return;
 
-    std::string log_message = std::string(" : INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " SENT COMMAND '" + message->text + "'.";
+    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " SENT COMMAND '" + message->text + "'.";
 
     to_filelog(log_message, "./logs/log.log");
 
     if (message->text.starts_with("/start"))
         return;
+
+    bot.getApi().sendMessage(message->chat->id, "They haven't taught me that command yet...");
 }
 
 void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std::unique_ptr<Database>& database)
@@ -38,6 +40,5 @@ void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std:
             }
         }
         );
-
 }
 
