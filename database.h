@@ -41,4 +41,6 @@ private:
 
     std::mutex mutex_db_;
     std::function<void(const std::string&, const std::string&)> logger_;
+
+    void create_table();
 };

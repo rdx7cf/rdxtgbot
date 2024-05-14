@@ -116,7 +116,7 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
         }
         catch (TgBot::TgException& e)
         {
-            to_filelog(": ERROR : BOT : " + e.what() + ".")
+            to_filelog(std::string(": ERROR : BOT : ") + e.what() + ".");
         }
     }
 

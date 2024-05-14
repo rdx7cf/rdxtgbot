@@ -50,7 +50,9 @@ Database::Database(const std::string& filename, std::function<void(const std::st
     }
 
 
-    const char* query = "SELECT * FROM users;";
+    const char* query =
+        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN);"
+        "SELECT * FROM users";
 
     rc = sqlite3_exec(db, query, extract_row, &users_vec_, &err_msg);
 
