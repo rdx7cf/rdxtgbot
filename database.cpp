@@ -74,12 +74,16 @@ Database::Database(const std::string& filename, std::function<void(const std::st
     }
 
     sqlite3_close(db);
+
+    logger_(": INFO : DB : Database " + filename_ + " has been initialized.", "./logs/log.log");
 }
 
 void Database::copy_sql_file() const
 {
     // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
     boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
+    logger_(": INFO : FILESYSTEM : Database " + filename_ + " has been copied.", "./logs/log.log");
+
 }
 
 bool Database::contains(const TgBot::User::Ptr& user)
@@ -181,6 +185,8 @@ void Database::user_add(const TgBot::User::Ptr& user)
 
 
     sqlite3_close(db);
+
+    logger_(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been added.", "./logs/log.log");
 }
 
 void Database::user_update(const TgBot::User::Ptr& user)
@@ -334,4 +340,6 @@ void Database::user_update(const TgBot::User::Ptr& user)
 
         sqlite3_close(db);
     }
+
+    logger_(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.", "./logs/log.log");
 }

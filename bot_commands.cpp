@@ -25,20 +25,23 @@ void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std:
 
     auto current_user = message->from;
 
+    bool contains = false;
+
     std::jthread(
-        [&current_user, &database, &bot, &message]()
+        [&current_user, &database, &bot, &message, &contains]()
         {
-            if(!database->contains(current_user))
-            {
-                bot.getApi().sendMessage(message->chat->id, std::string("Hello, Mr. / Mrs. ") + current_user->firstName + "!");
+            contains = database->contains(current_user);
+
+            if(!contains)
                 database->user_add(current_user);
-            }
             else
-            {
-                bot.getApi().sendMessage(message->chat->id, "Haven't we already met?");
                 database->user_update(current_user);
-            }
         }
         );
+
+    if(!contains)
+        bot.getApi().sendMessage(message->chat->id, std::string("Hello, Mr. / Mrs. ") + current_user->firstName + "!");
+    else
+        bot.getApi().sendMessage(message->chat->id, "Haven't we already met?");
 }
 
