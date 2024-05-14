@@ -5,7 +5,6 @@
 
 namespace GLOBAL
 {
-    inline std::mutex mutex_db = {};
     inline std::mutex mutex_log = {};
 }
 

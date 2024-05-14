@@ -14,7 +14,6 @@
 #include "database.h"
 
 #include "bot_commands.h"
-#include "database_old.h"
 #include "filesystem.h"
 #include "multithreading.h"
 
@@ -61,17 +60,6 @@ int main(int argc, char** argv)
     }
 
     std::unique_ptr<Database> database(new Database(argv[2], to_filelog));
-    /*try
-    {
-
-    }
-    catch (const std::exception& ex)
-    {
-        std::cout << "PROCESS TERMINATED: " << ex.what() << std::endl;
-
-        return 1;
-    }*/
-
 
     TgBot::Bot bot(argv[1]);
 
@@ -105,8 +93,8 @@ int main(int argc, char** argv)
 
 void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique_ptr<Database>& database)
 {
-    /*bot.getEvents().onAnyMessage([&database, &bot](TgBot::Message::Ptr message)
-                                 { anymsg(message, bot, database); });*/
+    bot.getEvents().onAnyMessage([&database, &bot](TgBot::Message::Ptr message)
+                                 { anymsg(message, bot, database); });
 
     bot.getEvents().onCommand("start",
                               [&database, &bot](TgBot::Message::Ptr message)
@@ -119,7 +107,7 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
     {
         if(tok.stop_requested())
         {
-            //std::cout << "Stop requested." << std::endl;
+            to_filelog(": INFO : SYSTEM : Stop requested.");
             return;
         }
         try
@@ -128,7 +116,7 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
         }
         catch (TgBot::TgException& e)
         {
-            //std::cerr << "ERROR " << int(e.errorCode) << " : " << e.what() << std::endl;
+            to_filelog(": ERROR : BOT : " + e.what() + ".")
         }
     }
 
