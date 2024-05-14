@@ -1,4 +1,5 @@
 #include "multithreading.h"
+#include "bot_commands.h"
 
 void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, std::vector<TgBot::User::Ptr>& users)
 {

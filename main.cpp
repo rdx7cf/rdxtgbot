@@ -46,7 +46,7 @@
 
 int main(int argc, char** argv)
 {
-    if(agrc < 2)
+    if(argc < 2)
         return 0;
     std::srand(std::time(nullptr));
 
