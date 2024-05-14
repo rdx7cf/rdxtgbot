@@ -18,7 +18,6 @@ if (CURL_FOUND)
 endif()
 add_executable(tgbot main.cpp
     bot_commands.h  bot_commands.cpp
-    database_old.h    database_old.cpp
     to_filelog.h     to_filelog.cpp
     multithreading.h    multithreading.cpp
     database.h database.cpp
