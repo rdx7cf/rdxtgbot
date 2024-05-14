@@ -25,13 +25,11 @@ void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std:
 
     auto current_user = message->from;
 
-    bool contains = false;
+    bool contains = database->contains(current_user);
 
     std::jthread(
         [&current_user, &database, &bot, &message, &contains]()
         {
-            contains = database->contains(current_user);
-
             if(!contains)
                 database->user_add(current_user);
             else
