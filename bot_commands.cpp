@@ -5,12 +5,13 @@
 
 void anymsg(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std::unique_ptr<Database>& database)
 {
-    if(bot.getApi().blockedByUser(message->chat->id))
-        return;
+    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " SENT COMMAND '" + message->text + "'.";
 
     to_filelog(log_message, "./logs/log.log");
+
+    database->user_update(message->from);
 
     if (message->text.starts_with("/start"))
         return;
@@ -20,25 +21,17 @@ void anymsg(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std
 
 void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std::unique_ptr<Database>& database)
 {
-    if(bot.getApi().blockedByUser(message->chat->id))
-        return;
+    if(bot.getApi().blockedByUser(message->chat->id)) return;
 
     auto current_user = message->from;
 
     bool contains = database->contains(current_user);
 
-    std::jthread(
-        [&current_user, &database, &bot, &message, &contains]()
-        {
-            if(!contains)
-                database->user_add(current_user);
-            else
-                database->user_update(current_user);
-        }
-        );
-
     if(!contains)
+    {
         bot.getApi().sendMessage(message->chat->id, std::string("Hello, Mr. / Mrs. ") + current_user->firstName + "!");
+        database->user_add(current_user);
+    }
     else
         bot.getApi().sendMessage(message->chat->id, "Haven't we already met?");
 }

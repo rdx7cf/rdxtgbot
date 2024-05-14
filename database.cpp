@@ -1,8 +1,9 @@
 #include "database.h"
 
-//
-// AUX SECTION OPEN
-//
+
+///////////////////////
+// AUX SECTION OPEN //
+/////////////////////
 
 static int extract_row(void* users, int colcount, char** columns, char** colnames)
 {
@@ -273,7 +274,9 @@ void Database::user_update(const TgBot::User::Ptr& user)
             return;
     }
 
-    // SQL DB CONTEXT LOCK_GUARD
+    // Syncing with the database isn't neccessary, it will be synced on each added user.
+
+    /* SQL DB CONTEXT LOCK_GUARD
     {
         // Updating the entry in the SQLite DB.
 
@@ -339,7 +342,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
 
 
         sqlite3_close(db);
-    }
+    }*/
 
     logger_(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.", "./logs/log.log");
 }

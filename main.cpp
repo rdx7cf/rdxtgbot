@@ -92,30 +92,34 @@ int main(int argc, char** argv)
 void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique_ptr<Database>& database)
 {
     bot.getEvents().onAnyMessage([&database, &bot](TgBot::Message::Ptr message)
-                                 { anymsg(message, bot, database); });
+                                 { std::jthread(anymsg, std::ref(message), std::ref(bot), std::cref(database)); });
 
     bot.getEvents().onCommand("start",
                               [&database, &bot](TgBot::Message::Ptr message)
-                              { start(message, bot, database); });
+                              { std::jthread(start, std::ref(message), std::ref(bot), std::cref(database)); });
 
 
-    TgBot::TgLongPoll longPoll(bot);
+    // WHY THE FUCK THIS SHIT IS FUCKING DYING BECAUSE OF MANY REQUESTS?!??!?!?!?!?!!?!?
 
-    while (true)
+    try
     {
-        if(tok.stop_requested())
+        TgBot::TgLongPoll longPoll(bot, 100, 30);
+        while(true)
         {
-            to_filelog(": INFO : SYSTEM : Stop requested.");
-            return;
-        }
-        try
-        {
+            if(tok.stop_requested())
+            {
+                to_filelog(": INFO : SYSTEM : Stop requested.");
+                return;
+            }
+
+            to_filelog(": INFO : BOT : Long poll has been started.");
             longPoll.start();
         }
-        catch (TgBot::TgException& e)
-        {
-            to_filelog(std::string(": ERROR : BOT : ") + e.what() + ".");
-        }
+
+    }
+    catch (const std::exception& e)
+    {
+        to_filelog(std::string(": ERROR : BOT : ") + e.what() + ".");
     }
 
 }
