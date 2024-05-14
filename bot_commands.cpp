@@ -8,7 +8,7 @@ void anymsg(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std
     if(bot.getApi().blockedByUser(message->chat->id))
         return;
 
-    std::string log_message = std::string(" : INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " has just wrote: '" + message->text + "'.\n";
+    std::string log_message = std::string(" : INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " SENT COMMAND '" + message->text + "'.";
 
     to_filelog(log_message, "./logs/log.log");
 
@@ -34,7 +34,7 @@ void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std:
             else
             {
                 bot.getApi().sendMessage(message->chat->id, "Haven't we already met?");
-                //database->update...
+                database->user_update(current_user);
             }
         }
         );

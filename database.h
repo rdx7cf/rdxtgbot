@@ -26,21 +26,22 @@ public:
 
     Database(const std::string&, std::function<void(const std::string&, const std::string&)>);
 
-    void copy() const;
+
     bool contains(const TgBot::User::Ptr&);
 
     void user_add(const TgBot::User::Ptr&);
     void user_update(const TgBot::User::Ptr&);
 
-
-
 private:
+
     std::vector<TgBot::User::Ptr> users_vec_;
     std::string filename_;
     std::string last_err_msg_;
 
-    std::mutex mutex_db_;
+    std::mutex mutex_sql_;
+    std::mutex mutex_vec_;
+
     std::function<void(const std::string&, const std::string&)> logger_;
 
-    void create_table();
+    void copy_sql_file() const;
 };
