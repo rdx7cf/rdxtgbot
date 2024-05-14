@@ -46,13 +46,16 @@
 
 int main(int argc, char** argv)
 {
-    if(argc < 2)
+    if(argc < 3)
+    {
+        std::cout << "USAGE:\ntgbot [API_TOKEN] [PATH_TO_DATABASE]";
         return 0;
+    }
     std::srand(std::time(nullptr));
 
     std::vector<TgBot::User::Ptr> users;
 
-    if(db_readOnStart("./sqlite_db/x7cf.db", users)) return 1;
+    if(db_readOnStart(argv[2], users)) return 1;
 
     TgBot::Bot bot(argv[1]);
 
