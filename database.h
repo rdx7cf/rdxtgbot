@@ -5,6 +5,7 @@
 #include <ctime>
 #include <iomanip>
 #include <stdexcept>
+#include <functional>
 
 
 #include <tgbot/tgbot.h>
@@ -12,19 +13,32 @@
 #include <sqlite3.h>
 
 #include "to_filelog.h"
-#include "multithreading.h"
 
-class sqlite3_exception : public std::runtime_error
+
+class Database
 {
 public:
-    sqlite3_exception(const std::string& what_arg) : std::runtime_error(what_arg) {}
+    class db_exception : public std::runtime_error
+    {
+    public:
+        db_exception(const std::string& what_arg) : std::runtime_error(what_arg) {}
+    };
+
+    Database(const std::string&, std::function<void(const std::string&, const std::string&)>);
+
+    void copy() const;
+    bool contains(const TgBot::User::Ptr&);
+
+    void user_add(const TgBot::User::Ptr&);
+    void user_update(const TgBot::User::Ptr&);
+
+
+
+private:
+    std::vector<TgBot::User::Ptr> users_vec_;
+    std::string filename_;
+    std::string last_err_msg_;
+
+    std::mutex mutex_db_;
+    std::function<void(const std::string&, const std::string&)> logger_;
 };
-
-int db_fast_query(const char*, const char*);
-int db_readOnStart(const char*, std::vector<TgBot::User::Ptr>&);
-int db_save(const char*, std::vector<TgBot::User::Ptr>&, std::ostream&);
-void db_sync(const char*, std::vector<TgBot::User::Ptr>&, std::ostream&, unsigned);
-
-
-
-

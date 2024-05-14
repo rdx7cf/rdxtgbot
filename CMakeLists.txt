@@ -18,9 +18,10 @@ if (CURL_FOUND)
 endif()
 add_executable(tgbot main.cpp
     bot_commands.h  bot_commands.cpp
-    database.h    database.cpp
+    database_old.h    database_old.cpp
     to_filelog.h     to_filelog.cpp
     multithreading.h    multithreading.cpp
+    database.h database.cpp
 )
 
 target_link_libraries(tgbot /usr/local/lib64/libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES})

@@ -1,2 +1,3 @@
 build*/
 CMakeLists.txt.user
+database_old.*

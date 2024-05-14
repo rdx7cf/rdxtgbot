@@ -10,6 +10,8 @@
 #include "to_filelog.h"
 #include "multithreading.h"
 
-void anymsg(const TgBot::Message::Ptr&, const TgBot::Bot&, std::vector<TgBot::User::Ptr>&);
-void start(const TgBot::Message::Ptr&, const TgBot::Bot&, std::vector<TgBot::User::Ptr>&);
+#include "database.h"
+
+void anymsg(const TgBot::Message::Ptr&, const TgBot::Bot&, const std::unique_ptr<Database>&);
+void start(const TgBot::Message::Ptr&, const TgBot::Bot&, const std::unique_ptr<Database>&);
 

@@ -2,8 +2,6 @@
 
 void to_filelog(const std::string& message, const std::string& path)
 {
-    std::lock_guard<std::mutex> lock(GLOBAL::mutex_log);
-
     std::ofstream file(path, std::ios_base::out | std::ios_base::app);
 
 

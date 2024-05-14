@@ -1,11 +1,12 @@
 #include "database.h"
 
-
+//
 // AUX SECTION OPEN
+//
 
 static int extract_row(void* users, int colcount, char** columns, char** colnames)
 {
-    TgBot::User* user = new TgBot::User;
+    std::shared_ptr<TgBot::User> user(new TgBot::User);
 
     user->id = std::stol(columns[1]);
     user->username = columns[2];
@@ -19,78 +20,88 @@ static int extract_row(void* users, int colcount, char** columns, char** colname
     user->canReadAllGroupMessages = columns[10];
     user->supportsInlineQueries = columns[11];
 
-    reinterpret_cast<std::vector<TgBot::User::Ptr>*>(users)->push_back(TgBot::User::Ptr(user));
+    reinterpret_cast<std::vector<TgBot::User::Ptr>*>(users)->push_back(user);
 
     return 0;
 }
 
-static void make_backup(const std::string& database)
+////////////////////////
+// AUX SECTION CLOSE //
+//////////////////////
+
+Database::Database(const std::string& filename, std::function<void(const std::string&, const std::string&)> logger) : filename_(filename), logger_(logger)
 {
-    boost::filesystem::copy_file(database, database + ".bak+" + std::to_string(rand()), boost::filesystem::copy_options::overwrite_existing);
-}
-
-static void remove_oldest()
-{
-
-}
-
-// AUX SECTION CLOSED
-
-int db_readOnStart(const char* database, std::vector<TgBot::User::Ptr>& users)
-{
-    std::lock_guard<std::mutex> lock(GLOBAL::mutex_db);
+    std::lock_guard<std::mutex> lock(mutex_db_);
 
     char* err_msg = nullptr;
 
     sqlite3* db;
-    int rc = sqlite3_open(database, &db);
+    int rc = sqlite3_open(filename_.c_str(), &db);
 
     if(rc != SQLITE_OK)
     {
-        std::string log_message = std::string(": ERROR : SQLite : An error occured while reading the file ") + database + "'.\n";
+        last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
 
-        to_filelog(log_message);
+        logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
 
         sqlite3_close(db);
-        return rc;
+
+        throw Database::db_exception(last_err_msg_);
     }
 
 
     const char* query = "SELECT * FROM users;";
 
-    rc = sqlite3_exec(db, query, extract_row, &users, &err_msg);
+    rc = sqlite3_exec(db, query, extract_row, &users_vec_, &err_msg);
 
 
     if(rc != SQLITE_OK)
     {
-        std::string log_message = std::string(": ERROR : SQLite : ") + err_msg + "'.\n";
+        last_err_msg_ = err_msg;
 
-        to_filelog(log_message);
+        logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
-        return rc;
+
+        throw Database::db_exception(last_err_msg_);
     }
 
     sqlite3_close(db);
-    return 0;
 }
 
-int db_save(const char* database, std::vector<TgBot::User::Ptr>& users)
+void Database::copy() const
+{
+    boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
+}
+
+bool Database::contains(const TgBot::User::Ptr& user)
+{
+    std::lock_guard<std::mutex> lock(mutex_db_);
+
+    auto comp = std::bind([](const TgBot::User::Ptr& x, const TgBot::User::Ptr& y) { return x->id == y->id; }, std::placeholders::_1, user); // originally binder1st; it transforms a binary predicate compare to a unary.
+    auto existing_user_It = find_if(users_vec_.begin(), users_vec_.end(), comp);
+
+    if(existing_user_It == users_vec_.end())
+        return false;
+
+    return true;
+}
+
+void Database::user_add(const TgBot::User::Ptr& user)
 {
     // Make a backup of the previous version before saving!
 
-    std::lock_guard<std::mutex> lock(GLOBAL::mutex_db);
+    std::lock_guard<std::mutex> lock(mutex_db_);
 
     try
     {
-        make_backup(database);
+        copy();
     }
-    catch(const std::exception& ex)
+    catch(const boost::filesystem::filesystem_error& ex)
     {
-        std::string log_message = std::string(": ERROR : FILESYSTEM : ") + ex.what() + "'.\n";
+        last_err_msg_ = std::string(": ERROR : FILESYSTEM : ") + ex.what() + "'.\n";
 
-        to_filelog(log_message);
         throw ex;
     }
 
@@ -98,71 +109,61 @@ int db_save(const char* database, std::vector<TgBot::User::Ptr>& users)
     char* err_msg = nullptr;
 
     sqlite3* db;
-    int rc = sqlite3_open(database, &db);
+    int rc = sqlite3_open(filename_.c_str(), &db);
 
     if(rc != SQLITE_OK)
     {
-        std::string log_message = std::string(": ERROR : SQLite : An error occured while reading the file ") + database + "'.\n";
+        last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
 
-        to_filelog(log_message);
+        logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
+
         sqlite3_close(db);
-        throw sqlite3_exception("SQLite : An error has occured while reading the file.");
+
+        throw Database::db_exception(last_err_msg_);
     }
 
 
-    std::string query =   "DROP TABLE IF EXISTS users;"
-                          "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN);";
+    std::string query =
+        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ) VALUES ("
+        + std::to_string(user->id)
+        + std::string(", '")
+        + std::string(user->username)
+        + std::string("', '")
+        + std::string(user->firstName)
+        + std::string("', '")
+        + std::string(user->lastName)
+        + std::string("', '")
+        + std::string(user->languageCode)
+        + std::string("', ")
+        + std::string(user->isBot ? "TRUE" : "FALSE")
+        + std::string(", ")
+        + std::string(user->isPremium ? "TRUE" : "FALSE")
+        + std::string(", ")
+        + std::string(user->addedToAttachmentMenu ? "TRUE" : "FALSE")
+        + std::string(", ")
+        + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
+        + std::string(", ")
+        + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
+        + std::string(", ")
+        + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
+        + std::string(");");
 
     rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
 
 
     if(rc != SQLITE_OK)
     {
-        std::string log_message = std::string(": ERROR : SQLite : ") + err_msg + "'.\n";
+        last_err_msg_ =  err_msg;
 
-        to_filelog(log_message);
+        logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
+
         sqlite3_free(err_msg);
         sqlite3_close(db);
-        throw sqlite3_exception("SQLite : An error has occured while sending query, check the log file for details.");
+
+        throw Database::db_exception(last_err_msg_);
     }
 
-
-
-    std::for_each(users.begin(), users.end(), [&query, &db, &err_msg](const TgBot::User::Ptr& user)
-    {
-        query =
-            (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ) VALUES ("
-                + std::to_string(user->id)
-                + std::string(", '")
-                + std::string(user->username)
-                + std::string("', '")
-                + std::string(user->firstName)
-                + std::string("', '")
-                + std::string(user->lastName)
-                + std::string("', '")
-                + std::string(user->languageCode)
-                + std::string("', ")
-                + std::string(user->isBot ? "TRUE" : "FALSE")
-                + std::string(", ")
-                + std::string(user->isPremium ? "TRUE" : "FALSE")
-                + std::string(", ")
-                + std::string(user->addedToAttachmentMenu ? "TRUE" : "FALSE")
-                + std::string(", ")
-                + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
-                + std::string(", ")
-                + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
-                + std::string(", ")
-                + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
-                + std::string(");")
-            ;
-    });
+    users_vec_.push_back(user);
 
     sqlite3_close(db);
-
-    return 0;
-}
-
-void db_sync(const char* database, std::vector<TgBot::User::Ptr>& users, unsigned)
-{
-    // It'll be calling db_save for interaction with the database; the only purpose of this function is organizing sync loop.
 }
