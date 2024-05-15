@@ -5,20 +5,20 @@
 
 void anymsg(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std::unique_ptr<Database>& database)
 {
-    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
     if(bot.getApi().blockedByUser(message->chat->id)) return;
 
-    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " SENT COMMAND '" + message->text + "'.";
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " sent command '" + message->text + "'.";
 
     to_filelog(log_message, "./logs/log.log");
 
-    database->user_update(message->from);
+    std::jthread([&database, &message](){database->user_update(message->from);});
 
     if (message->text.starts_with("/start"))
         return;
 
-    bot.getApi().sendMessage(message->chat->id, "They haven't taught me that command yet...");
+    bot.getApi().sendMessage(message->chat->id, "They haven't taught me that command.");
 }
 
 void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std::unique_ptr<Database>& database)
@@ -32,7 +32,7 @@ void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std:
     if(!contains)
     {
         bot.getApi().sendMessage(message->chat->id, std::string("Hello, Mr. / Mrs. ") + current_user->firstName + "!");
-        database->user_add(current_user);
+        std::jthread([&database, &current_user](){database->user_add(current_user);});
     }
     else
         bot.getApi().sendMessage(message->chat->id, "Haven't we already met?");

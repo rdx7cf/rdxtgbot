@@ -43,7 +43,7 @@ Database::Database(const std::string& filename, std::function<void(const std::st
     {
         last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
 
-        logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
+        logger_(": ERROR : DATABASE : " + last_err_msg_, "./logs/log.log");
 
         sqlite3_close(db);
 
@@ -66,7 +66,7 @@ Database::Database(const std::string& filename, std::function<void(const std::st
     {
         last_err_msg_ = err_msg;
 
-        logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
+        logger_(": ERROR : DATABASE : " + last_err_msg_, "./logs/log.log");
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
@@ -76,7 +76,7 @@ Database::Database(const std::string& filename, std::function<void(const std::st
 
     sqlite3_close(db);
 
-    logger_(": INFO : DB : Database " + filename_ + " has been initialized.", "./logs/log.log");
+    logger_(": INFO : DATABASE : Database " + filename_ + " has been initialized.", "./logs/log.log");
 }
 
 void Database::copy_sql_file() const
@@ -130,7 +130,7 @@ void Database::user_add(const TgBot::User::Ptr& user)
     {
         last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
 
-        logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
+        logger_(": ERROR : DATABASE : " + last_err_msg_, "./logs/log.log");
 
         sqlite3_close(db);
 

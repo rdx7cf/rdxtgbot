@@ -14,6 +14,7 @@
 #include "database.h"
 #include "bot_commands.h"
 #include "to_filelog.h"
+#include "myhttpclient.h"
 
 // Probably it would be a good idea to inherit from Tg::Bot a custom User class in order to save last user's message.
 // The temporary solution for saving the users database is done. However it's not that effective as I want. If someone decide to spam the bot with messages, it will permanently be comparing names...
@@ -46,8 +47,10 @@
 // Зашёл новый пользователь => INSERT INTO. Создание новой копии базы данных (?)
 // Синхронизацию стоит заменить на копирование. Как только в отдельной папки под бэкапы > 5 копий, удалить самую старую.
 
-void thread_long_polling(std::stop_token, TgBot::Bot&, const std::unique_ptr<Database>&);
 
+// НЕОБХОДИМО ДОБАВИТЬ КОЛИЧЕСТВО СООБЩЕНИЙ ОТ ПОЛЬЗОВАТЕЛЯ ПОДРЯД; ПРИ ДОСТИЖЕНИИ ОПРЕДЕЛЁННОГО ИХ КОЛИЧЕСТВА ВЫЧИЩАТЬ
+
+void thread_long_polling(std::stop_token, TgBot::Bot&, const std::unique_ptr<Database>&);
 
 int main(int argc, char** argv)
 {
@@ -59,7 +62,10 @@ int main(int argc, char** argv)
 
     std::unique_ptr<Database> database(new Database(argv[2], to_filelog));
 
-    TgBot::Bot bot(argv[1]);
+    MyHttpClient custom_curlHttpClient;
+
+    TgBot::Bot bot(argv[1], custom_curlHttpClient);
+
 
 
     std::jthread long_polling(thread_long_polling, std::ref(bot), std::cref(database));
@@ -92,18 +98,19 @@ int main(int argc, char** argv)
 void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique_ptr<Database>& database)
 {
     bot.getEvents().onAnyMessage([&database, &bot](TgBot::Message::Ptr message)
-                                 { std::jthread(anymsg, std::ref(message), std::ref(bot), std::cref(database)); });
+                                 { anymsg(message, bot, database); });
 
     bot.getEvents().onCommand("start",
                               [&database, &bot](TgBot::Message::Ptr message)
-                              { std::jthread(start, std::ref(message), std::ref(bot), std::cref(database)); });
+                              { start(message, bot, database); });
 
 
     // WHY THE FUCK THIS SHIT IS FUCKING DYING BECAUSE OF MANY REQUESTS?!??!?!?!?!?!!?!?
 
+
     try
     {
-        TgBot::TgLongPoll longPoll(bot, 100, 30);
+        TgBot::TgLongPoll longPoll(bot, 100, 2);
         while(true)
         {
             if(tok.stop_requested())
@@ -113,7 +120,13 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
             }
 
             to_filelog(": INFO : BOT : Long poll has been started.");
-            longPoll.start();
+            longPoll.start(); // 1 min, 8 sec. ??? 3 requests ???
+
+            // Worth looking into Api::sendRequest...
+            // tgbot-cpp isn't asynchronous, that's the problem.
+
+            // One day I'll make my personal asynchronous Telegram library...
+            // Temporary fix: modifying CurlHttpClient.cpp by adding two curl_easy_setopt instructions and implementing MyHttpClient class.
         }
 
     }
