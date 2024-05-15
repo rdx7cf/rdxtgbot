@@ -105,9 +105,6 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
                               { start(message, bot, database); });
 
 
-    // WHY THE FUCK THIS SHIT IS FUCKING DYING BECAUSE OF MANY REQUESTS?!??!?!?!?!?!!?!?
-
-
     try
     {
         TgBot::TgLongPoll longPoll(bot, 100, 2);
