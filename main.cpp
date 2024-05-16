@@ -107,7 +107,7 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
 
     try
     {
-        TgBot::TgLongPoll longPoll(bot, 100, 2);
+        TgBot::TgLongPoll longPoll(bot, 100, 8);
         while(true)
         {
             if(tok.stop_requested())
@@ -116,7 +116,7 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
                 return;
             }
 
-            to_filelog(": INFO : BOT : Long poll has been started.");
+            //to_filelog(": INFO : BOT : Long poll has been started.");
             longPoll.start(); // 1 min, 8 sec. ??? 3 requests ???
 
             // Worth looking into Api::sendRequest...
