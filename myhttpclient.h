@@ -8,7 +8,6 @@
 
 class MyHttpClient : public TgBot::CurlHttpClient
 {
-
 private:
     std::string makeRequest(const TgBot::Url& url, const std::vector<TgBot::HttpReqArg>& args) const override
     {
@@ -26,7 +25,7 @@ private:
 
             // Wait a moment for the potential network issue to get resolved,
             // and try again.
-            //std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
 };

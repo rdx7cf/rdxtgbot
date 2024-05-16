@@ -7,8 +7,6 @@ void anymsg(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std
 {
     if(bot.getApi().blockedByUser(message->chat->id)) return;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
     std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " sent command '" + message->text + "'.";
 
     to_filelog(log_message, "./logs/log.log");

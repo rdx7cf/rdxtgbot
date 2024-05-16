@@ -62,9 +62,9 @@ int main(int argc, char** argv)
 
     std::unique_ptr<Database> database(new Database(argv[2], to_filelog));
 
-    MyHttpClient custom_curlHttpClient;
+    MyHttpClient mHC;
 
-    TgBot::Bot bot(argv[1], custom_curlHttpClient);
+    TgBot::Bot bot(argv[1], mHC);
 
 
 
@@ -107,7 +107,7 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
 
     try
     {
-        TgBot::TgLongPoll longPoll(bot, 100, 8);
+        TgBot::TgLongPoll longPoll(bot, 100, 2);
         while(true)
         {
             if(tok.stop_requested())
@@ -124,6 +124,9 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
 
             // One day I'll make my personal asynchronous Telegram library...
             // Temporary fix: modifying CurlHttpClient.cpp by adding two curl_easy_setopt instructions and implementing MyHttpClient class.
+
+            // Making _eventHandler->handleMessage() an asynchronous function is a great idea. Now it works almost perfectly.
+            // Gotta write a thread pool class to manage threads like a boss.
         }
 
     }

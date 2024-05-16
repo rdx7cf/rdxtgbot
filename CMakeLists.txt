@@ -11,7 +11,7 @@ find_package(OpenSSL REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 find_package(CURL)
-include_directories(/usr/local/include ${OPENSSL_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${SQLite3_INCLUDE_DIR})
+include_directories(${OPENSSL_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${SQLite3_INCLUDE_DIR})
 if (CURL_FOUND)
     include_directories(${CURL_INCLUDE_DIRS})
     add_definitions(-DHAVE_CURL)
@@ -23,5 +23,7 @@ add_executable(tgbot main.cpp
     myhttpclient.h
 
 )
+# https://github.com/reo7sp/tgbot-cpp
+add_subdirectory(tgbot-cpp)
 
-target_link_libraries(tgbot /usr/local/lib64/libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES} ${CURL_LIBRARIES})
+target_link_libraries(tgbot libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES} ${CURL_LIBRARIES})
