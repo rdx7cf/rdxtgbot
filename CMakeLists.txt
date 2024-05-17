@@ -18,7 +18,7 @@ if (CURL_FOUND)
 endif()
 add_executable(tgbot main.cpp
     bot_commands.h  bot_commands.cpp
-    to_filelog.h     to_filelog.cpp
+
     database.h database.cpp
     myhttpclient.h
     logger.h logger.cpp

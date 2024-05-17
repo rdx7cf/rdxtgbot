@@ -30,7 +30,7 @@ static int extract_row(void* users, int colcount, char** columns, char** colname
 // AUX SECTION CLOSE //
 //////////////////////
 
-Database::Database(const std::string& filename, std::function<void(const std::string&, const std::string&)> logger) : filename_(filename)
+Database::Database(const std::string& filename) : filename_(filename)
 {
     std::lock_guard<std::mutex> lock(mutex_sql_);
 

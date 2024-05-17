@@ -13,7 +13,6 @@
 
 #include "database.h"
 #include "bot_commands.h"
-#include "to_filelog.h"
 #include "myhttpclient.h"
 #include "logger.h"
 
@@ -30,7 +29,7 @@ int main(int argc, char** argv)
     if(argc > 3)
         Logger::filename_ = argv[3];
 
-    std::unique_ptr<Database> database(new Database(argv[2], to_filelog));
+    std::unique_ptr<Database> database(new Database(argv[2]));
 
     MyHttpClient mHC;
 
@@ -91,14 +90,14 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
                 return;
             }
 
-            //to_filelog(": INFO : BOT : Long poll has been started.");
+            //Logger::write(": INFO : BOT : Long poll has been started.");
             longPoll.start();
         }
 
     }
     catch (const std::exception& e)
     {
-        to_filelog(std::string(": ERROR : BOT : ") + e.what() + ".");
+        Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
     }
 
 }

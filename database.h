@@ -24,7 +24,7 @@ public:
         db_exception(const std::string& what_arg) : std::runtime_error(what_arg) {}
     };
 
-    Database(const std::string&, std::function<void(const std::string&, const std::string&)>);
+    Database(const std::string&);
 
 
     bool contains(const TgBot::User::Ptr&);

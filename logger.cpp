@@ -6,6 +6,8 @@ void Logger::write(const std::string& message)
 {
     std::ofstream file(filename_, std::ios_base::out | std::ios_base::app);
 
+    if(!file.is_open())
+        throw std::runtime_error("Unable to open the log file '" + filename_ + "'.\n");
 
     std::time_t now = std::time(nullptr);
 
