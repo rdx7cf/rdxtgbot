@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <stdexcept>
 #include <functional>
+#include <algorithm>
 
 
 #include <tgbot/tgbot.h>
@@ -26,11 +27,12 @@ public:
 
     Database(const std::string&);
 
-
     bool contains(const TgBot::User::Ptr&);
 
     void user_add(const TgBot::User::Ptr&);
     void user_update(const TgBot::User::Ptr&);
+
+    void sync();
 
 private:
 

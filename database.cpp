@@ -274,75 +274,79 @@ void Database::user_update(const TgBot::User::Ptr& user)
             return;
     }
 
-    // Syncing with the database isn't neccessary, it will be synced on each added user.
+    Logger::write(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.");
+}
 
-    /* SQL DB CONTEXT LOCK_GUARD
+void Database::sync()
+{
+    std::lock_guard<std::mutex> lock_sql(mutex_sql_);
+
+    try
     {
-        // Updating the entry in the SQLite DB.
+        copy_sql_file();
+    }
+    catch(const boost::filesystem::filesystem_error& ex)
+    {
+        last_err_msg_ = ex.what();
+        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
 
-        std::lock_guard<std::mutex> lock_sql(mutex_sql_);
-
-        try
-        {
-            copy_sql_file();
-        }
-        catch(const boost::filesystem::filesystem_error& ex)
-        {
-            last_err_msg_ = ex.what();
-            Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
-
-            throw ex;
-        }
+        throw ex;
+    }
 
 
 
-        char* err_msg = nullptr;
+    char* err_msg = nullptr;
 
-        sqlite3* db;
-        int rc = sqlite3_open(filename_.c_str(), &db);
+    sqlite3* db;
+    int rc = sqlite3_open(filename_.c_str(), &db);
 
-        if(rc != SQLITE_OK)
-        {
-            last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
+    if(rc != SQLITE_OK)
+    {
+        last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
 
-            Logger::write(": ERROR : DB : " + last_err_msg_);
-
-            sqlite3_close(db);
-
-            throw Database::db_exception(last_err_msg_);
-        }
-
-        std::string query =
-            (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
-            + std::string("', tg_fname='") + std::string(user->firstName)
-            + std::string("', tg_lname='") + std::string(user->lastName)
-            + std::string("', tg_langcode='")+ std::string(user->languageCode)
-            + std::string("', tg_bot=") + std::string(user->isBot ? "TRUE" : "FALSE")
-            + std::string(", tg_prem=") + std::string(user->isPremium ? "TRUE" : "FALSE")
-            + std::string(", tg_ATAM=") + std::string(user->addedToAttachmentMenu ? "TRUE" : "FALSE")
-            + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
-            + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
-            + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
-            + std::string(" WHERE tg_id=") + std::to_string(user->id);
-
-        rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
-
-
-        if(rc != SQLITE_OK)
-        {
-            last_err_msg_ =  err_msg;
-
-            Logger::write(": ERROR : DB : " + last_err_msg_);
-
-            sqlite3_free(err_msg);
-            sqlite3_close(db);
-
-            throw Database::db_exception(last_err_msg_);
-        }
-
+        Logger::write(": ERROR : DB : " + last_err_msg_);
 
         sqlite3_close(db);
-    }*/
 
-    Logger::write(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.");
+        throw Database::db_exception(last_err_msg_);
+    }
+
+    std::string query;
+
+    {
+        std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+        std::for_each(users_vec_.begin(), users_vec_.end(), [&](const TgBot::User::Ptr& user)
+        {
+            query =
+                    (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
+                    + std::string("', tg_fname='") + std::string(user->firstName)
+                    + std::string("', tg_lname='") + std::string(user->lastName)
+                    + std::string("', tg_langcode='")+ std::string(user->languageCode)
+                    + std::string("', tg_bot=") + std::string(user->isBot ? "TRUE" : "FALSE")
+                    + std::string(", tg_prem=") + std::string(user->isPremium ? "TRUE" : "FALSE")
+                    + std::string(", tg_ATAM=") + std::string(user->addedToAttachmentMenu ? "TRUE" : "FALSE")
+                    + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
+                    + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
+                    + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
+                    + std::string(" WHERE tg_id=") + std::to_string(user->id);
+
+            rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
+
+
+            if(rc != SQLITE_OK)
+            {
+                last_err_msg_ =  err_msg;
+
+                Logger::write(": ERROR : DB : " + last_err_msg_);
+
+                sqlite3_free(err_msg);
+                sqlite3_close(db);
+
+                throw Database::db_exception(last_err_msg_);
+            }
+        });
+    }
+
+
+    sqlite3_close(db);
 }

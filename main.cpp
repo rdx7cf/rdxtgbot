@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <thread>
 #include <sstream>
+#include <iomanip>
 
 
 #include <tgbot/tgbot.h>
@@ -39,11 +40,14 @@ int main(int argc, char** argv)
 
     std::jthread long_polling(thread_long_polling, std::ref(bot), std::cref(database));
 
-    std::cout << "Bot username: " << bot.getApi().getMe()->username << std::endl;
-    std::cout << "Send 4 to quit: ";
+    std::time_t now = std::time(nullptr);
+    auto tmp = bot.getApi().getMe();
+    std::cout << "BOT INITIALIZED ON: " << std::put_time(std::localtime(&now), "%d-%m-%Y %H-%M-%S") << std::endl;
+    std::cout << "BOT USERNAME: " << bot.getApi().getMe()->username << '\t' << "BOT ID: " << bot.getApi().getMe()->id << std::endl;
     int choice;
     while(true)
     {
+        std::cout << "\nAVAILABLE COMMANDS:\n1. Sync the database with file.\n2. Quit.\nEnter a number: ";
         if(!(std::cin >> choice))
         {
 
@@ -56,7 +60,11 @@ int main(int argc, char** argv)
         }
         switch(choice)
         {
-        case 4:
+        case 1:
+            database->sync();
+            std::cout << "The database is saved to '" << argv[2] << "'; the backup is '" << argv[2] << ".bak'.\n";
+            break;
+        case 2:
             return 0;
         }
     }
