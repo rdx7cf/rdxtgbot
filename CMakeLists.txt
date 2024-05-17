@@ -21,6 +21,7 @@ add_executable(tgbot main.cpp
     to_filelog.h     to_filelog.cpp
     database.h database.cpp
     myhttpclient.h
+    logger.h logger.cpp
 
 )
 

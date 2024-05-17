@@ -30,7 +30,7 @@ static int extract_row(void* users, int colcount, char** columns, char** colname
 // AUX SECTION CLOSE //
 //////////////////////
 
-Database::Database(const std::string& filename, std::function<void(const std::string&, const std::string&)> logger) : filename_(filename), logger_(logger)
+Database::Database(const std::string& filename, std::function<void(const std::string&, const std::string&)> logger) : filename_(filename)
 {
     std::lock_guard<std::mutex> lock(mutex_sql_);
 
@@ -43,7 +43,7 @@ Database::Database(const std::string& filename, std::function<void(const std::st
     {
         last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
 
-        logger_(": ERROR : DATABASE : " + last_err_msg_, "./logs/log.log");
+        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
 
         sqlite3_close(db);
 
@@ -66,7 +66,7 @@ Database::Database(const std::string& filename, std::function<void(const std::st
     {
         last_err_msg_ = err_msg;
 
-        logger_(": ERROR : DATABASE : " + last_err_msg_, "./logs/log.log");
+        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
@@ -76,14 +76,14 @@ Database::Database(const std::string& filename, std::function<void(const std::st
 
     sqlite3_close(db);
 
-    logger_(": INFO : DATABASE : Database " + filename_ + " has been initialized.", "./logs/log.log");
+    Logger::write(": INFO : DATABASE : Database " + filename_ + " has been initialized.");
 }
 
 void Database::copy_sql_file() const
 {
     // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
     boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
-    logger_(": INFO : FILESYSTEM : Database " + filename_ + " has been copied.", "./logs/log.log");
+    Logger::write(": INFO : FILESYSTEM : Database " + filename_ + " has been copied.");
 
 }
 
@@ -114,7 +114,7 @@ void Database::user_add(const TgBot::User::Ptr& user)
     catch(const boost::filesystem::filesystem_error& ex)
     {
         last_err_msg_ = ex.what();
-        logger_(": ERROR : FILESYSTEM : " + last_err_msg_, "./logs/log.log");
+        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
 
         throw ex;
     }
@@ -130,7 +130,7 @@ void Database::user_add(const TgBot::User::Ptr& user)
     {
         last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
 
-        logger_(": ERROR : DATABASE : " + last_err_msg_, "./logs/log.log");
+        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
 
         sqlite3_close(db);
 
@@ -170,7 +170,7 @@ void Database::user_add(const TgBot::User::Ptr& user)
     {
         last_err_msg_ =  err_msg;
 
-        logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
+        Logger::write(": ERROR : DB : " + last_err_msg_);
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
@@ -187,7 +187,7 @@ void Database::user_add(const TgBot::User::Ptr& user)
 
     sqlite3_close(db);
 
-    logger_(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been added.", "./logs/log.log");
+    Logger::write(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been added.");
 }
 
 void Database::user_update(const TgBot::User::Ptr& user)
@@ -289,7 +289,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
         catch(const boost::filesystem::filesystem_error& ex)
         {
             last_err_msg_ = ex.what();
-            logger_(": ERROR : FILESYSTEM : " + last_err_msg_, "./logs/log.log");
+            Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
 
             throw ex;
         }
@@ -305,7 +305,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
         {
             last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
 
-            logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
+            Logger::write(": ERROR : DB : " + last_err_msg_);
 
             sqlite3_close(db);
 
@@ -332,7 +332,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
         {
             last_err_msg_ =  err_msg;
 
-            logger_(": ERROR : DB : " + last_err_msg_, "./logs/log.log");
+            Logger::write(": ERROR : DB : " + last_err_msg_);
 
             sqlite3_free(err_msg);
             sqlite3_close(db);
@@ -344,5 +344,5 @@ void Database::user_update(const TgBot::User::Ptr& user)
         sqlite3_close(db);
     }*/
 
-    logger_(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.", "./logs/log.log");
+    Logger::write(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.");
 }

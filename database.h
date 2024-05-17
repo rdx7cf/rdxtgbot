@@ -12,7 +12,7 @@
 #include <boost/filesystem.hpp>
 #include <sqlite3.h>
 
-#include "to_filelog.h"
+#include "logger.h"
 
 
 class Database
@@ -40,8 +40,6 @@ private:
 
     std::mutex mutex_sql_;
     std::mutex mutex_vec_;
-
-    std::function<void(const std::string&, const std::string&)> logger_;
 
     void copy_sql_file() const;
 };
