@@ -5,7 +5,7 @@
 #include <iomanip>
 
 
-struct Logger
+class Logger
 {
 public:
     static std::string filename_;
