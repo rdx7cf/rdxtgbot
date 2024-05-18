@@ -8,6 +8,7 @@
 #include <thread>
 #include <sstream>
 #include <iomanip>
+#include <csignal>
 
 
 #include <tgbot/tgbot.h>
@@ -17,8 +18,12 @@
 #include "myhttpclient.h"
 #include "logger.h"
 
+void SIG_handler(int sig);
+
 void thread_long_polling(std::stop_token, TgBot::Bot&, const std::unique_ptr<Database>&);
 void thread_auto_sync(std::stop_token, const std::unique_ptr<Database>&, const std::int32_t&);
+
+
 
 int main(int argc, char** argv)
 {
@@ -81,6 +86,8 @@ int main(int argc, char** argv)
     std::jthread long_polling(thread_long_polling, std::ref(bot), std::cref(database));
     std::jthread auto_syncing(thread_auto_sync, std::cref(database), std::cref(interval));
 
+    signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
+
     std::time_t now = std::time(nullptr);    
     std::cout << "\nBOT INITIALIZED ON: " << std::put_time(std::localtime(&now), "%d-%m-%Y %H-%M-%S") << std::endl;
     std::cout << "BOT USERNAME: " << bot.getApi().getMe()->username << '\t' << "BOT ID: " << bot.getApi().getMe()->id << std::endl;
@@ -89,7 +96,16 @@ int main(int argc, char** argv)
     while(true)
     {
         std::cout << "\nAVAILABLE COMMANDS:\n1. Sync the database with the file.\n2. Quit.\nEnter a number: ";
-        if(!(std::cin >> choice))
+        std::cin >> choice;
+
+
+        if(std::cin.eof()) // No occasional EOF.
+        {
+            database->sync();
+            return 0;
+        }
+
+        if(std::cin.fail())
         {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -102,6 +118,7 @@ int main(int argc, char** argv)
             std::cout << "The database is saved to '" << argv[2] << "'; the backup is '" << argv[2] << ".bak'.\n";
             break;
         case 2:
+            database->sync();
             return 0;
         }
     }
