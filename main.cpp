@@ -147,11 +147,14 @@ void thread_auto_sync(std::stop_token tok, const std::unique_ptr<Database>& data
         return;
 
     Logger::write(": INFO : SYSTEM_THREAD : AUTO_SYNC : Auto sync has been initialized.");
+
     while(!tok.stop_requested())
     {
         database->sync();
         Logger::write(": INFO : DATABASE : Database has been synced with file. Waiting for " + std::to_string(seconds) + " seconds before next sync.");
-        std::this_thread::sleep_for(std::chrono::seconds(seconds));
+        for(std::int32_t wait = 0; wait < seconds && !tok.stop_requested(); ++wait )
+            std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+
     Logger::write(": INFO : SYSTEM_THREAD : AUTO_SYNC : Stop requested.");
 }
