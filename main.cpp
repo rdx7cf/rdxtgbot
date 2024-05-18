@@ -88,7 +88,7 @@ int main(int argc, char** argv)
     int choice;
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:\n1. Sync the database with file.\n2. Quit.\nEnter a number: ";
+        std::cout << "\nAVAILABLE COMMANDS:\n1. Sync the database with the file.\n2. Quit.\nEnter a number: ";
         if(!(std::cin >> choice))
         {
             std::cin.clear();
@@ -151,7 +151,7 @@ void thread_auto_sync(std::stop_token tok, const std::unique_ptr<Database>& data
     while(!tok.stop_requested())
     {
         database->sync();
-        Logger::write(": INFO : DATABASE : Database has been synced with file. Waiting for " + std::to_string(seconds) + " seconds before next sync.");
+        Logger::write(": INFO : DATABASE : Database has been synced with the file. Waiting for " + std::to_string(seconds) + " seconds before next sync.");
         for(std::int32_t wait = 0; wait < seconds && !tok.stop_requested(); ++wait )
             std::this_thread::sleep_for(std::chrono::seconds(1));
     }
