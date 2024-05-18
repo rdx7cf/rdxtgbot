@@ -37,7 +37,8 @@ int main(int argc, char** argv)
 
     std::cout << "\nINITIALIZING...\n";
 
-    std::string temporary;
+    std::string bot_token;
+    std::string filename;
     std::int32_t interval = -1;
 
     std::vector<std::string> params(argv, argv + argc);
@@ -45,22 +46,22 @@ int main(int argc, char** argv)
     auto it = std::find(params.begin(), params.end(), "-T");
 
     if(it != params.end())
-        temporary = *(++it);
+        bot_token = *(++it);
     else
         throw std::runtime_error("No API token specified!");
 
     MyHttpClient mHC;
-    TgBot::Bot bot(temporary, mHC);
+    TgBot::Bot bot(bot_token, mHC);
 
     // SET DATABASE FILE
     it = std::find(params.begin(), params.end(), "-D");
 
     if(it != params.end())
-        temporary = *(++it);
+        filename = *(++it);
     else
         throw std::runtime_error("No Database file specified!");
 
-    std::unique_ptr<Database> database(new Database(temporary));
+    std::unique_ptr<Database> database(new Database(filename));
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");
