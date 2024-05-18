@@ -18,8 +18,6 @@
 #include "myhttpclient.h"
 #include "logger.h"
 
-void SIG_handler(int sig);
-
 void thread_long_polling(std::stop_token, TgBot::Bot&, const std::unique_ptr<Database>&);
 void thread_auto_sync(std::stop_token, const std::unique_ptr<Database>&, const std::int32_t&);
 
