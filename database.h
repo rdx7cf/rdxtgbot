@@ -32,6 +32,14 @@ public:
     void user_add(const TgBot::User::Ptr&);
     void user_update(const TgBot::User::Ptr&);
 
+/*
+ *  Temporary declarations; should implement a derived from TgBot::Bot class later.
+ *  The derivative will be a friend for this class.
+ *
+ *  void notify_user(const TgBot::User::Ptr&);
+ *  void notify_all(const std::string&);
+*/
+
     void sync();
 
 private:

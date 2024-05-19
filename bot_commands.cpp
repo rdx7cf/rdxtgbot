@@ -6,7 +6,7 @@
 void anymsg(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std::unique_ptr<Database>& database)
 {
     std::jthread([&database, &message](){database->user_update(message->from);});
-    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->username + " sent command '" + message->text + "'.";
+    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->firstName + " sent command '" + message->text + "'.";
     Logger::write(log_message);
 }
 
