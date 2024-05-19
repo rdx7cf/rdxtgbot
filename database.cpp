@@ -194,7 +194,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
 {
     std::vector<TgBot::User::Ptr>::iterator existing_user_It;
 
-    // VECTOR CONTEXT LOCK_GUARD
+    // VECTOR MUTEX SCOPE LOCK
     {
         std::lock_guard<std::mutex> lock_vec(mutex_vec_);
 
@@ -213,67 +213,66 @@ void Database::user_update(const TgBot::User::Ptr& user)
         if(user->username != (*existing_user_It)->username)
         {
             info_updated = true;
-            user->username = (*existing_user_It)->username;
+            (*existing_user_It)->username = user->username;
         }
 
         if(user->firstName != (*existing_user_It)->firstName)
         {
             info_updated = true;
-            user->firstName = (*existing_user_It)->firstName;
+            (*existing_user_It)->firstName = user->firstName;
         }
 
         if(user->lastName != (*existing_user_It)->lastName)
         {
             info_updated = true;
-            user->lastName = (*existing_user_It)->lastName;
+            (*existing_user_It)->lastName = user->lastName;
         }
 
         if(user->languageCode != (*existing_user_It)->languageCode)
         {
             info_updated = true;
-            user->languageCode = (*existing_user_It)->languageCode;
+            (*existing_user_It)->languageCode = user->languageCode;
         }
 
         if(user->isBot != (*existing_user_It)->isBot)
         {
             info_updated = true;
-            user->isBot = (*existing_user_It)->isBot;
+            (*existing_user_It)->isBot = user->isBot;
         }
 
         if(user->isPremium != (*existing_user_It)->isPremium)
         {
             info_updated = true;
-            user->isPremium = (*existing_user_It)->isPremium;
+            (*existing_user_It)->isPremium = user->isPremium;
         }
 
         if(user->addedToAttachmentMenu != (*existing_user_It)->addedToAttachmentMenu)
         {
             info_updated = true;
-            user->addedToAttachmentMenu = (*existing_user_It)->addedToAttachmentMenu;
+            (*existing_user_It)->addedToAttachmentMenu = user->addedToAttachmentMenu;
         }
 
         if(user->canJoinGroups != (*existing_user_It)->canJoinGroups)
         {
             info_updated = true;
-            user->canJoinGroups = (*existing_user_It)->canJoinGroups;
+            (*existing_user_It)->canJoinGroups = user->canJoinGroups;
         }
 
         if(user->canReadAllGroupMessages != (*existing_user_It)->canReadAllGroupMessages)
         {
             info_updated = true;
-            user->canReadAllGroupMessages = (*existing_user_It)->canReadAllGroupMessages;
+            (*existing_user_It)->canReadAllGroupMessages = user->canReadAllGroupMessages;
         }
 
         if(user->supportsInlineQueries != (*existing_user_It)->supportsInlineQueries)
         {
             info_updated = true;
-            user->supportsInlineQueries = (*existing_user_It)->supportsInlineQueries;
+            (*existing_user_It)->supportsInlineQueries = user->supportsInlineQueries;
         }
 
         if(!info_updated)
             return;
     }
-
     Logger::write(": INFO : DATABASE : User [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.");
 }
 
@@ -292,8 +291,6 @@ void Database::sync()
 
         throw ex;
     }
-
-
 
     char* err_msg = nullptr;
 

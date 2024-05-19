@@ -114,7 +114,7 @@ int main(int argc, char** argv)
         {
         case 1:
             database->sync();
-            std::cout << "The database is saved to '" << argv[2] << "'; the backup is '" << argv[2] << ".bak'.\n";
+            std::cout << "The database is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
             break;
         case 2:
             database->sync();
