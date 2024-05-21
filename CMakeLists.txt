@@ -17,8 +17,7 @@ if (CURL_FOUND)
     add_definitions(-DHAVE_CURL)
 endif()
 add_executable(tgbot main.cpp
-    bot_commands.h  bot_commands.cpp
-
+    listeners.h  listeners.cpp
     database.h database.cpp
     myhttpclient.h
     logger.h logger.cpp

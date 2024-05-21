@@ -14,7 +14,7 @@
 #include <tgbot/tgbot.h>
 
 #include "database.h"
-#include "bot_commands.h"
+#include "listeners.h"
 #include "myhttpclient.h"
 #include "logger.h"
 
@@ -137,8 +137,6 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
     bot.getEvents().onCommand("start",
                 [&database, &bot](TgBot::Message::Ptr message)
                                     { start(message, bot, database); });
-
-    // Should implement a notifier that will be sending a message to each user on stop.
 
     try
     {

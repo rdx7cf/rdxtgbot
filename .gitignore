@@ -1,5 +1,3 @@
+thoughts/
 build*/
 CMakeLists.txt.user
-database_old.*
-comments_archive
-interface*
