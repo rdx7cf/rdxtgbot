@@ -81,6 +81,9 @@ int main(int argc, char** argv)
         std::cout << "** Auto-sync is DISABLED." << std::endl;
 
 
+    Logger::write("-------------------");
+    Logger::write("BOT INITIALIZING...");
+    Logger::write("-------------------");
 
     std::jthread long_polling(thread_long_polling, std::ref(bot), std::cref(database));
     std::jthread auto_syncing(thread_auto_sync, std::cref(database), std::cref(interval));
@@ -90,6 +93,10 @@ int main(int argc, char** argv)
     std::time_t now = std::time(nullptr);    
     std::cout << "\nBOT INITIALIZED ON: " << std::put_time(std::localtime(&now), "%d-%m-%Y %H-%M-%S") << std::endl;
     std::cout << "BOT USERNAME: " << bot.getApi().getMe()->username << '\t' << "BOT ID: " << bot.getApi().getMe()->id << std::endl;
+
+    Logger::write("-------------------");
+    Logger::write("BOT INITIALIZED.");
+    Logger::write("-------------------");
 
     int choice;
     while(true)
