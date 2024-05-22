@@ -20,7 +20,7 @@ static int extract_row(void* users, int colcount, char** columns, char** colname
     user->canJoinGroups = columns[9];
     user->canReadAllGroupMessages = columns[10];
     user->supportsInlineQueries = columns[11];
-    user->active_tasks_ = std::stol(columns[12]);
+    user->active_tasks_ = std::stoul(columns[12]);
 
     reinterpret_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
 
@@ -53,7 +53,7 @@ Database::Database(const std::string& filename) : filename_(filename)
 
 
     const char* query =
-        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks TEXT);"
+        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER);"
         "SELECT * FROM users";
 
     {
@@ -163,7 +163,7 @@ void Database::user_add(const UserExtended::Ptr& user)
         + std::string(", ")
         + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
         + std::string(", ")
-        + user->active_tasks_.to_string()
+        + std::to_string(user->active_tasks_.to_ulong())
         + std::string(");");
 
     rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
