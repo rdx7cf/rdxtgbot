@@ -81,6 +81,9 @@ int main(int argc, char** argv)
         std::cout << "** Auto-sync is DISABLED." << std::endl;
 
 
+    Logger::write("-------------------");
+    Logger::write("BOT INITIALIZING...");
+    Logger::write("-------------------");
 
     std::jthread long_polling(thread_long_polling, std::ref(bot), std::cref(database));
     std::jthread auto_syncing(thread_auto_sync, std::cref(database), std::cref(interval));
