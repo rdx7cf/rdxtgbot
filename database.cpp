@@ -7,7 +7,7 @@
 
 static int extract_row(void* users, int colcount, char** columns, char** colnames)
 {
-    std::shared_ptr<TgBot::User> user(new TgBot::User);
+    std::shared_ptr<UserExtended> user(new UserExtended);
 
     user->id = std::stol(columns[1]);
     user->username = columns[2];
@@ -20,8 +20,9 @@ static int extract_row(void* users, int colcount, char** columns, char** colname
     user->canJoinGroups = columns[9];
     user->canReadAllGroupMessages = columns[10];
     user->supportsInlineQueries = columns[11];
+    user->active_tasks_ = std::stol(columns[12]);
 
-    reinterpret_cast<std::vector<TgBot::User::Ptr>*>(users)->push_back(user);
+    reinterpret_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
 
     return 0;
 }
@@ -52,7 +53,7 @@ Database::Database(const std::string& filename) : filename_(filename)
 
 
     const char* query =
-        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN);"
+        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks TEXT);"
         "SELECT * FROM users";
 
     {
@@ -91,7 +92,7 @@ bool Database::contains(const TgBot::User::Ptr& user)
 {
     std::lock_guard<std::mutex> lock(mutex_vec_);
 
-    auto comp = std::bind([](const TgBot::User::Ptr& x, const TgBot::User::Ptr& y) { return x->id == y->id; }, std::placeholders::_1, user); // originally binder1st; it transforms a binary predicate compare to a unary.
+    auto comp = std::bind([](const UserExtended::Ptr& x, const TgBot::User::Ptr& y) { return x->id == y->id; }, std::placeholders::_1, user); // originally binder1st; it transforms a binary predicate compare to a unary.
     auto existing_user_It = find_if(users_vec_.begin(), users_vec_.end(), comp);
 
     if(existing_user_It == users_vec_.end())
@@ -102,7 +103,7 @@ bool Database::contains(const TgBot::User::Ptr& user)
 
 
 
-void Database::user_add(const TgBot::User::Ptr& user)
+void Database::user_add(const UserExtended::Ptr& user)
 {
     // Make a backup of the previous version before saving!
     std::lock_guard<std::mutex> lock(mutex_sql_);
@@ -139,7 +140,7 @@ void Database::user_add(const TgBot::User::Ptr& user)
 
 
     std::string query =
-        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ) VALUES ("
+        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks) VALUES ("
         + std::to_string(user->id)
         + std::string(", '")
         + std::string(user->username)
@@ -161,6 +162,8 @@ void Database::user_add(const TgBot::User::Ptr& user)
         + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
         + std::string(", ")
         + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
+        + std::string(", ")
+        + user->active_tasks_.to_string()
         + std::string(");");
 
     rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
@@ -192,7 +195,7 @@ void Database::user_add(const TgBot::User::Ptr& user)
 
 void Database::user_update(const TgBot::User::Ptr& user)
 {
-    std::vector<TgBot::User::Ptr>::iterator existing_user_It;
+    std::vector<UserExtended::Ptr>::iterator existing_user_It;
 
     // VECTOR MUTEX SCOPE LOCK
     {
@@ -200,7 +203,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
 
         // Searching for the user in the vector.
 
-        auto comp = std::bind([](const TgBot::User::Ptr& x, const TgBot::User::Ptr& y) { return x->id == y->id; }, std::placeholders::_1, user); // originally binder1st; it transforms a binary predicate compare to a unary.
+        auto comp = std::bind([](const UserExtended::Ptr& x, const TgBot::User::Ptr& y) { return x->id == y->id; }, std::placeholders::_1, user); // originally binder1st; it transforms a binary predicate compare to a unary.
         existing_user_It = find_if(users_vec_.begin(), users_vec_.end(), comp);
 
         if(existing_user_It == users_vec_.end())
@@ -312,7 +315,7 @@ void Database::sync()
 
     {
         std::lock_guard<std::mutex> lock_vec(mutex_vec_);
-        std::for_each(users_vec_.begin(), users_vec_.end(), [&](const TgBot::User::Ptr& user)
+        std::for_each(users_vec_.begin(), users_vec_.end(), [&](const UserExtended::Ptr& user)
         {
             query =
                     (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
@@ -325,7 +328,8 @@ void Database::sync()
                     + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
                     + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
                     + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
-                    + std::string(" WHERE tg_id=") + std::to_string(user->id);
+                    + std::string(", tg_activetasks='") + user->active_tasks_.to_string()
+                    + std::string("' WHERE tg_id=") + std::to_string(user->id);
 
             rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
 

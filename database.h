@@ -14,6 +14,7 @@
 #include <sqlite3.h>
 
 #include "logger.h"
+#include "userextended.h"
 
 
 class Database
@@ -29,14 +30,14 @@ public:
 
     bool contains(const TgBot::User::Ptr&);
 
-    void user_add(const TgBot::User::Ptr&);
+    void user_add(const UserExtended::Ptr&);
     void user_update(const TgBot::User::Ptr&);
 
     void sync();
 
 private:
 
-    std::vector<TgBot::User::Ptr> users_vec_;
+    std::vector<UserExtended::Ptr> users_vec_;
     std::string filename_;
     std::string last_err_msg_;
 

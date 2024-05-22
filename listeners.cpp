@@ -5,7 +5,7 @@
 
 void anymsg(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std::unique_ptr<Database>& database)
 {
-    std::jthread([&database, &message](){database->user_update(message->from);});
+   // std::jthread([&database, &message](){database->user_update(message->from);});
     std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->firstName + " sent '" + message->text + "'.";
     Logger::write(log_message);
 }
@@ -21,14 +21,14 @@ void start(const TgBot::Message::Ptr& message, const TgBot::Bot& bot, const std:
 {
     if(bot.getApi().blockedByUser(message->chat->id)) return;
 
-    auto current_user = message->from;
+    UserExtended::Ptr current_extended(new UserExtended(message->from));
 
-    bool contains = database->contains(current_user);
+    bool contains = database->contains(message->from);
 
     if(!contains)
     {
-        bot.getApi().sendMessage(message->chat->id, std::string("Hello, Mr. / Mrs. ") + current_user->firstName + "!");
-        std::jthread([&database, &current_user](){database->user_add(current_user);});
+        bot.getApi().sendMessage(message->chat->id, std::string("Hello, Mr. / Mrs. ") + current_extended->firstName + "!");
+        std::jthread([&database, &current_extended](){database->user_add(current_extended);});
     }
     else
         bot.getApi().sendMessage(message->chat->id, "Haven't we already met?");

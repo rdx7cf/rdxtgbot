@@ -11,6 +11,7 @@
 
 #include "logger.h"
 #include "database.h"
+#include "userextended.h"
 
 void anymsg(const TgBot::Message::Ptr&, const TgBot::Bot&, const std::unique_ptr<Database>&);
 void noncom(const TgBot::Message::Ptr&, const TgBot::Bot&, const std::unique_ptr<Database>&);
