@@ -91,6 +91,10 @@ int main(int argc, char** argv)
     std::cout << "\nBOT INITIALIZED ON: " << std::put_time(std::localtime(&now), "%d-%m-%Y %H-%M-%S") << std::endl;
     std::cout << "BOT USERNAME: " << bot.getApi().getMe()->username << '\t' << "BOT ID: " << bot.getApi().getMe()->id << std::endl;
 
+    Logger::write("****************");
+    Logger::write("BOT INITIALIZED.");
+    Logger::write("****************");
+
     int choice;
     while(true)
     {
