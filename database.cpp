@@ -328,8 +328,8 @@ void Database::sync()
                     + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
                     + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
                     + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
-                    + std::string(", tg_activetasks='") + user->active_tasks_.to_string()
-                    + std::string("' WHERE tg_id=") + std::to_string(user->id);
+                    + std::string(", tg_activetasks=") + std::to_string(user->active_tasks_.to_ulong())
+                    + std::string(" WHERE tg_id=") + std::to_string(user->id);
 
             rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
 
