@@ -276,7 +276,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
         if(!info_updated)
             return;
     }
-    Logger::write(": INFO : DATABASE : User [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.");
+    Logger::write(": INFO : DATABASE : [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.");
 }
 
 void Database::sync()
