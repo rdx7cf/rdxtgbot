@@ -17,11 +17,13 @@ if (CURL_FOUND)
     add_definitions(-DHAVE_CURL)
 endif()
 add_executable(tgbot main.cpp
-    listeners.h  listeners.cpp
-    database.h database.cpp
+    listeners.h     listeners.cpp
+    database.h      database.cpp
     myhttpclient.h
-    logger.h logger.cpp
-    userextended.h userextended.cpp
+    logger.h        logger.cpp
+    userextended.h  userextended.cpp
+    botextended.h   botextended.cpp
+    threads.h       threads.cpp
 
 )
 

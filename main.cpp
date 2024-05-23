@@ -17,10 +17,8 @@
 #include "listeners.h"
 #include "myhttpclient.h"
 #include "logger.h"
-
-void thread_long_polling(std::stop_token, TgBot::Bot&, const std::unique_ptr<Database>&);
-void thread_auto_sync(std::stop_token, const std::unique_ptr<Database>&, const std::int32_t&);
-
+#include "botextended.h"
+#include "threads.h"
 
 
 int main(int argc, char** argv)
@@ -50,8 +48,6 @@ int main(int argc, char** argv)
     else
         throw std::runtime_error("No API token specified!");
 
-    MyHttpClient mHC;
-    TgBot::Bot bot(bot_token, mHC);
 
     // SET DATABASE FILE
     it = std::find(params.begin(), params.end(), "-D");
@@ -61,7 +57,8 @@ int main(int argc, char** argv)
     else
         throw std::runtime_error("No Database file specified!");
 
-    std::unique_ptr<Database> database(new Database(filename));
+    MyHttpClient mHC;
+    BotExtended bot(bot_token, mHC, filename);
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");
@@ -78,15 +75,15 @@ int main(int argc, char** argv)
     if(it != params.end())
         interval = std::stoi(*(++it));
     else
-        std::cout << "** Auto-sync is DISABLED." << std::endl;
+        std::cout << "** Loop sync is DISABLED." << std::endl;
 
 
     Logger::write("-------------------");
     Logger::write("BOT INITIALIZING...");
     Logger::write("-------------------");
 
-    std::jthread long_polling(thread_long_polling, std::ref(bot), std::cref(database));
-    std::jthread auto_syncing(thread_auto_sync, std::cref(database), std::cref(interval));
+    std::jthread long_polling(thread_long_polling, std::ref(bot));
+    std::jthread auto_syncing(thread_auto_sync, std::cref(bot), std::cref(interval));
 
     signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
 
@@ -101,13 +98,14 @@ int main(int argc, char** argv)
     int choice;
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:\n1. Sync the database with the file.\n2. Quit.\nEnter a number: ";
+        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table (short version);\n2. Send a message to a user;\n3. Send a message to all users;\n4. Sync the database with the file;\n5. Quit.\nEnter a number: ";
         std::cin >> choice;
 
 
         if(std::cin.eof()) // No occasional EOF.
         {
-            database->sync();
+            bot.database_->sync();
+            bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
 
@@ -117,66 +115,65 @@ int main(int argc, char** argv)
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             std::cout << "Correct answers only: ";
         }
+
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << std::endl;
         switch(choice)
         {
         case 1:
-            database->sync();
-            std::cout << "The database is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
+            std::cout << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
+            std::for_each(bot.database_->begin(), bot.database_->end(),[](const UserExtended::Ptr& user)
+            {
+                std::cout << std::left << std::setw(16) << std::to_string(user->id) << std::setw(32) << user->username << user->firstName << std::endl;
+            });
+
             break;
         case 2:
-            database->sync();
+        {
+            std::int64_t user_id;
+            std::string message;
+
+            std::cout << "Enter user's Telegram ID: ";
+            while(!(std::cin >> user_id))
+            {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "Correct answers only: ";
+            }
+
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+            if(!bot.database_->contains(user_id))
+            {
+                std::cout << "There's no user with such id '" << user_id << "'.";
+                break;
+            }
+
+            std::cout << "Enter a message for the user: ";
+            std::getline(std::cin, message);
+
+            bot.notify_one(user_id, message);
+
+            break;
+        }
+        case 3:
+        {
+            std::string message;
+            std::cout << "Enter a message for all users: ";
+            std::getline(std::cin, message);
+
+            bot.notify_all(message);
+
+            break;
+        }
+        case 4:
+            bot.database_->sync();
+            std::cout << "The database is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
+            break;
+        case 5:
+            bot.database_->sync();
+            bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
     }
-}
-
-
-void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique_ptr<Database>& database)
-{
-    bot.getEvents().onAnyMessage(
-                [&database, &bot](TgBot::Message::Ptr message)
-                                    { anymsg(message, bot, database); });
-
-    bot.getEvents().onNonCommandMessage(
-                [&database, &bot](TgBot::Message::Ptr message)
-                                    { noncom(message, bot, database); });
-
-    bot.getEvents().onCommand("start",
-                [&database, &bot](TgBot::Message::Ptr message)
-                                    { start(message, bot, database); });
-
-    try
-    {
-        Logger::write(": INFO : SYSTEM_THREAD : LONG_POLLING : Long polling has been initialized.");
-        TgBot::TgLongPoll longPoll(bot, 100, 1);
-        while(!tok.stop_requested())
-        {
-            //Logger::write(": INFO : BOT : Long poll has been started.");
-            longPoll.start();
-        }
-        Logger::write(": INFO : SYSTEM_THREAD : LONG_POLLING : Stop requested.");
-    }
-    catch (const std::exception& e)
-    {
-        Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
-    }
-
-}
-
-void thread_auto_sync(std::stop_token tok, const std::unique_ptr<Database>& database, const std::int32_t& seconds)
-{
-    if(seconds < 0)
-        return;
-
-    Logger::write(": INFO : SYSTEM_THREAD : AUTO_SYNC : Auto sync has been initialized.");
-
-    while(!tok.stop_requested())
-    {
-        database->sync();
-        Logger::write(": INFO : DATABASE : Database has been synced with the file. Waiting for " + std::to_string(seconds) + " seconds before next sync.");
-        for(std::int32_t wait = 0; wait < seconds && !tok.stop_requested(); ++wait )
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-
-    Logger::write(": INFO : SYSTEM_THREAD : AUTO_SYNC : Stop requested.");
 }
