@@ -17,9 +17,10 @@
 #include "listeners.h"
 #include "myhttpclient.h"
 #include "logger.h"
+#include "botextended.h"
 
-void thread_long_polling(std::stop_token, TgBot::Bot&, const std::unique_ptr<Database>&);
-void thread_auto_sync(std::stop_token, const std::unique_ptr<Database>&, const std::int32_t&);
+void thread_long_polling(std::stop_token, BotExtended&);
+void thread_auto_sync(std::stop_token, const BotExtended&, const std::int32_t&);
 
 
 
@@ -50,8 +51,6 @@ int main(int argc, char** argv)
     else
         throw std::runtime_error("No API token specified!");
 
-    MyHttpClient mHC;
-    TgBot::Bot bot(bot_token, mHC);
 
     // SET DATABASE FILE
     it = std::find(params.begin(), params.end(), "-D");
@@ -61,7 +60,8 @@ int main(int argc, char** argv)
     else
         throw std::runtime_error("No Database file specified!");
 
-    std::unique_ptr<Database> database(new Database(filename));
+    MyHttpClient mHC;
+    BotExtended bot(bot_token, mHC, filename);
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");
@@ -85,8 +85,8 @@ int main(int argc, char** argv)
     Logger::write("BOT INITIALIZING...");
     Logger::write("-------------------");
 
-    std::jthread long_polling(thread_long_polling, std::ref(bot), std::cref(database));
-    std::jthread auto_syncing(thread_auto_sync, std::cref(database), std::cref(interval));
+    std::jthread long_polling(thread_long_polling, std::ref(bot));
+    std::jthread auto_syncing(thread_auto_sync, std::cref(bot), std::cref(interval));
 
     signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
 
@@ -107,7 +107,8 @@ int main(int argc, char** argv)
 
         if(std::cin.eof()) // No occasional EOF.
         {
-            database->sync();
+            bot.database_->sync();
+            bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
 
@@ -120,30 +121,31 @@ int main(int argc, char** argv)
         switch(choice)
         {
         case 1:
-            database->sync();
+            bot.database_->sync();
             std::cout << "The database is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
             break;
         case 2:
-            database->sync();
+            bot.database_->sync();
+            bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
     }
 }
 
 
-void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique_ptr<Database>& database)
+void thread_long_polling(std::stop_token tok, BotExtended& bot)
 {
     bot.getEvents().onAnyMessage(
-                [&database, &bot](TgBot::Message::Ptr message)
-                                    { anymsg(message, bot, database); });
+                [&bot](TgBot::Message::Ptr message)
+                                    { anymsg(message, bot); });
 
     bot.getEvents().onNonCommandMessage(
-                [&database, &bot](TgBot::Message::Ptr message)
-                                    { noncom(message, bot, database); });
+                [&bot](TgBot::Message::Ptr message)
+                                    { noncom(message, bot); });
 
     bot.getEvents().onCommand("start",
-                [&database, &bot](TgBot::Message::Ptr message)
-                                    { start(message, bot, database); });
+                [&bot](TgBot::Message::Ptr message)
+                                    { start(message, bot); });
 
     try
     {
@@ -163,7 +165,7 @@ void thread_long_polling(std::stop_token tok, TgBot::Bot& bot, const std::unique
 
 }
 
-void thread_auto_sync(std::stop_token tok, const std::unique_ptr<Database>& database, const std::int32_t& seconds)
+void thread_auto_sync(std::stop_token tok, const BotExtended& bot, const std::int32_t& seconds)
 {
     if(seconds < 0)
         return;
@@ -172,7 +174,7 @@ void thread_auto_sync(std::stop_token tok, const std::unique_ptr<Database>& data
 
     while(!tok.stop_requested())
     {
-        database->sync();
+        bot.database_->sync();
         Logger::write(": INFO : DATABASE : Database has been synced with the file. Waiting for " + std::to_string(seconds) + " seconds before next sync.");
         for(std::int32_t wait = 0; wait < seconds && !tok.stop_requested(); ++wait )
             std::this_thread::sleep_for(std::chrono::seconds(1));

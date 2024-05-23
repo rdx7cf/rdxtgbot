@@ -15,11 +15,15 @@
 
 #include "logger.h"
 #include "userextended.h"
+#include "database.h"
 
 
 class Database
 {
 public:
+
+    typedef std::unique_ptr<Database> uPtr;
+
     class db_exception : public std::runtime_error
     {
     public:
@@ -36,6 +40,8 @@ public:
     void sync();
 
 private:
+    friend class BotExtended;
+
 
     std::vector<UserExtended::Ptr> users_vec_;
     std::string filename_;

@@ -22,6 +22,7 @@ add_executable(tgbot main.cpp
     myhttpclient.h
     logger.h logger.cpp
     userextended.h userextended.cpp
+    botextended.h botextended.cpp
 
 )
 

@@ -12,8 +12,9 @@
 #include "logger.h"
 #include "database.h"
 #include "userextended.h"
+#include "botextended.h"
 
-void anymsg(const TgBot::Message::Ptr&, const TgBot::Bot&, const std::unique_ptr<Database>&);
-void noncom(const TgBot::Message::Ptr&, const TgBot::Bot&, const std::unique_ptr<Database>&);
-void start(const TgBot::Message::Ptr&, const TgBot::Bot&, const std::unique_ptr<Database>&);
+void anymsg(const TgBot::Message::Ptr&, const BotExtended&);
+void noncom(const TgBot::Message::Ptr&, const BotExtended&);
+void start(const TgBot::Message::Ptr&, const BotExtended&);
 
