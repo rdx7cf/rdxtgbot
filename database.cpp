@@ -42,9 +42,9 @@ Database::Database(const std::string& filename) : filename_(filename)
 
     if(rc != SQLITE_OK)
     {
-        last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
+        last_err_msg_ = std::string("FILE UNAVAILABLE: '") + filename_ + "'";
 
-        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
+        Logger::write(": ERROR : DB : " + last_err_msg_);
 
         sqlite3_close(db);
 
@@ -67,7 +67,7 @@ Database::Database(const std::string& filename) : filename_(filename)
     {
         last_err_msg_ = err_msg;
 
-        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
+        Logger::write(": ERROR : DB : " + last_err_msg_);
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
@@ -77,14 +77,14 @@ Database::Database(const std::string& filename) : filename_(filename)
 
     sqlite3_close(db);
 
-    Logger::write(": INFO : DATABASE : Database " + filename_ + " has been initialized.");
+    Logger::write(": INFO : DB : INITIALIZED.");
 }
 
 void Database::copy_sql_file() const
 {
     // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
     boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
-    Logger::write(": INFO : FILESYSTEM : Database " + filename_ + " has been copied.");
+    Logger::write(": INFO : FS : DB '" + filename_ + "' COPIED.");
 
 }
 
@@ -93,6 +93,19 @@ bool Database::contains(const TgBot::User::Ptr& user)
     std::lock_guard<std::mutex> lock(mutex_vec_);
 
     auto comp = std::bind([](const UserExtended::Ptr& x, const TgBot::User::Ptr& y) { return x->id == y->id; }, std::placeholders::_1, user); // originally binder1st; it transforms a binary predicate compare to a unary.
+    auto existing_user_It = find_if(users_vec_.begin(), users_vec_.end(), comp);
+
+    if(existing_user_It == users_vec_.end())
+        return false;
+
+    return true;
+}
+
+bool Database::contains(const std::int64_t& id)
+{
+    std::lock_guard<std::mutex> lock(mutex_vec_);
+
+    auto comp = std::bind([](const UserExtended::Ptr& x, const std::int64_t& y) { return x->id == y; }, std::placeholders::_1, id); // originally binder1st; it transforms a binary predicate compare to a unary.
     auto existing_user_It = find_if(users_vec_.begin(), users_vec_.end(), comp);
 
     if(existing_user_It == users_vec_.end())
@@ -115,7 +128,7 @@ void Database::user_add(const UserExtended::Ptr& user)
     catch(const boost::filesystem::filesystem_error& ex)
     {
         last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
+        Logger::write(": ERROR : FS : " + last_err_msg_);
 
         throw ex;
     }
@@ -129,9 +142,9 @@ void Database::user_add(const UserExtended::Ptr& user)
 
     if(rc != SQLITE_OK)
     {
-        last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
+        last_err_msg_ = std::string("FILE UNAVAILABLE: '") + filename_ + "'";
 
-        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
+        Logger::write(": ERROR : DB : " + last_err_msg_);
 
         sqlite3_close(db);
 
@@ -190,7 +203,7 @@ void Database::user_add(const UserExtended::Ptr& user)
 
     sqlite3_close(db);
 
-    Logger::write(": INFO : DB : User [" + std::to_string(user->id) + "] " + user->firstName + " has been added.");
+    Logger::write(": INFO : DB : [" + std::to_string(user->id) + "] [" + user->firstName + "] ADDED.");
 }
 
 void Database::user_update(const TgBot::User::Ptr& user)
@@ -276,7 +289,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
         if(!info_updated)
             return;
     }
-    Logger::write(": INFO : DATABASE : [" + std::to_string(user->id) + "] " + user->firstName + " has been updated.");
+    Logger::write(": INFO : DB : [" + std::to_string(user->id) + "] [" + user->firstName + "] UPDATED.");
 }
 
 void Database::sync()
@@ -290,7 +303,7 @@ void Database::sync()
     catch(const boost::filesystem::filesystem_error& ex)
     {
         last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
+        Logger::write(": ERROR : FS : " + last_err_msg_);
 
         throw ex;
     }
@@ -302,7 +315,7 @@ void Database::sync()
 
     if(rc != SQLITE_OK)
     {
-        last_err_msg_ = std::string("An error occured while reading the file ") + filename_;
+        last_err_msg_ = std::string("FILE UNAVAILABLE: '") + filename_ + "'";
 
         Logger::write(": ERROR : DB : " + last_err_msg_);
 
@@ -348,6 +361,7 @@ void Database::sync()
         });
     }
 
+    Logger::write(": INFO : DB : SYNC OK.");
 
     sqlite3_close(db);
 }

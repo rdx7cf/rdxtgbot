@@ -10,7 +10,7 @@ void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
     else
         std::jthread([&bot, &message](){bot.database_->user_update(message->from);});
 
-    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] " + message->from->firstName + " sent '" + message->text + "'.";
+    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] [" + message->from->firstName + " SENT '" + message->text + "'.";
     Logger::write(log_message);
 }
 
@@ -18,13 +18,13 @@ void noncom(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
     if(bot.getApi().blockedByUser(message->chat->id)) return;
 
-    bot.getApi().sendMessage(message->chat->id, "They haven't taught me that command.");
+    bot.getApi().sendMessage(message->chat->id, "They haven't taught me this command yet.");
 }
 
 void start(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
     if(bot.getApi().blockedByUser(message->chat->id)) return;
 
-    bot.getApi().sendMessage(message->chat->id, "[TEMPLATE ONSTART_INFO]");
+    bot.getApi().sendMessage(message->chat->id, "At present I'm just an echo bot. They will teach me to do something lately.");
 }
 

@@ -33,6 +33,7 @@ public:
     Database(const std::string&);
 
     bool contains(const TgBot::User::Ptr&);
+    bool contains(const std::int64_t&);
 
     void user_add(const UserExtended::Ptr&);
     void user_update(const TgBot::User::Ptr&);
