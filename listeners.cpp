@@ -10,7 +10,7 @@ void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
     else
         std::jthread([&bot, &message](){bot.database_->user_update(message->from);});
 
-    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] [" + message->from->firstName + " SENT '" + message->text + "'.";
+    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] SENT '" + message->text + "'.";
     Logger::write(log_message);
 }
 

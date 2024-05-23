@@ -23,6 +23,7 @@ class Database
 public:
 
     typedef std::unique_ptr<Database> uPtr;
+    typedef std::vector<UserExtended::Ptr>::const_iterator const_iterator;
 
     class db_exception : public std::runtime_error
     {
@@ -39,6 +40,9 @@ public:
     void user_update(const TgBot::User::Ptr&);
 
     void sync();
+
+    const_iterator begin() { return users_vec_.begin(); }
+    const_iterator end() { return users_vec_.end(); }
 
 private:
     friend class BotExtended;

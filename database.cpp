@@ -44,7 +44,7 @@ Database::Database(const std::string& filename) : filename_(filename)
     {
         last_err_msg_ = std::string("FILE UNAVAILABLE: '") + filename_ + "'";
 
-        Logger::write(": ERROR : DB : " + last_err_msg_);
+        Logger::write(": ERROR : BAS : " + last_err_msg_);
 
         sqlite3_close(db);
 
@@ -67,7 +67,7 @@ Database::Database(const std::string& filename) : filename_(filename)
     {
         last_err_msg_ = err_msg;
 
-        Logger::write(": ERROR : DB : " + last_err_msg_);
+        Logger::write(": ERROR : BAS : " + last_err_msg_);
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
@@ -77,14 +77,14 @@ Database::Database(const std::string& filename) : filename_(filename)
 
     sqlite3_close(db);
 
-    Logger::write(": INFO : DB : INITIALIZED.");
+    Logger::write(": INFO : BAS : INITIALIZED.");
 }
 
 void Database::copy_sql_file() const
 {
     // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
     boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
-    Logger::write(": INFO : FS : DB '" + filename_ + "' COPIED.");
+    Logger::write(": INFO : FIL : '" + filename_ + "' COPIED.");
 
 }
 
@@ -144,7 +144,7 @@ void Database::user_add(const UserExtended::Ptr& user)
     {
         last_err_msg_ = std::string("FILE UNAVAILABLE: '") + filename_ + "'";
 
-        Logger::write(": ERROR : DB : " + last_err_msg_);
+        Logger::write(": ERROR : BAS : " + last_err_msg_);
 
         sqlite3_close(db);
 
@@ -186,7 +186,7 @@ void Database::user_add(const UserExtended::Ptr& user)
     {
         last_err_msg_ =  err_msg;
 
-        Logger::write(": ERROR : DB : " + last_err_msg_);
+        Logger::write(": ERROR : BAS : " + last_err_msg_);
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
@@ -203,7 +203,7 @@ void Database::user_add(const UserExtended::Ptr& user)
 
     sqlite3_close(db);
 
-    Logger::write(": INFO : DB : [" + std::to_string(user->id) + "] [" + user->firstName + "] ADDED.");
+    Logger::write(": INFO : BAS : [" + std::to_string(user->id) + "] [" + user->firstName + "] ADDED.");
 }
 
 void Database::user_update(const TgBot::User::Ptr& user)
@@ -289,7 +289,7 @@ void Database::user_update(const TgBot::User::Ptr& user)
         if(!info_updated)
             return;
     }
-    Logger::write(": INFO : DB : [" + std::to_string(user->id) + "] [" + user->firstName + "] UPDATED.");
+    Logger::write(": INFO : BAS : [" + std::to_string(user->id) + "] [" + user->firstName + "] UPDATED.");
 }
 
 void Database::sync()
@@ -303,7 +303,7 @@ void Database::sync()
     catch(const boost::filesystem::filesystem_error& ex)
     {
         last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FS : " + last_err_msg_);
+        Logger::write(": ERROR : FIL : " + last_err_msg_);
 
         throw ex;
     }
@@ -317,7 +317,7 @@ void Database::sync()
     {
         last_err_msg_ = std::string("FILE UNAVAILABLE: '") + filename_ + "'";
 
-        Logger::write(": ERROR : DB : " + last_err_msg_);
+        Logger::write(": ERROR : BAS : " + last_err_msg_);
 
         sqlite3_close(db);
 
@@ -351,7 +351,7 @@ void Database::sync()
             {
                 last_err_msg_ =  err_msg;
 
-                Logger::write(": ERROR : DB : " + last_err_msg_);
+                Logger::write(": ERROR : BAS : " + last_err_msg_);
 
                 sqlite3_free(err_msg);
                 sqlite3_close(db);
@@ -361,7 +361,7 @@ void Database::sync()
         });
     }
 
-    Logger::write(": INFO : DB : SYNC OK.");
+    Logger::write(": INFO : BAS : SYNC OK.");
 
     sqlite3_close(db);
 }

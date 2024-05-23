@@ -98,7 +98,7 @@ int main(int argc, char** argv)
     int choice;
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:\n1. Sync the database with the file.\n2. Send a message to the user;\n3. Send a message to all the users;\n4. Quit.\nEnter a number: ";
+        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table (short version);\n2. Send a message to a user;\n3. Send a message to all users;\n4. Sync the database with the file;\n5. Quit.\nEnter a number: ";
         std::cin >> choice;
 
 
@@ -117,12 +117,16 @@ int main(int argc, char** argv)
         }
 
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
+        std::cout << std::endl;
         switch(choice)
         {
         case 1:
-            bot.database_->sync();
-            std::cout << "The database is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
+            std::cout << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
+            std::for_each(bot.database_->begin(), bot.database_->end(),[](const UserExtended::Ptr& user)
+            {
+                std::cout << std::left << std::setw(16) << std::to_string(user->id) << std::setw(32) << user->username << user->firstName << std::endl;
+            });
+
             break;
         case 2:
         {
@@ -145,7 +149,7 @@ int main(int argc, char** argv)
                 break;
             }
 
-            std::cout << "Enter the message for the user: ";
+            std::cout << "Enter a message for the user: ";
             std::getline(std::cin, message);
 
             bot.notify_one(user_id, message);
@@ -155,7 +159,7 @@ int main(int argc, char** argv)
         case 3:
         {
             std::string message;
-            std::cout << "Enter the message for the users: ";
+            std::cout << "Enter a message for all users: ";
             std::getline(std::cin, message);
 
             bot.notify_all(message);
@@ -163,6 +167,10 @@ int main(int argc, char** argv)
             break;
         }
         case 4:
+            bot.database_->sync();
+            std::cout << "The database is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
+            break;
+        case 5:
             bot.database_->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
