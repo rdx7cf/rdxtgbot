@@ -25,6 +25,6 @@ void start(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
     if(bot.getApi().blockedByUser(message->chat->id)) return;
 
-    bot.getApi().sendMessage(message->chat->id, "At present I'm just an echo bot. They will teach me to do something lately.");
+    bot.getApi().sendMessage(message->chat->id, "At the moment I'm just an echo bot. They will teach me to do something lately.");
 }
 

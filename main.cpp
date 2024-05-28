@@ -121,12 +121,7 @@ int main(int argc, char** argv)
         switch(choice)
         {
         case 1:
-            std::cout << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
-            std::for_each(bot.database_->begin(), bot.database_->end(),[](const UserExtended::Ptr& user)
-            {
-                std::cout << std::left << std::setw(16) << std::to_string(user->id) << std::setw(32) << user->username << user->firstName << std::endl;
-            });
-
+            bot.database_->show_table(std::cout);
             break;
         case 2:
         {

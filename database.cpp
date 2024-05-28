@@ -365,3 +365,14 @@ void Database::sync()
 
     sqlite3_close(db);
 }
+
+void Database::show_table(std::ostream& os)
+{
+    os << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
+
+    std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+    std::for_each(users_vec_.begin(), users_vec_.end(),[&os](const UserExtended::Ptr& user)
+    {
+        os << std::left << std::setw(16) << std::to_string(user->id) << std::setw(32) << user->username << user->firstName << std::endl;
+    });
+}
