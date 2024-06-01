@@ -68,7 +68,7 @@ int main(int argc, char** argv)
         throw std::runtime_error("No Adbase file specified!");
 
     MyHttpClient mHC;
-    BotExtended bot(bot_token, mHC, filename_ub/*, filename_ab*/);
+    BotExtended bot(bot_token, mHC, filename_ub, filename_ab);
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 
         if(std::cin.eof()) // No occasional EOF.
         {
-            bot.database_->sync();
+            bot.userbase_->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
         switch(choice)
         {
         case 1:
-            bot.database_->show_table(std::cout);
+            bot.userbase_->show_table(std::cout);
             break;
         case 2:
         {
@@ -148,7 +148,7 @@ int main(int argc, char** argv)
 
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-            if(!bot.database_->contains(user_id))
+            if(!bot.userbase_->contains(user_id))
             {
                 std::cout << "There's no user with such id '" << user_id << "'.";
                 break;
@@ -172,11 +172,11 @@ int main(int argc, char** argv)
             break;
         }
         case 4:
-            bot.database_->sync();
+            bot.userbase_->sync();
             std::cout << "The database is saved to '" << filename_ab << "'; the backup is '" << filename_ab << ".bak'.\n";
             break;
         case 5:
-            bot.database_->sync();
+            bot.userbase_->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }

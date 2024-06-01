@@ -17,11 +17,12 @@
 #include "userextended.h"
 #include "ad.h"
 
-
+template<class T>
 class Database
 {
 public:
     typedef std::unique_ptr<Database> uPtr;
+    typedef std::shared_ptr<T> dataPtr;
 
     class db_exception : public std::runtime_error
     {
@@ -29,35 +30,42 @@ public:
         db_exception(const std::string& what_arg) : std::runtime_error(what_arg) {}
     };
 
-    Database(const std::string&);
+    Database(const std::string&) = delete;
+    void add(const dataPtr&) = delete;
+    void update(const dataPtr&) = delete;
+    void sync() = delete;
+    void show_table(std::ostream&) = delete;
 
-    bool user_contains(const TgBot::User::Ptr&);
-    bool user_contains(const std::int64_t&);
 
-    void user_add(const UserExtended::Ptr&);
-    void user_update(const TgBot::User::Ptr&);
-
-    bool ad_contains(const std::string&);
-    bool ad_contains(const std::int64_t&);
-
-    void ad_add(const Ad::Ptr&);
-    void ad_update(const Ad::Ptr&);
-
-    void sync();
-    void show_table(std::ostream&);
+    bool contains(const dataPtr&);
+    bool contains(const std::int64_t&);
 
 private:
     friend class BotExtended;
 
-    std::vector<UserExtended::Ptr> users_vec_;
-    std::vector<Ad::Ptr> ads_vec_;
+    std::vector<dataPtr> vec_;
     std::string filename_;
     std::string last_err_msg_;
 
     std::mutex mutex_sql_;
-    std::mutex mutex_users_vec_;
-    std::mutex mutex_ads_vec_;
+    std::mutex mutex_vec_;
 
-    void copy_sql_file() const;
-    void send_query();
+    void copy_sql_file();
+    void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
 };
+
+template<> Database<UserExtended>::Database(const std::string&);
+template<> Database<Ad>::Database(const std::string&);
+
+template<> void Database<UserExtended>::add(const dataPtr&);
+template<> void Database<UserExtended>::update(const dataPtr&);
+template<> void Database<UserExtended>::sync();
+template<> void Database<UserExtended>::show_table(std::ostream&);
+
+template<> void Database<Ad>::add(const dataPtr&);
+template<> void Database<Ad>::update(const dataPtr&);
+template<> void Database<Ad>::sync();
+template<> void Database<Ad>::show_table(std::ostream&);
+
+
+#include "database.hpp"

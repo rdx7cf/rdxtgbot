@@ -5,10 +5,12 @@
 
 void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
-    if(!bot.database_->contains(message->from))
-        std::jthread([&bot, &message](){bot.database_->user_add(UserExtended::Ptr(new UserExtended(message->from)));});
+    UserExtended::Ptr curr_user(new UserExtended(message->from));
+
+    if(!bot.userbase_->contains(curr_user))
+        std::jthread([&bot, &curr_user](){bot.userbase_->add(curr_user);});
     else
-        std::jthread([&bot, &message](){bot.database_->user_update(message->from);});
+        std::jthread([&bot, &curr_user](){bot.userbase_->update(curr_user);});
 
     std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] SENT '" + message->text + "'.";
     Logger::write(log_message);

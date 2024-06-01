@@ -19,13 +19,14 @@ endif()
 add_executable(tgbot
     main.cpp
     listeners.h     listeners.cpp
-    database.h      database.cpp
+    database.h      database.hpp    database.cpp
     myhttpclient.h
     logger.h        logger.cpp
     userextended.h  userextended.cpp
     botextended.h   botextended.cpp
     threads.h       threads.cpp
     ad.h            ad.cpp
+
 
 )
 
