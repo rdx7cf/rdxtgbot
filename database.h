@@ -71,7 +71,7 @@ private:
 class Adbase : public Database
 {
 public:
-    typedef std::shared_ptr<Ad> Ptr;
+    typedef std::shared_ptr<Adbase> Ptr;
 
     Adbase(const std::string&);
     void add(const Ad::Ptr&);
