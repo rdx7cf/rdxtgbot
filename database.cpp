@@ -355,7 +355,7 @@ void Adbase::add(const Ad::Ptr& entry)
     }
 
     send_query(
-        (std::string)"INSERT INTO ads (owner, text, active, expiring_on) VALUES ("
+        (std::string)"INSERT INTO ads (owner, text, active, expiring_on) VALUES ('"
         + std::string(entry->owner)
         + std::string("', '")
         + std::string(entry->text)

@@ -19,6 +19,7 @@
 #include "logger.h"
 #include "botextended.h"
 #include "threads.h"
+#include "ad.h"
 
 
 int main(int argc, char** argv)
@@ -98,7 +99,7 @@ int main(int argc, char** argv)
     int choice;
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table (short version);\n2. Send a message to a user;\n3. Send a message to all users;\n4. Sync the userbase with the file;\n5. Quit.\nEnter a number: ";
+        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table (short version);\t2. Show advertisements table (short version);\n3. Send a message to a user;\t4. Send a message to all users;\n5. Add an advertisement;\t6. Sync the userbase with the file;\n7. Quit.\nEnter a number: ";
         std::cin >> choice;
 
 
@@ -125,6 +126,9 @@ int main(int argc, char** argv)
             bot.userbase_->show_table(std::cout);
             break;
         case 2:
+            bot.adbase_->show_table(std::cout);
+            break;
+        case 3:
         {
             std::int64_t user_id;
             std::string message;
@@ -152,7 +156,7 @@ int main(int argc, char** argv)
 
             break;
         }
-        case 3:
+        case 4:
         {
             std::string message;
             std::cout << "Enter a message for all users: ";
@@ -162,13 +166,43 @@ int main(int argc, char** argv)
 
             break;
         }
-        case 4:
+        case 5:
+        {
+            Ad::Ptr ad (new Ad());
+            std::tm t{};
+
+
+            std::cout << "Enter the owner: ";
+            std::getline(std::cin, ad->owner);
+
+            std::cout << "Enter the text: \n";
+
+
+            for(std::string temp; std::getline(std::cin, temp); )
+                ad->text += temp + '\n';
+
+            clearerr(stdin);
+            std::cin.clear();
+
+            std::cout << "Enter the expiration date (Y-m-d H:M:S): ";
+            std::cin >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
+
+            ad->expiring_on = static_cast<std::int64_t>(mktime(&t));
+
+            bot.adbase_->add(ad);
+
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+            break;
+        }
+        case 6:
             bot.userbase_->sync();
             bot.adbase_->sync(); // Нужно потом сделать так, чтобы синхронизировало их за один раз.
             std::cout << "The userbase is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
             std::cout << "The adbase is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
             break;
-        case 5:
+        case 7:
             bot.userbase_->sync();
             bot.adbase_->sync();
             bot.notify_all("It seems we're saying goodbye...");
