@@ -16,7 +16,8 @@ if (CURL_FOUND)
     include_directories(${CURL_INCLUDE_DIRS})
     add_definitions(-DHAVE_CURL)
 endif()
-add_executable(tgbot main.cpp
+add_executable(tgbot
+    main.cpp
     listeners.h     listeners.cpp
     database.h      database.cpp
     myhttpclient.h
@@ -24,6 +25,7 @@ add_executable(tgbot main.cpp
     userextended.h  userextended.cpp
     botextended.h   botextended.cpp
     threads.h       threads.cpp
+    ad.h            ad.cpp
 
 )
 

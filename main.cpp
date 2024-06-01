@@ -25,9 +25,10 @@ int main(int argc, char** argv)
 {
     if(argc < 3)
     {
-        std::cout << "\nUSAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_DATABASE]' -L '[LOG_PATH]'\n\n"
+        std::cout << "\nUSAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_USERBASE]' -A '[PATH_TO_ADBASE]' -L '[LOG_PATH]'\n\n"
                      "-T '[API_TOKEN]'\n\n\tAn API token for your bot.\n\n\n "
-                     "-D '[PATH_TO_DATABASE]'\n\n\tA path to a SQLite3 database file.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\n"
+                     "-D '[PATH_TO_USERBASE]'\n\n\tA path to a SQLite3 database file which contains users.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\n"
+                     "-A '[PATH_TO_ADBASE]'\n\n\tA path to a SQLite3 database file which contains ads.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\n"
                      "-L '[LOG_PATH]'\n\n\tA path to a log file.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\tMight be omitted.\n\n"
                      "-S [SECONDS]\n\n\tEnables auto-sync of internal and external storages.\n\tThe program uses a vector for fast access and a SQLite3 database for long-term storage.\n\tMight be omitted.\n\n";
         return 1;
@@ -36,7 +37,8 @@ int main(int argc, char** argv)
     std::cout << "\nINITIALIZING...\n";
 
     std::string bot_token;
-    std::string filename;
+    std::string filename_ub;
+    std::string filename_ab;
     std::int32_t interval = -1;
 
     std::vector<std::string> params(argv, argv + argc);
@@ -49,16 +51,24 @@ int main(int argc, char** argv)
         throw std::runtime_error("No API token specified!");
 
 
-    // SET DATABASE FILE
+    // SET USERBASE FILE
     it = std::find(params.begin(), params.end(), "-D");
 
     if(it != params.end())
-        filename = *(++it);
+        filename_ub = *(++it);
     else
-        throw std::runtime_error("No Database file specified!");
+        throw std::runtime_error("No Userbase file specified!");
+
+    // SET ADBASE FILE
+    it = std::find(params.begin(), params.end(), "-A");
+
+    if(it != params.end())
+        filename_ab = *(++it);
+    else
+        throw std::runtime_error("No Adbase file specified!");
 
     MyHttpClient mHC;
-    BotExtended bot(bot_token, mHC, filename);
+    BotExtended bot(bot_token, mHC, filename_ub/*, filename_ab*/);
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");
@@ -98,7 +108,7 @@ int main(int argc, char** argv)
     int choice;
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table (short version);\n2. Send a message to a user;\n3. Send a message to all users;\n4. Sync the database with the file;\n5. Quit.\nEnter a number: ";
+        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table (short version);\n2. Send a message to a user;\n3. Send a message to all users;\n4. Sync the userbase with the file;\n5. Quit.\nEnter a number: ";
         std::cin >> choice;
 
 
@@ -163,7 +173,7 @@ int main(int argc, char** argv)
         }
         case 4:
             bot.database_->sync();
-            std::cout << "The database is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
+            std::cout << "The database is saved to '" << filename_ab << "'; the backup is '" << filename_ab << ".bak'.\n";
             break;
         case 5:
             bot.database_->sync();

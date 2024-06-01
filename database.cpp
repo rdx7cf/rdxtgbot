@@ -1,11 +1,10 @@
 #include "database.h"
 
-
 ///////////////////////
 // AUX SECTION OPEN //
 /////////////////////
 
-static int extract_row(void* users, int colcount, char** columns, char** colnames)
+static int extract_user(void* users, int colcount, char** columns, char** colnames)
 {
     std::shared_ptr<UserExtended> user(new UserExtended);
 
@@ -20,9 +19,23 @@ static int extract_row(void* users, int colcount, char** columns, char** colname
     user->canJoinGroups = columns[9];
     user->canReadAllGroupMessages = columns[10];
     user->supportsInlineQueries = columns[11];
-    user->active_tasks_ = std::stoul(columns[12]);
+    user->activeTasks = std::stoul(columns[12]);
 
     reinterpret_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
+
+    return 0;
+}
+
+static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
+{
+    std::shared_ptr<Ad> ad(new Ad);
+
+    ad->id = std::stol(columns[0]);
+    ad->owner = columns[1];
+    ad->text = columns[2];
+    ad->expired_on = std::stol(columns[3]);
+
+    reinterpret_cast<std::vector<Ad::Ptr>*>(ads)->push_back(ad);
 
     return 0;
 }
@@ -57,8 +70,8 @@ Database::Database(const std::string& filename) : filename_(filename)
         "SELECT * FROM users";
 
     {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
-        rc = sqlite3_exec(db, query, extract_row, &users_vec_, &err_msg);
+        std::lock_guard<std::mutex> lock(mutex_users_vec_);
+        rc = sqlite3_exec(db, query, extract_user, &users_vec_, &err_msg);
     }
 
 
@@ -88,27 +101,25 @@ void Database::copy_sql_file() const
 
 }
 
-bool Database::contains(const TgBot::User::Ptr& user)
+bool Database::user_contains(const TgBot::User::Ptr& user)
 {
-    std::lock_guard<std::mutex> lock(mutex_vec_);
+    std::lock_guard<std::mutex> lock(mutex_users_vec_);
 
-    auto comp = std::bind([](const UserExtended::Ptr& x, const TgBot::User::Ptr& y) { return x->id == y->id; }, std::placeholders::_1, user); // originally binder1st; it transforms a binary predicate compare to a unary.
-    auto existing_user_It = find_if(users_vec_.begin(), users_vec_.end(), comp);
+    auto existing_user_it = find_if(users_vec_.begin(), users_vec_.end(), [&user](const UserExtended::Ptr& x) { return x->id == user->id; });
 
-    if(existing_user_It == users_vec_.end())
+    if(existing_user_it == users_vec_.end())
         return false;
 
     return true;
 }
 
-bool Database::contains(const std::int64_t& id)
+bool Database::user_contains(const std::int64_t& id)
 {
-    std::lock_guard<std::mutex> lock(mutex_vec_);
+    std::lock_guard<std::mutex> lock(mutex_users_vec_);
 
-    auto comp = std::bind([](const UserExtended::Ptr& x, const std::int64_t& y) { return x->id == y; }, std::placeholders::_1, id); // originally binder1st; it transforms a binary predicate compare to a unary.
-    auto existing_user_It = find_if(users_vec_.begin(), users_vec_.end(), comp);
+    auto existing_user_it = find_if(users_vec_.begin(), users_vec_.end(), [&id](const UserExtended::Ptr& x) { return x->id == id; });
 
-    if(existing_user_It == users_vec_.end())
+    if(existing_user_it == users_vec_.end())
         return false;
 
     return true;
@@ -176,7 +187,7 @@ void Database::user_add(const UserExtended::Ptr& user)
         + std::string(", ")
         + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
         + std::string(", ")
-        + std::to_string(user->active_tasks_.to_ulong())
+        + std::to_string(user->activeTasks.to_ulong())
         + std::string(");");
 
     rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
@@ -196,7 +207,7 @@ void Database::user_add(const UserExtended::Ptr& user)
 
 
     {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
+        std::lock_guard<std::mutex> lock(mutex_users_vec_);
         users_vec_.push_back(user);
     }
 
@@ -208,82 +219,82 @@ void Database::user_add(const UserExtended::Ptr& user)
 
 void Database::user_update(const TgBot::User::Ptr& user)
 {
-    std::vector<UserExtended::Ptr>::iterator existing_user_It;
+    std::vector<UserExtended::Ptr>::iterator existing_user_it;
 
     // VECTOR MUTEX SCOPE LOCK
     {
-        std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+        std::lock_guard<std::mutex> lock_vec(mutex_users_vec_);
 
         // Searching for the user in the vector.
 
         auto comp = std::bind([](const UserExtended::Ptr& x, const TgBot::User::Ptr& y) { return x->id == y->id; }, std::placeholders::_1, user); // originally binder1st; it transforms a binary predicate compare to a unary.
-        existing_user_It = find_if(users_vec_.begin(), users_vec_.end(), comp);
+        existing_user_it = find_if(users_vec_.begin(), users_vec_.end(), comp);
 
-        if(existing_user_It == users_vec_.end())
+        if(existing_user_it == users_vec_.end())
             return;
 
         bool info_updated = false;
 
         // Updating the entry in the vector.
 
-        if(user->username != (*existing_user_It)->username)
+        if(user->username != (*existing_user_it)->username)
         {
             info_updated = true;
-            (*existing_user_It)->username = user->username;
+            (*existing_user_it)->username = user->username;
         }
 
-        if(user->firstName != (*existing_user_It)->firstName)
+        if(user->firstName != (*existing_user_it)->firstName)
         {
             info_updated = true;
-            (*existing_user_It)->firstName = user->firstName;
+            (*existing_user_it)->firstName = user->firstName;
         }
 
-        if(user->lastName != (*existing_user_It)->lastName)
+        if(user->lastName != (*existing_user_it)->lastName)
         {
             info_updated = true;
-            (*existing_user_It)->lastName = user->lastName;
+            (*existing_user_it)->lastName = user->lastName;
         }
 
-        if(user->languageCode != (*existing_user_It)->languageCode)
+        if(user->languageCode != (*existing_user_it)->languageCode)
         {
             info_updated = true;
-            (*existing_user_It)->languageCode = user->languageCode;
+            (*existing_user_it)->languageCode = user->languageCode;
         }
 
-        if(user->isBot != (*existing_user_It)->isBot)
+        if(user->isBot != (*existing_user_it)->isBot)
         {
             info_updated = true;
-            (*existing_user_It)->isBot = user->isBot;
+            (*existing_user_it)->isBot = user->isBot;
         }
 
-        if(user->isPremium != (*existing_user_It)->isPremium)
+        if(user->isPremium != (*existing_user_it)->isPremium)
         {
             info_updated = true;
-            (*existing_user_It)->isPremium = user->isPremium;
+            (*existing_user_it)->isPremium = user->isPremium;
         }
 
-        if(user->addedToAttachmentMenu != (*existing_user_It)->addedToAttachmentMenu)
+        if(user->addedToAttachmentMenu != (*existing_user_it)->addedToAttachmentMenu)
         {
             info_updated = true;
-            (*existing_user_It)->addedToAttachmentMenu = user->addedToAttachmentMenu;
+            (*existing_user_it)->addedToAttachmentMenu = user->addedToAttachmentMenu;
         }
 
-        if(user->canJoinGroups != (*existing_user_It)->canJoinGroups)
+        if(user->canJoinGroups != (*existing_user_it)->canJoinGroups)
         {
             info_updated = true;
-            (*existing_user_It)->canJoinGroups = user->canJoinGroups;
+            (*existing_user_it)->canJoinGroups = user->canJoinGroups;
         }
 
-        if(user->canReadAllGroupMessages != (*existing_user_It)->canReadAllGroupMessages)
+        if(user->canReadAllGroupMessages != (*existing_user_it)->canReadAllGroupMessages)
         {
             info_updated = true;
-            (*existing_user_It)->canReadAllGroupMessages = user->canReadAllGroupMessages;
+            (*existing_user_it)->canReadAllGroupMessages = user->canReadAllGroupMessages;
         }
 
-        if(user->supportsInlineQueries != (*existing_user_It)->supportsInlineQueries)
+        if(user->supportsInlineQueries != (*existing_user_it)->supportsInlineQueries)
         {
             info_updated = true;
-            (*existing_user_It)->supportsInlineQueries = user->supportsInlineQueries;
+            (*existing_user_it)->supportsInlineQueries = user->supportsInlineQueries;
         }
 
         if(!info_updated)
@@ -327,7 +338,7 @@ void Database::sync()
     std::string query;
 
     {
-        std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+        std::lock_guard<std::mutex> lock_vec(mutex_users_vec_);
         std::for_each(users_vec_.begin(), users_vec_.end(), [&](const UserExtended::Ptr& user)
         {
             query =
@@ -341,7 +352,7 @@ void Database::sync()
                     + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
                     + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
                     + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
-                    + std::string(", tg_activetasks=") + std::to_string(user->active_tasks_.to_ulong())
+                    + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
                     + std::string(" WHERE tg_id=") + std::to_string(user->id);
 
             rc = sqlite3_exec(db, query.c_str(), nullptr, nullptr, &err_msg);
@@ -370,7 +381,7 @@ void Database::show_table(std::ostream& os)
 {
     os << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
 
-    std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+    std::lock_guard<std::mutex> lock_vec(mutex_users_vec_);
     std::for_each(users_vec_.begin(), users_vec_.end(),[&os](const UserExtended::Ptr& user)
     {
         os << std::left << std::setw(16) << std::to_string(user->id) << std::setw(32) << user->username << user->firstName << std::endl;
