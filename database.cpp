@@ -44,8 +44,58 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
 // AUX SECTION CLOSE //
 //////////////////////
 
-template<>
-Database<UserExtended>::Database(const std::string& filename) : filename_(filename)
+// DATABASE
+
+std::mutex Database::mutex_sql_ {}; // ODR-use.
+
+void Database::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container)
+{
+    std::lock_guard<std::mutex> lock(mutex_sql_);
+
+    char* err_msg = nullptr;
+
+    sqlite3* db;
+    int rc = sqlite3_open(filename_.c_str(), &db);
+
+    if(rc != SQLITE_OK)
+    {
+        last_err_msg_ = std::string("FILE UNAVAILABLE: '") + filename_ + "'";
+
+        Logger::write(": ERROR : BAS : " + last_err_msg_);
+
+        sqlite3_close(db);
+
+        throw Database::db_exception(last_err_msg_);
+    }
+
+    rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
+
+
+    if(rc != SQLITE_OK)
+    {
+        last_err_msg_ =  err_msg;
+
+        Logger::write(": ERROR : BAS : " + last_err_msg_);
+
+        sqlite3_free(err_msg);
+        sqlite3_close(db);
+
+        throw Database::db_exception(last_err_msg_);
+    }
+
+    sqlite3_close(db);
+}
+
+void Database::copy_sql_file()
+{
+    std::lock_guard<std::mutex> lock(mutex_sql_); // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
+    boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
+    Logger::write(": INFO : FIL : '" + filename_ + "' COPIED.");
+}
+
+// USERBASE
+
+Userbase::Userbase(const std::string& filename) : Database(filename)
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
@@ -62,25 +112,7 @@ Database<UserExtended>::Database(const std::string& filename) : filename_(filena
     Logger::write(": INFO : BAS : USR : INITIALIZED.");
 }
 
-template<>
-Database<Ad>::Database(const std::string& filename) : filename_(filename)
-{
-    {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
-        send_query
-                (
-                    "CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT, text TEXT, active BOOLEAN, expiring_on INTEGER);"
-                    "SELECT * FROM ads",
-                    extract_ad,
-                    &vec_
-                );
-    }
-
-    Logger::write(": INFO : BAS : USR : INITIALIZED.");
-}
-
-template<>
-void Database<UserExtended>::add(const dataPtr& entry)
+void Userbase::add(const UserExtended::Ptr& entry)
 {
     try
     {
@@ -130,44 +162,9 @@ void Database<UserExtended>::add(const dataPtr& entry)
     Logger::write(": INFO : BAS : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] ADDED.");
 }
 
-template<>
-void Database<Ad>::add(const dataPtr& entry)
+void Userbase::update(const UserExtended::Ptr& entry)
 {
-    try
-    {
-        copy_sql_file();
-    }
-    catch(const boost::filesystem::filesystem_error& ex)
-    {
-        last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FS : " + last_err_msg_);
-
-        throw ex;
-    }
-
-    send_query(
-        (std::string)"INSERT INTO ads (owner, text, active, expiring_on) VALUES ("
-        + std::string(entry->owner)
-        + std::string("', '")
-        + std::string(entry->text)
-        + std::string("', ")
-        + std::string(entry->active ? "TRUE" : "FALSE")
-        + std::string(", ")
-        + std::to_string(entry->expiring_on)
-        + std::string(");"));
-
-    {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
-        vec_.push_back(entry);
-    }
-
-    Logger::write(": INFO : BAS : ADS : [" + std::to_string(entry->id) + "] [" + entry->owner + "] ADDED.");
-}
-
-template<>
-void Database<UserExtended>::update(const dataPtr& entry)
-{
-    std::vector<dataPtr>::iterator existing_user_it;
+    std::vector<UserExtended::Ptr>::iterator existing_user_it;
 
     // VECTOR MUTEX SCOPE LOCK
     {
@@ -175,7 +172,7 @@ void Database<UserExtended>::update(const dataPtr& entry)
 
         // Searching for the user in the vector.
 
-        existing_user_it = find_if(vec_.begin(), vec_.end(), [&entry](const dataPtr& x) { return x->id == entry->id; });
+        existing_user_it = find_if(vec_.begin(), vec_.end(), [&entry](const UserExtended::Ptr& x) { return x->id == entry->id; });
 
         if(existing_user_it == vec_.end())
             return;
@@ -250,10 +247,135 @@ void Database<UserExtended>::update(const dataPtr& entry)
     Logger::write(": INFO : BAS : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] UPDATED.");
 }
 
-template<>
-void Database<Ad>::update(const dataPtr& entry)
+bool Userbase::contains(const TgBot::User::Ptr& entry)
 {
-    std::vector<dataPtr>::iterator existing_ad_it;
+    std::lock_guard<std::mutex> lock(mutex_vec_);
+
+    auto existing_user_it = find_if(vec_.begin(), vec_.end(), [&entry](const UserExtended::Ptr& x) { return x->id == entry->id; });
+
+    if(existing_user_it == vec_.end())
+        return false;
+
+    return true;
+}
+
+bool Userbase::contains(const std::int64_t& id)
+{
+    std::lock_guard<std::mutex> lock(mutex_vec_);
+
+    auto existing_user_it = find_if(vec_.begin(), vec_.end(), [&id](const UserExtended::Ptr& x) { return x->id == id; });
+
+    if(existing_user_it == vec_.end())
+        return false;
+
+    return true;
+}
+
+void Userbase::sync()
+{
+    try
+    {
+        copy_sql_file();
+    }
+    catch(const boost::filesystem::filesystem_error& ex)
+    {
+        last_err_msg_ = ex.what();
+        Logger::write(": ERROR : FIL : " + last_err_msg_);
+
+        throw ex;
+    }
+
+    std::string query;
+
+    {
+        std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+        std::for_each(vec_.begin(), vec_.end(), [&](const UserExtended::Ptr& user)
+        {
+            send_query(
+                        (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
+                        + std::string("', tg_fname='") + std::string(user->firstName)
+                        + std::string("', tg_lname='") + std::string(user->lastName)
+                        + std::string("', tg_langcode='")+ std::string(user->languageCode)
+                        + std::string("', tg_bot=") + std::string(user->isBot ? "TRUE" : "FALSE")
+                        + std::string(", tg_prem=") + std::string(user->isPremium ? "TRUE" : "FALSE")
+                        + std::string(", tg_ATAM=") + std::string(user->addedToAttachmentMenu ? "TRUE" : "FALSE")
+                        + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
+                        + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
+                        + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
+                        + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
+                        + std::string(" WHERE tg_id=") + std::to_string(user->id)
+                    );
+        });
+    }
+
+    Logger::write(": INFO : BAS : USR : SYNC OK.");
+}
+
+void Userbase::show_table(std::ostream& os)
+{
+    os << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
+
+    std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+    std::for_each(vec_.begin(), vec_.end(),[&os](const UserExtended::Ptr& entry)
+    {
+        os << std::left << std::setw(16) << std::to_string(entry->id) << std::setw(32) << entry->username << entry->firstName << std::endl;
+    });
+}
+
+// ADBASE
+
+Adbase::Adbase(const std::string& filename) : Database(filename)
+{
+    {
+        std::lock_guard<std::mutex> lock(mutex_vec_);
+        send_query
+                (
+                    "CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT, text TEXT, active BOOLEAN, expiring_on INTEGER);"
+                    "SELECT * FROM ads",
+                    extract_ad,
+                    &vec_
+                );
+    }
+
+    Logger::write(": INFO : BAS : USR : INITIALIZED.");
+}
+
+void Adbase::add(const Ad::Ptr& entry)
+{
+    try
+    {
+        copy_sql_file();
+    }
+    catch(const boost::filesystem::filesystem_error& ex)
+    {
+        last_err_msg_ = ex.what();
+        Logger::write(": ERROR : FS : " + last_err_msg_);
+
+        throw ex;
+    }
+
+    send_query(
+        (std::string)"INSERT INTO ads (owner, text, active, expiring_on) VALUES ("
+        + std::string(entry->owner)
+        + std::string("', '")
+        + std::string(entry->text)
+        + std::string("', ")
+        + std::string(entry->active ? "TRUE" : "FALSE")
+        + std::string(", ")
+        + std::to_string(entry->expiring_on)
+        + std::string(");"));
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_vec_);
+        vec_.push_back(entry);
+    }
+
+    Logger::write(": INFO : BAS : ADS : [" + std::to_string(entry->id) + "] [" + entry->owner + "] ADDED.");
+}
+
+void Adbase::update(const Ad::Ptr& entry)
+{
+    std::vector<Ad::Ptr>::iterator existing_ad_it;
 
     // VECTOR MUTEX SCOPE LOCK
     {
@@ -261,7 +383,7 @@ void Database<Ad>::update(const dataPtr& entry)
 
         // Searching for the ad in the vector.
 
-        existing_ad_it = find_if(vec_.begin(), vec_.end(), [&entry](const dataPtr& x) { return x->id == entry->id; });
+        existing_ad_it = find_if(vec_.begin(), vec_.end(), [&entry](const Ad::Ptr& x) { return x->id == entry->id; });
 
         if(existing_ad_it == vec_.end())
             return;
@@ -300,49 +422,31 @@ void Database<Ad>::update(const dataPtr& entry)
     Logger::write(": INFO : BAS : ADS : [" + std::to_string(entry->id) + "] [" + entry->owner + "] UPDATED.");
 }
 
-template<>
-void Database<UserExtended>::sync()
+bool Adbase::contains(const Ad::Ptr& entry)
 {
-    try
-    {
-        copy_sql_file();
-    }
-    catch(const boost::filesystem::filesystem_error& ex)
-    {
-        last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FIL : " + last_err_msg_);
+    std::lock_guard<std::mutex> lock(mutex_vec_);
 
-        throw ex;
-    }
+    auto existing_user_it = find_if(vec_.begin(), vec_.end(), [&entry](const Ad::Ptr& x) { return x->id == entry->id; });
 
-    std::string query;
+    if(existing_user_it == vec_.end())
+        return false;
 
-    {
-        std::lock_guard<std::mutex> lock_vec(mutex_vec_);
-        std::for_each(vec_.begin(), vec_.end(), [&](const dataPtr& user)
-        {
-            send_query(
-                        (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
-                        + std::string("', tg_fname='") + std::string(user->firstName)
-                        + std::string("', tg_lname='") + std::string(user->lastName)
-                        + std::string("', tg_langcode='")+ std::string(user->languageCode)
-                        + std::string("', tg_bot=") + std::string(user->isBot ? "TRUE" : "FALSE")
-                        + std::string(", tg_prem=") + std::string(user->isPremium ? "TRUE" : "FALSE")
-                        + std::string(", tg_ATAM=") + std::string(user->addedToAttachmentMenu ? "TRUE" : "FALSE")
-                        + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
-                        + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
-                        + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
-                        + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
-                        + std::string(" WHERE tg_id=") + std::to_string(user->id)
-                    );
-        });
-    }
-
-    Logger::write(": INFO : BAS : USR : SYNC OK.");
+    return true;
 }
 
-template<>
-void Database<Ad>::sync()
+bool Adbase::contains(const std::int64_t& id)
+{
+    std::lock_guard<std::mutex> lock(mutex_vec_);
+
+    auto existing_user_it = find_if(vec_.begin(), vec_.end(), [&id](const Ad::Ptr& x) { return x->id == id; });
+
+    if(existing_user_it == vec_.end())
+        return false;
+
+    return true;
+}
+
+void Adbase::sync()
 {
     try
     {
@@ -360,7 +464,7 @@ void Database<Ad>::sync()
 
     {
         std::lock_guard<std::mutex> lock_vec(mutex_vec_);
-        std::for_each(vec_.begin(), vec_.end(), [&](const dataPtr& entry)
+        std::for_each(vec_.begin(), vec_.end(), [&](const Ad::Ptr& entry)
         {
             send_query(
                         (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
@@ -375,24 +479,11 @@ void Database<Ad>::sync()
     Logger::write(": INFO : BAS : ADS : SYNC OK.");
 }
 
-template<>
-void Database<UserExtended>::show_table(std::ostream& os)
-{
-    os << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
-
-    std::lock_guard<std::mutex> lock_vec(mutex_vec_);
-    std::for_each(vec_.begin(), vec_.end(),[&os](const dataPtr& entry)
-    {
-        os << std::left << std::setw(16) << std::to_string(entry->id) << std::setw(32) << entry->username << entry->firstName << std::endl;
-    });
-}
-
-template<>
-void Database<Ad>::show_table(std::ostream& os)
+void Adbase::show_table(std::ostream& os)
 {
     os << std::left << std::setw(16) << "ID" << std::setw(32) << "OWNER" << "EXPIRING ON" << std::endl;
     std::lock_guard<std::mutex> lock_vec(mutex_vec_);
-    std::for_each(vec_.begin(), vec_.end(),[&os](const dataPtr& entry)
+    std::for_each(vec_.begin(), vec_.end(),[&os](const Ad::Ptr& entry)
     {
         std::time_t now = entry->expiring_on;
         os << std::left << std::setw(16) << std::to_string(entry->id) << std::setw(32) << entry->owner << std::put_time(std::localtime(&now), "%d-%m-%Y %H-%M-%S") << std::endl;

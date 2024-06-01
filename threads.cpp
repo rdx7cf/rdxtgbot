@@ -44,6 +44,7 @@ void thread_auto_sync(std::stop_token tok, const BotExtended& bot, const std::in
     while(!tok.stop_requested())
     {
         bot.userbase_->sync();
+        bot.adbase_->sync();
         Logger::write(": INFO : BAS : NEXT SYNC IN: " + std::to_string(seconds) + " SEC.");
         for(std::int32_t wait = 0; wait < seconds && !tok.stop_requested(); ++wait )
             std::this_thread::sleep_for(std::chrono::seconds(1));
