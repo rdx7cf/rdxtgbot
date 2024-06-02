@@ -82,7 +82,7 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
         sqlite3_free(err_msg);
         sqlite3_close(db);
 
-        if(rc != SQLITE_CONSTRAINT_UNIQUE)
+        if(rc != 2067)
             throw Database::db_exception(last_err_msg_);
     }
 
