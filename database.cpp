@@ -73,7 +73,7 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
     rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
 
 
-    if(rc != SQLITE_OK)
+    if(rc != SQLITE_OK && rc != SQLITE_CONSTRAINT_UNIQUE)
     {
         last_err_msg_ =  err_msg;
 
