@@ -52,3 +52,8 @@ void thread_auto_sync(std::stop_token tok, const BotExtended& bot, const std::in
 
     Logger::write(": INFO : SYS : LOOP SYNC STOPPED.");
 }
+
+void thread_announcing(std::stop_token tok, const BotExtended& bot)
+{
+
+}

@@ -7,7 +7,7 @@ void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
     UserExtended::Ptr curr_user(new UserExtended(message->from));
 
-    if(!bot.userbase_->contains(curr_user))
+    if(!bot.userbase_->contains(message->from))
         std::jthread([&bot, &curr_user](){bot.userbase_->add(curr_user);});
     else
         std::jthread([&bot, &curr_user](){bot.userbase_->update(curr_user);});

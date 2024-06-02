@@ -33,7 +33,9 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
     ad->id = std::stol(columns[0]);
     ad->owner = columns[1];
     ad->text = columns[2];
-    ad->expiring_on = std::stol(columns[3]);
+    ad->active = columns[3];
+    ad->added_on = std::stol(columns[4]);
+    ad->expiring_on = std::stol(columns[5]);
 
     reinterpret_cast<std::vector<Ad::Ptr>*>(ads)->push_back(ad);
 
@@ -330,7 +332,7 @@ Adbase::Adbase(const std::string& filename) : Database(filename)
         std::lock_guard<std::mutex> lock(mutex_vec_);
         send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT, text TEXT, active BOOLEAN, expiring_on INTEGER);"
+                    "CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN,schedule TEXT,added_on INTEGER,expiring_on INTEGER);"
                     "SELECT * FROM ads",
                     extract_ad,
                     &vec_
@@ -354,13 +356,25 @@ void Adbase::add(const Ad::Ptr& entry)
         throw ex;
     }
 
+    std::ostringstream schedule_str;
+    std::for_each(entry->schedule.begin(), entry->schedule.end(),[&schedule_str](const std::tm& t)
+    {
+        schedule_str << std::put_time(&t, "%H-%M");
+    });
+
+
+
     send_query(
-        (std::string)"INSERT INTO ads (owner, text, active, expiring_on) VALUES ('"
+        (std::string)"INSERT INTO ads (owner, text, active, added_on, expiring_on) VALUES ('"
         + std::string(entry->owner)
         + std::string("', '")
         + std::string(entry->text)
         + std::string("', ")
         + std::string(entry->active ? "TRUE" : "FALSE")
+        + std::string(", '")
+        + schedule_str.str()
+        + std::string("', ")
+        + std::to_string(entry->added_on)
         + std::string(", ")
         + std::to_string(entry->expiring_on)
         + std::string(");"));
@@ -408,6 +422,18 @@ void Adbase::update(const Ad::Ptr& entry)
         {
             info_updated = true;
             (*existing_ad_it)->active = entry->active;
+        }
+
+        /*if(entry->schedule != (*existing_ad_it)->schedule) // Пока что так. Если будет вызывать ошибку, то переделаю.
+        {
+            info_updated = true;
+            (*existing_ad_it)->schedule = entry->schedule;
+        }*/
+
+        if(entry->added_on != (*existing_ad_it)->added_on)
+        {
+            info_updated = true;
+            (*existing_ad_it)->added_on = entry->added_on;
         }
 
         if(entry->expiring_on != (*existing_ad_it)->expiring_on)
@@ -470,6 +496,7 @@ void Adbase::sync()
                         (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
                         + std::string("', text='") + std::string(entry->text)
                         + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
+                        + std::string(", added_on=")+ std::to_string(entry->added_on)
                         + std::string(", expiring_on=")+ std::to_string(entry->expiring_on)
                         + std::string(" WHERE id=") + std::to_string(entry->id)
                     );
@@ -481,11 +508,12 @@ void Adbase::sync()
 
 void Adbase::show_table(std::ostream& os)
 {
-    os << std::left << std::setw(16) << "ID" << std::setw(32) << "OWNER" << "EXPIRING ON" << std::endl;
+    os << std::left << std::setw(10) << "ID" << std::setw(32) << "OWNER" << "ADDED ON" << "\t\t" << "EXPIRING ON" << std::endl;
     std::lock_guard<std::mutex> lock_vec(mutex_vec_);
     std::for_each(vec_.begin(), vec_.end(),[&os](const Ad::Ptr& entry)
     {
-        std::time_t now = entry->expiring_on;
-        os << std::left << std::setw(16) << std::to_string(entry->id) << std::setw(32) << entry->owner << std::put_time(std::localtime(&now), "%d-%m-%Y %H-%M-%S") << std::endl;
+        std::time_t expiring_on = entry->expiring_on;
+        std::time_t added_on = entry->added_on;
+        os << std::left << std::setw(10) << std::to_string(entry->id) << std::setw(32) << entry->owner << std::put_time(std::localtime(&added_on), "%d-%m-%Y %H-%M-%S") << '\t' << std::put_time(std::localtime(&expiring_on), "%d-%m-%Y %H-%M-%S") << std::endl;
     });
 }

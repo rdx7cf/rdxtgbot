@@ -169,7 +169,7 @@ int main(int argc, char** argv)
         case 5:
         {
             Ad::Ptr ad (new Ad());
-            std::tm t{};
+            std::tm t;
 
 
             std::cout << "Enter the owner: ";
@@ -187,7 +187,12 @@ int main(int argc, char** argv)
             std::cout << "Enter the expiration date (Y-m-d H:M:S): ";
             std::cin >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
 
+
+            ad->added_on = static_cast<std::int64_t>(std::time(nullptr));
             ad->expiring_on = static_cast<std::int64_t>(mktime(&t));
+
+            if(ad->added_on < ad->expiring_on)
+                ad->active = true;
 
             bot.adbase_->add(ad);
 
