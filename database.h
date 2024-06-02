@@ -15,40 +15,74 @@
 
 #include "logger.h"
 #include "userextended.h"
-#include "database.h"
-
+#include "ad.h"
 
 class Database
 {
 public:
-    typedef std::unique_ptr<Database> uPtr;
-
     class db_exception : public std::runtime_error
     {
     public:
         db_exception(const std::string& what_arg) : std::runtime_error(what_arg) {}
     };
 
-    Database(const std::string&);
+    Database(const std::string& filename) : filename_(filename) {}
 
-    bool contains(const TgBot::User::Ptr&);
-    bool contains(const std::int64_t&);
+    virtual ~Database() {}
 
-    void user_add(const UserExtended::Ptr&);
-    void user_update(const TgBot::User::Ptr&);
+    virtual bool contains(const std::int64_t&) = 0;
+    virtual void sync() = 0;
+    virtual void show_table(std::ostream&) = 0;
 
-    void sync();
-    void show_table(std::ostream&);
-
-private:
+protected:
     friend class BotExtended;
 
-    std::vector<UserExtended::Ptr> users_vec_;
     std::string filename_;
     std::string last_err_msg_;
 
-    std::mutex mutex_sql_;
+    static std::mutex mutex_sql_;
+
     std::mutex mutex_vec_;
 
-    void copy_sql_file() const;
+    void copy_sql_file();
+    void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
+};
+
+class Userbase : public Database
+{
+public:
+    typedef std::shared_ptr<Userbase> Ptr;
+
+    Userbase(const std::string&);
+
+    void add(const UserExtended::Ptr&);
+    void update(const UserExtended::Ptr&);
+    bool contains(const TgBot::User::Ptr&);
+
+    bool contains(const std::int64_t&) override;
+    void sync() override;
+    void show_table(std::ostream&) override;
+
+private:
+    friend class BotExtended;
+    std::vector<UserExtended::Ptr> vec_;
+};
+
+class Adbase : public Database
+{
+public:
+    typedef std::shared_ptr<Adbase> Ptr;
+
+    Adbase(const std::string&);
+    void add(const Ad::Ptr&);
+    void update(const Ad::Ptr&);
+    bool contains(const Ad::Ptr&);
+
+    bool contains(const std::int64_t&) override;
+    void sync() override;
+    void show_table(std::ostream&) override;
+
+private:
+    friend class BotExtended;
+    std::vector<Ad::Ptr> vec_;
 };

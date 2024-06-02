@@ -15,5 +15,5 @@ public:
     UserExtended();
     UserExtended(const TgBot::User::Ptr&);
 
-    std::bitset<4> active_tasks_; // For the future: this bitmask remembers if user had some loop task active before the bot shutdown (one bit for each task).
+    std::bitset<4> activeTasks; // For the future: this bitmask remembers if user had some loop task active before the bot shutdown (one bit for each task).
 };

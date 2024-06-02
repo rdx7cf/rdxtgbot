@@ -19,15 +19,16 @@
 #include "logger.h"
 #include "botextended.h"
 #include "threads.h"
+#include "ad.h"
 
 
 int main(int argc, char** argv)
 {
     if(argc < 3)
     {
-        std::cout << "\nUSAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_DATABASE]' -L '[LOG_PATH]'\n\n"
+        std::cout << "\nUSAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_USERBASE]' -A '[PATH_TO_ADBASE]' -L '[LOG_PATH]'\n\n"
                      "-T '[API_TOKEN]'\n\n\tAn API token for your bot.\n\n\n "
-                     "-D '[PATH_TO_DATABASE]'\n\n\tA path to a SQLite3 database file.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\n"
+                     "-D '[PATH_TO_USERBASE]'\n\n\tA path to a SQLite3 database file which contains user and ad tables.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\n"
                      "-L '[LOG_PATH]'\n\n\tA path to a log file.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\tMight be omitted.\n\n"
                      "-S [SECONDS]\n\n\tEnables auto-sync of internal and external storages.\n\tThe program uses a vector for fast access and a SQLite3 database for long-term storage.\n\tMight be omitted.\n\n";
         return 1;
@@ -49,13 +50,13 @@ int main(int argc, char** argv)
         throw std::runtime_error("No API token specified!");
 
 
-    // SET DATABASE FILE
+    // SET USERBASE FILE
     it = std::find(params.begin(), params.end(), "-D");
 
     if(it != params.end())
         filename = *(++it);
     else
-        throw std::runtime_error("No Database file specified!");
+        throw std::runtime_error("No Userbase file specified!");
 
     MyHttpClient mHC;
     BotExtended bot(bot_token, mHC, filename);
@@ -98,13 +99,14 @@ int main(int argc, char** argv)
     int choice;
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table (short version);\n2. Send a message to a user;\n3. Send a message to all users;\n4. Sync the database with the file;\n5. Quit.\nEnter a number: ";
+        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table (short version);\t2. Show advertisements table (short version);\n3. Send a message to a user;\t4. Send a message to all users;\n5. Add an advertisement;\t6. Sync the userbase with the file;\n7. Quit.\nEnter a number: ";
         std::cin >> choice;
 
 
         if(std::cin.eof()) // No occasional EOF.
         {
-            bot.database_->sync();
+            bot.userbase_->sync();
+            bot.adbase_->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
@@ -121,9 +123,12 @@ int main(int argc, char** argv)
         switch(choice)
         {
         case 1:
-            bot.database_->show_table(std::cout);
+            bot.userbase_->show_table(std::cout);
             break;
         case 2:
+            bot.adbase_->show_table(std::cout);
+            break;
+        case 3:
         {
             std::int64_t user_id;
             std::string message;
@@ -138,7 +143,7 @@ int main(int argc, char** argv)
 
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-            if(!bot.database_->contains(user_id))
+            if(!bot.userbase_->contains(user_id))
             {
                 std::cout << "There's no user with such id '" << user_id << "'.";
                 break;
@@ -151,7 +156,7 @@ int main(int argc, char** argv)
 
             break;
         }
-        case 3:
+        case 4:
         {
             std::string message;
             std::cout << "Enter a message for all users: ";
@@ -161,12 +166,45 @@ int main(int argc, char** argv)
 
             break;
         }
-        case 4:
-            bot.database_->sync();
-            std::cout << "The database is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
-            break;
         case 5:
-            bot.database_->sync();
+        {
+            Ad::Ptr ad (new Ad());
+            std::tm t{};
+
+
+            std::cout << "Enter the owner: ";
+            std::getline(std::cin, ad->owner);
+
+            std::cout << "Enter the text: \n";
+
+
+            for(std::string temp; std::getline(std::cin, temp); )
+                ad->text += temp + '\n';
+
+            clearerr(stdin);
+            std::cin.clear();
+
+            std::cout << "Enter the expiration date (Y-m-d H:M:S): ";
+            std::cin >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
+
+            ad->expiring_on = static_cast<std::int64_t>(mktime(&t));
+
+            bot.adbase_->add(ad);
+
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+            break;
+        }
+        case 6:
+            bot.userbase_->sync();
+            bot.adbase_->sync(); // Нужно потом сделать так, чтобы синхронизировало их за один раз.
+            std::cout << "The userbase is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
+            std::cout << "The adbase is saved to '" << filename << "'; the backup is '" << filename << ".bak'.\n";
+            break;
+        case 7:
+            bot.userbase_->sync();
+            bot.adbase_->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
