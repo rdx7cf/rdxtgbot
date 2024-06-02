@@ -67,24 +67,22 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
 
         sqlite3_close(db);
 
-        if(rc != SQLITE_CONSTRAINT_UNIQUE)
-            throw Database::db_exception(last_err_msg_);
+        throw Database::db_exception(last_err_msg_);
     }
 
     rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
 
 
-    if(rc != SQLITE_OK)
+    if(rc != SQLITE_OK && rc != SQLITE_CONSTRAINT_UNIQUE)
     {
         last_err_msg_ =  err_msg;
 
-        Logger::write(": ERROR : BAS : " + last_err_msg_);
+        Logger::write(": ERROR : BAS : " + last_err_msg_ + std::to_string(rc));
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
 
-        if(rc != SQLITE_CONSTRAINT_UNIQUE)
-            throw Database::db_exception(last_err_msg_);
+        throw Database::db_exception(last_err_msg_);
     }
 
     sqlite3_close(db);
