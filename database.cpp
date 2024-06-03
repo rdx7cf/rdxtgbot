@@ -174,9 +174,7 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
 
 bool Userbase::add(const UserExtended::Ptr& entry)
 {
-    std::lock_guard<std::mutex> lock(mutex_vec_);
-
-    if(contains(entry)) // If a user spams the bot in inactive state, it will add the user multiple times. This condition check is required to prevent this from happening.
+    if(contains(entry)) // DEADLOCK
         return false;
 
     try
