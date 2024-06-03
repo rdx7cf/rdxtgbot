@@ -86,3 +86,5 @@ private:
     friend class BotExtended;
     std::vector<Ad::Ptr> vec_;
 };
+
+std::vector<std::tm> extract_schedule(const std::string&);

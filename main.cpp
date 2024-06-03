@@ -187,7 +187,14 @@ int main(int argc, char** argv)
             std::cout << "Enter the expiration date (Y-m-d H:M:S): ";
             std::cin >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
 
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
+            std::string schedule_raw;
+            std::cout << "Enter the time schedule ('15:30 17:30 00:00 01:05'): ";
+            std::getline(std::cin, schedule_raw);
+
+            ad->schedule = extract_schedule(schedule_raw);
             ad->added_on = static_cast<std::int64_t>(std::time(nullptr));
             ad->expiring_on = static_cast<std::int64_t>(mktime(&t));
 

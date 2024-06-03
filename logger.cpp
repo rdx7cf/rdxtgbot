@@ -12,7 +12,7 @@ void Logger::write(const std::string& message)
     std::time_t now = std::time(nullptr);
 
     file <<
-     "[" << std::put_time(std::localtime(&now), "%d-%m-%Y %H-%M-%S") << "] "
+     "[" << std::put_time(std::localtime(&now), "%d-%m-%Y %H:%M:%S") << "] "
          << message << std::endl;
 
     file.close();

@@ -17,6 +17,7 @@ void thread_long_polling(std::stop_token tok, BotExtended& bot)
     Logger::write(": INFO : SYS : LONG POLLING INITALIZED.");
     bot.notify_all("I'm alive!");
     TgBot::TgLongPoll longPoll(bot, 100, 1);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     while(!tok.stop_requested())
     {
         try

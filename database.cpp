@@ -4,6 +4,57 @@
 // AUX SECTION OPEN //
 /////////////////////
 
+bool is_it_time(const std::tm& t1, const std::tm& t2)
+{
+    return t1.tm_hour > t2.tm_hour || (t1.tm_hour == t1.tm_hour && t1.tm_min > t2.tm_min); // Ошибка при таком условии: если значений времени несколько, то при наступлении самого раннего реклама будет выводиться бесконечно.
+}
+
+
+std::vector<std::string> split(const std::string& str, const char& delim)
+{
+    typedef std::string::const_iterator iter;
+
+    std::vector<std::string> ret;
+
+    iter i = str.begin();
+    while(i != str.end())
+    {
+        i = find_if(i, str.end(), [&delim](const char c){return c != delim;});
+        iter j = find_if(i, str.end(), [&delim](const char c){return c == delim;});
+
+        if(i != str.end())
+            ret.push_back(std::string(i, j));
+
+        i = j;
+    }
+
+    return ret;
+}
+
+std::vector<std::tm> extract_schedule(const std::string& raw)
+{
+
+    std::vector<std::tm> result;
+    std::stringstream raw_stream(raw);
+
+    for(std::string space_delim; std::getline(raw_stream, space_delim, ' '); )
+    {
+        if(space_delim.size() != 5)
+            throw Database::db_exception("Invalid schedule time format: '" + raw + "'.");
+
+        auto splitted = split(space_delim, ':');
+
+        std::tm t {};
+
+        t.tm_hour = std::stoi(splitted[0]);
+        t.tm_min = std::stoi(splitted[1]);
+
+        result.push_back(t);
+    }
+
+    return result;
+}
+
 static int extract_user(void* users, int colcount, char** columns, char** colnames)
 {
     UserExtended::Ptr user(new UserExtended);
@@ -34,8 +85,15 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
     ad->owner = columns[1];
     ad->text = columns[2];
     ad->active = columns[3];
-    ad->added_on = std::stol(columns[4]);
-    ad->expiring_on = std::stol(columns[5]);
+
+    std::string schedule_raw(columns[4]);
+    if(schedule_raw.size())
+        ad->schedule = extract_schedule(schedule_raw);
+    else
+        throw Database::db_exception("No schedule specified for: '" + ad->owner + "'.");
+
+    ad->added_on = std::stol(columns[5]);
+    ad->expiring_on = std::stol(columns[6]);
 
     reinterpret_cast<std::vector<Ad::Ptr>*>(ads)->push_back(ad);
 
@@ -67,7 +125,7 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
 
         sqlite3_close(db);
 
-        throw Database::db_exception(last_err_msg_);
+        throw Database::db_exception(last_err_msg_ + "\n:: QUERY ::\n" + query);
     }
 
     rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
@@ -82,7 +140,7 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
         sqlite3_free(err_msg);
         sqlite3_close(db);
 
-        throw Database::db_exception(last_err_msg_);
+        throw Database::db_exception(last_err_msg_ + "\n:: QUERY ::\n" + query);
     }
 
     sqlite3_close(db);
@@ -359,13 +417,13 @@ void Adbase::add(const Ad::Ptr& entry)
     std::ostringstream schedule_str;
     std::for_each(entry->schedule.begin(), entry->schedule.end(),[&schedule_str](const std::tm& t)
     {
-        schedule_str << std::put_time(&t, "%H-%M");
+        schedule_str << std::put_time(&t, "%H:%M ");
     });
 
 
 
     send_query(
-        (std::string)"INSERT INTO ads (owner, text, active, added_on, expiring_on) VALUES ('"
+        (std::string)"INSERT INTO ads (owner, text, active, schedule, added_on, expiring_on) VALUES ('"
         + std::string(entry->owner)
         + std::string("', '")
         + std::string(entry->text)
@@ -492,11 +550,18 @@ void Adbase::sync()
         std::lock_guard<std::mutex> lock_vec(mutex_vec_);
         std::for_each(vec_.begin(), vec_.end(), [&](const Ad::Ptr& entry)
         {
+            std::ostringstream schedule_str;
+            std::for_each(entry->schedule.begin(), entry->schedule.end(),[&schedule_str](const std::tm& t)
+            {
+                schedule_str << std::put_time(&t, "%H:%M ");
+            });
+
             send_query(
                         (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
                         + std::string("', text='") + std::string(entry->text)
                         + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
-                        + std::string(", added_on=")+ std::to_string(entry->added_on)
+                        + std::string(", schedule='")+ schedule_str.str()
+                        + std::string("', added_on=")+ std::to_string(entry->added_on)
                         + std::string(", expiring_on=")+ std::to_string(entry->expiring_on)
                         + std::string(" WHERE id=") + std::to_string(entry->id)
                     );
