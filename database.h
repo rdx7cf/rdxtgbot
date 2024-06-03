@@ -55,7 +55,7 @@ public:
 
     Userbase(const std::string&);
 
-    void add(const UserExtended::Ptr&);
+    bool add(const UserExtended::Ptr&); // This method also checks if the vector contains a user to prevent adding multiple rows of the same user.
     void update(const UserExtended::Ptr&);
     bool contains(const TgBot::User::Ptr&);
 

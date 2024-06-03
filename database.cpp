@@ -6,7 +6,7 @@
 
 bool is_it_time(const std::tm& t1, const std::tm& t2)
 {
-    return t1.tm_hour > t2.tm_hour || (t1.tm_hour == t1.tm_hour && t1.tm_min > t2.tm_min); // Ошибка при таком условии: если значений времени несколько, то при наступлении самого раннего реклама будет выводиться бесконечно.
+    return t1.tm_hour > t2.tm_hour || (t1.tm_hour == t2.tm_hour && t1.tm_min > t2.tm_min); // Ошибка при таком условии: если значений времени несколько, то при наступлении самого раннего реклама будет выводиться бесконечно.
 }
 
 
@@ -131,7 +131,7 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
     rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
 
 
-    if(rc != SQLITE_OK && rc != SQLITE_CONSTRAINT)
+    if(rc != SQLITE_OK)
     {
         last_err_msg_ =  err_msg;
 
@@ -172,8 +172,13 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
     Logger::write(": INFO : BAS : USR : INITIALIZED.");
 }
 
-void Userbase::add(const UserExtended::Ptr& entry)
+bool Userbase::add(const UserExtended::Ptr& entry)
 {
+    std::lock_guard<std::mutex> lock(mutex_vec_);
+
+    if(contains(entry)) // If a user spams the bot in inactive state, it will add the user multiple times. This condition check is required to prevent this from happening.
+        return false;
+
     try
     {
         copy_sql_file();
@@ -214,12 +219,11 @@ void Userbase::add(const UserExtended::Ptr& entry)
         + std::to_string(entry->activeTasks.to_ulong())
         + std::string(");"));
 
-    {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
-        vec_.push_back(entry);
-    }
+    vec_.push_back(entry);
 
     Logger::write(": INFO : BAS : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] ADDED.");
+
+    return true;
 }
 
 void Userbase::update(const UserExtended::Ptr& entry)
