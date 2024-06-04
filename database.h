@@ -30,7 +30,7 @@ public:
 
     virtual ~Database() {}
 
-
+    virtual bool contains(const std::int64_t&) = 0;
     virtual void sync() = 0;
     virtual void show_table(std::ostream&) = 0;
 
@@ -41,10 +41,8 @@ protected:
     std::string last_err_msg_;
 
     static std::mutex mutex_sql_;
-
     std::mutex mutex_vec_;
-
-    virtual bool contains(const std::int64_t&) = 0;
+    std::mutex mutex_database_;
 
     void copy_sql_file();
     void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
@@ -57,14 +55,16 @@ public:
 
     Userbase(const std::string&);
 
-    bool add(const UserExtended::Ptr&); // This method also checks whether the vector contains a user to prevent adding multiple rows of the same user.
+    void add(const UserExtended::Ptr&); // This method also checks whether the vector contains a user to prevent adding multiple rows of the same user.
     void update(const TgBot::User::Ptr&);
+    void process_user(const UserExtended::Ptr&);
 
+    bool contains(const std::int64_t&) override;
     void sync() override;
     void show_table(std::ostream&) override;
 
 private:
-    bool contains(const std::int64_t&) override;
+
     friend class BotExtended;
     std::vector<UserExtended::Ptr> vec_;
 };
@@ -79,12 +79,12 @@ public:
     void update(const Ad::Ptr&);
     bool contains(const Ad::Ptr&);
 
-
+    bool contains(const std::int64_t&) override;
     void sync() override;
     void show_table(std::ostream&) override;
 
 private:
-    bool contains(const std::int64_t&) override;
+
     friend class BotExtended;
     std::vector<Ad::Ptr> vec_;
 };

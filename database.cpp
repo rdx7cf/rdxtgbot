@@ -172,13 +172,17 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
     Logger::write(": INFO : BAS : USR : INITIALIZED.");
 }
 
-bool Userbase::add(const UserExtended::Ptr& entry)
+void Userbase::process_user(const UserExtended::Ptr& entry)
 {
-    std::lock_guard<std::mutex> lock(mutex_vec_);
+    std::lock_guard<std::mutex> lock(mutex_database_);
+    if(contains(entry->id))
+        update(entry);
+    else
+        add(entry);
+}
 
-    if(contains(entry->id)) // DEADLOCK
-        return false;
-
+void Userbase::add(const UserExtended::Ptr& entry)
+{
     try
     {
         copy_sql_file();
@@ -219,11 +223,13 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         + std::to_string(entry->activeTasks.to_ulong())
         + std::string(");"));
 
-    vec_.push_back(entry);
+    {
+        std::lock_guard<std::mutex> lock(mutex_vec_);
+        vec_.push_back(entry);
+    }
+
 
     Logger::write(": INFO : BAS : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] ADDED.");
-
-    return true;
 }
 
 void Userbase::update(const TgBot::User::Ptr& entry)
@@ -325,6 +331,8 @@ void Userbase::update(const TgBot::User::Ptr& entry)
 
 bool Userbase::contains(const std::int64_t& id)
 {
+    std::lock_guard<std::mutex> lock(mutex_vec_);
+
     auto existing_user_it = find_if(vec_.begin(), vec_.end(), [&id](const UserExtended::Ptr& x) { return x->id == id; });
 
     if(existing_user_it == vec_.end())

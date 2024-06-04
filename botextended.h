@@ -21,5 +21,4 @@ public:
 
     void notify_one(const std::int64_t&, const std::string&);
     void notify_all(const std::string&);
-
 };
