@@ -143,12 +143,6 @@ int main(int argc, char** argv)
 
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-            if(!bot.userbase_->contains(user_id))
-            {
-                std::cout << "There's no user with such id '" << user_id << "'.";
-                break;
-            }
-
             std::cout << "Enter a message for the user: ";
             std::getline(std::cin, message);
 

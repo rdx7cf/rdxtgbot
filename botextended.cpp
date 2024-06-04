@@ -3,8 +3,15 @@
 
 void BotExtended::notify_one(const std::int64_t& user_id, const std::string& message)
 {
-    getApi().sendMessage(user_id, message);
-    Logger::write(": INFO : BOT : [" + std::to_string(user_id) + "] RECEIVED MESSAGE.");
+    if(userbase_->contains(user_id))
+    {
+        getApi().sendMessage(user_id, message);
+        Logger::write(": INFO : BOT : [" + std::to_string(user_id) + "] RECEIVED MESSAGE.");
+    }
+    else
+    {
+        Logger::write(": ERROR : BOT : [" + std::to_string(user_id) + "] UNKNOWN USER.");
+    }
 }
 
 void BotExtended::notify_all(const std::string& message)

@@ -174,7 +174,7 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
 
 bool Userbase::add(const UserExtended::Ptr& entry)
 {
-    if(contains(entry)) // DEADLOCK
+    if(contains(entry->id)) // DEADLOCK
         return false;
 
     try
@@ -224,7 +224,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
     return true;
 }
 
-void Userbase::update(const UserExtended::Ptr& entry)
+void Userbase::update(const TgBot::User::Ptr& entry)
 {
     std::vector<UserExtended::Ptr>::iterator existing_user_it;
 
@@ -309,7 +309,7 @@ void Userbase::update(const UserExtended::Ptr& entry)
     Logger::write(": INFO : BAS : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] UPDATED.");
 }
 
-bool Userbase::contains(const TgBot::User::Ptr& entry)
+/*bool Userbase::contains(const TgBot::User::Ptr& entry)
 {
     std::lock_guard<std::mutex> lock(mutex_vec_);
 
@@ -319,12 +319,10 @@ bool Userbase::contains(const TgBot::User::Ptr& entry)
         return false;
 
     return true;
-}
+}*/
 
 bool Userbase::contains(const std::int64_t& id)
 {
-    std::lock_guard<std::mutex> lock(mutex_vec_);
-
     auto existing_user_it = find_if(vec_.begin(), vec_.end(), [&id](const UserExtended::Ptr& x) { return x->id == id; });
 
     if(existing_user_it == vec_.end())
