@@ -174,6 +174,8 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
 
 bool Userbase::add(const UserExtended::Ptr& entry)
 {
+    std::lock_guard<std::mutex> lock(mutex_vec_);
+
     if(contains(entry->id)) // DEADLOCK
         return false;
 
