@@ -85,6 +85,7 @@ int main(int argc, char** argv)
 
     std::jthread long_polling(thread_long_polling, std::ref(bot));
     std::jthread auto_syncing(thread_auto_sync, std::cref(bot), std::cref(interval));
+    std::jthread advertising(thread_advertising, std::ref(bot));
 
     signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
 
@@ -178,17 +179,17 @@ int main(int argc, char** argv)
             clearerr(stdin);
             std::cin.clear();
 
-            std::cout << "Enter the expiration date (Y-m-d H:M:S): ";
-            std::cin >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
+            std::cout << "Enter the expiration date (D-M-Y H:M:S): ";
+            std::cin >> std::get_time(&t, "%d-%m-%Y %H:%M:%S");
 
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
             std::string schedule_raw;
             std::cout << "Enter the time schedule ('15:30 17:30 00:00 01:05'): ";
-            std::getline(std::cin, schedule_raw);
+            std::getline(std::cin, ad->schedule_str);
 
-            ad->schedule = extract_schedule(schedule_raw);
+            ad->schedule = extract_schedule(ad->schedule_str);
             ad->added_on = static_cast<std::int64_t>(std::time(nullptr));
             ad->expiring_on = static_cast<std::int64_t>(mktime(&t));
 
@@ -196,9 +197,6 @@ int main(int argc, char** argv)
                 ad->active = true;
 
             bot.adbase_->add(ad);
-
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
             break;
         }

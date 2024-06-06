@@ -54,7 +54,34 @@ void thread_auto_sync(std::stop_token tok, const BotExtended& bot, const std::in
     Logger::write(": INFO : SYS : LOOP SYNC STOPPED.");
 }
 
-void thread_announcing(std::stop_token tok, const BotExtended& bot)
+void thread_advertising(std::stop_token tok, BotExtended& bot)
 {
+    std::tm current = localtime_ts(std::time(nullptr));
 
+    while(!tok.stop_requested())
+    {
+        std::for_each(bot.adbase_->begin(), bot.adbase_->end(), [&current, &bot](Ad::Ptr& ad)
+        {
+
+            std::for_each(ad->schedule.begin(), ad->schedule.end(), [&current, &ad, &bot](TmExtended& time_point)
+            {
+                if(ad->active)
+                {
+                    if  (((current.tm_hour == time_point.tm_hour && current.tm_min >= time_point.tm_min) || current.tm_hour > time_point.tm_hour) && !time_point.executed) // Такое монструозное условие нужно для того, чтобы учитывалась разница и между часами, и между часами:минутами (то есть чтобы временная точка типа 15:30 также была допустима)
+                    {
+                        bot.notify_all(ad->text);
+                        time_point.executed = true;
+                    }
+                    else if((current.tm_hour < time_point.tm_hour || (current.tm_hour == time_point.tm_hour && current.tm_min < time_point.tm_min)) && time_point.executed)
+                    {
+                        time_point.executed = false;
+                    }
+                }
+            });
+        });
+
+        current = localtime_ts(std::time(nullptr));
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 }

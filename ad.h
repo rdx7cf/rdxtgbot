@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include <ctime>
+#include "tmextended.h"
 
 class Ad
 {
@@ -16,7 +16,8 @@ public:
     bool active;
     std::int64_t added_on;
     std::int64_t expiring_on;
-    std::vector<std::tm> schedule;
+    std::vector<TmExtended> schedule;
+    std::string schedule_str;
 
     Ad(const std::int64_t& = 0,
        const std::string& = std::string(),

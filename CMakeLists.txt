@@ -26,6 +26,9 @@ add_executable(tgbot
     botextended.h   botextended.cpp
     threads.h       threads.cpp
     ad.h            ad.cpp
+    tmextended.h
+    ctime++.h  ctime++.cpp
+
 
 
 )

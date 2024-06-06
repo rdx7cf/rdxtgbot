@@ -16,6 +16,7 @@
 #include "logger.h"
 #include "userextended.h"
 #include "ad.h"
+#include "ctime++.h"
 
 class Database
 {
@@ -55,7 +56,7 @@ public:
 
     Userbase(const std::string&);
 
-    void add(const UserExtended::Ptr&); // This method also checks whether the vector contains a user to prevent adding multiple rows of the same user.
+    void add(const UserExtended::Ptr&);
     void update(const TgBot::User::Ptr&);
     void process_user(const UserExtended::Ptr&);
 
@@ -73,6 +74,7 @@ class Adbase : public Database
 {
 public:
     typedef std::shared_ptr<Adbase> Ptr;
+    typedef std::vector<Ad::Ptr>::iterator iterator;
 
     Adbase(const std::string&);
     void add(const Ad::Ptr&);
@@ -83,10 +85,13 @@ public:
     void sync() override;
     void show_table(std::ostream&) override;
 
+    iterator begin() { return vec_.begin(); }
+    iterator end() { return vec_.end(); }
+
 private:
 
     friend class BotExtended;
     std::vector<Ad::Ptr> vec_;
 };
 
-std::vector<std::tm> extract_schedule(const std::string&);
+std::vector<TmExtended> extract_schedule(const std::string&);

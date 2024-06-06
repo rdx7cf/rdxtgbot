@@ -7,6 +7,8 @@
 #include "botextended.h"
 #include "logger.h"
 #include "listeners.h"
+#include "ctime++.h"
 
 void thread_long_polling(std::stop_token, BotExtended&);
 void thread_auto_sync(std::stop_token, const BotExtended&, const std::int32_t&);
+void thread_advertising(std::stop_token, BotExtended&);

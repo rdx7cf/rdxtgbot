@@ -4,12 +4,6 @@
 // AUX SECTION OPEN //
 /////////////////////
 
-bool is_it_time(const std::tm& t1, const std::tm& t2)
-{
-    return t1.tm_hour > t2.tm_hour || (t1.tm_hour == t2.tm_hour && t1.tm_min > t2.tm_min); // Ошибка при таком условии: если значений времени несколько, то при наступлении самого раннего реклама будет выводиться бесконечно.
-}
-
-
 std::vector<std::string> split(const std::string& str, const char& delim)
 {
     typedef std::string::const_iterator iter;
@@ -31,10 +25,10 @@ std::vector<std::string> split(const std::string& str, const char& delim)
     return ret;
 }
 
-std::vector<std::tm> extract_schedule(const std::string& raw)
+std::vector<TmExtended> extract_schedule(const std::string& raw)
 {
 
-    std::vector<std::tm> result;
+    std::vector<TmExtended> result;
     std::stringstream raw_stream(raw);
 
     for(std::string space_delim; std::getline(raw_stream, space_delim, ' '); )
@@ -44,7 +38,7 @@ std::vector<std::tm> extract_schedule(const std::string& raw)
 
         auto splitted = split(space_delim, ':');
 
-        std::tm t {};
+        TmExtended t {};
 
         t.tm_hour = std::stoi(splitted[0]);
         t.tm_min = std::stoi(splitted[1]);
@@ -86,12 +80,11 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
     ad->text = columns[2];
     ad->active = columns[3];
 
-    std::string schedule_raw(columns[4]);
-    if(schedule_raw.size())
-        ad->schedule = extract_schedule(schedule_raw);
+    ad->schedule_str = columns[4];
+    if(ad->schedule_str.size())
+        ad->schedule = extract_schedule(ad->schedule_str);
     else
         throw Database::db_exception("No schedule specified for: '" + ad->owner + "'.");
-
     ad->added_on = std::stol(columns[5]);
     ad->expiring_on = std::stol(columns[6]);
 
@@ -424,14 +417,6 @@ void Adbase::add(const Ad::Ptr& entry)
         throw ex;
     }
 
-    std::ostringstream schedule_str;
-    std::for_each(entry->schedule.begin(), entry->schedule.end(),[&schedule_str](const std::tm& t)
-    {
-        schedule_str << std::put_time(&t, "%H:%M ");
-    });
-
-
-
     send_query(
         (std::string)"INSERT INTO ads (owner, text, active, schedule, added_on, expiring_on) VALUES ('"
         + std::string(entry->owner)
@@ -440,7 +425,7 @@ void Adbase::add(const Ad::Ptr& entry)
         + std::string("', ")
         + std::string(entry->active ? "TRUE" : "FALSE")
         + std::string(", '")
-        + schedule_str.str()
+        + entry->schedule_str
         + std::string("', ")
         + std::to_string(entry->added_on)
         + std::string(", ")
@@ -560,19 +545,15 @@ void Adbase::sync()
         std::lock_guard<std::mutex> lock_vec(mutex_vec_);
         std::for_each(vec_.begin(), vec_.end(), [&](const Ad::Ptr& entry)
         {
-            std::ostringstream schedule_str;
-            std::for_each(entry->schedule.begin(), entry->schedule.end(),[&schedule_str](const std::tm& t)
-            {
-                schedule_str << std::put_time(&t, "%H:%M ");
-            });
+
 
             send_query(
                         (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
                         + std::string("', text='") + std::string(entry->text)
                         + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
-                        + std::string(", schedule='")+ schedule_str.str()
-                        + std::string("', added_on=")+ std::to_string(entry->added_on)
-                        + std::string(", expiring_on=")+ std::to_string(entry->expiring_on)
+                        + std::string(", schedule='") + entry->schedule_str
+                        + std::string("', added_on=") + std::to_string(entry->added_on)
+                        + std::string(", expiring_on=") + std::to_string(entry->expiring_on)
                         + std::string(" WHERE id=") + std::to_string(entry->id)
                     );
         });
@@ -583,12 +564,12 @@ void Adbase::sync()
 
 void Adbase::show_table(std::ostream& os)
 {
-    os << std::left << std::setw(10) << "ID" << std::setw(32) << "OWNER" << "ADDED ON" << "\t\t" << "EXPIRING ON" << std::endl;
+    os << std::left << std::setw(10) << "ID" << std::setw(24) << "OWNER" << std::setw(24) << "SCHEDULE" << "ADDED ON" << "\t\t" << "EXPIRING ON" << std::endl;
     std::lock_guard<std::mutex> lock_vec(mutex_vec_);
     std::for_each(vec_.begin(), vec_.end(),[&os](const Ad::Ptr& entry)
     {
-        std::time_t expiring_on = entry->expiring_on;
-        std::time_t added_on = entry->added_on;
-        os << std::left << std::setw(10) << std::to_string(entry->id) << std::setw(32) << entry->owner << std::put_time(std::localtime(&added_on), "%d-%m-%Y %H-%M-%S") << '\t' << std::put_time(std::localtime(&expiring_on), "%d-%m-%Y %H-%M-%S") << std::endl;
+        std::tm added_on = localtime_ts(entry->added_on);
+        std::tm expiring_on = localtime_ts(entry->expiring_on);
+        os << std::left << std::setw(10) << std::to_string(entry->id) << std::setw(24) << entry->owner << std::setw(24) << entry->schedule_str << std::put_time(&added_on, "%d-%m-%Y %H-%M-%S") << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H-%M-%S") << std::endl;
     });
 }

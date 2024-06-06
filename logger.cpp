@@ -9,10 +9,10 @@ void Logger::write(const std::string& message)
     if(!file.is_open())
         throw std::runtime_error("Unable to open the log file '" + filename_ + "'.\n");
 
-    std::time_t now = std::time(nullptr);
+    std::tm now = localtime_ts(std::time(nullptr));
 
     file <<
-     "[" << std::put_time(std::localtime(&now), "%d-%m-%Y %H:%M:%S") << "] "
+     "[" << std::put_time(&now, "%d-%m-%Y %H:%M:%S") << "] "
          << message << std::endl;
 
     file.close();
