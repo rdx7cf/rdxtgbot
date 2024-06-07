@@ -31,19 +31,16 @@ public:
 
     virtual ~Database() {}
 
-    virtual bool contains(const std::int64_t&) = 0;
     virtual void sync() = 0;
     virtual void show_table(std::ostream&) = 0;
 
-protected:
-    friend class BotExtended;
 
+protected:
     std::string filename_;
     std::string last_err_msg_;
 
     static std::mutex mutex_sql_;
     std::mutex mutex_vec_;
-    std::mutex mutex_database_;
 
     void copy_sql_file();
     void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
@@ -53,20 +50,21 @@ class Userbase : public Database
 {
 public:
     typedef std::shared_ptr<Userbase> Ptr;
+    typedef std::vector<UserExtended::Ptr>::iterator iterator;
 
     Userbase(const std::string&);
 
-    void add(const UserExtended::Ptr&);
-    void update(const TgBot::User::Ptr&);
-    void process_user(const UserExtended::Ptr&);
+    bool add(const UserExtended::Ptr&);
+    bool update(const TgBot::User::Ptr&);
 
-    bool contains(const std::int64_t&) override;
     void sync() override;
     void show_table(std::ostream&) override;
 
-private:
+    void for_range(const std::function<void(UserExtended::Ptr&)>&);
+    UserExtended::Ptr get_copy_by_id(const std::int64_t&);
 
-    friend class BotExtended;
+private:
+    iterator get_by_id(const std::int64_t&);
     std::vector<UserExtended::Ptr> vec_;
 };
 
@@ -77,20 +75,17 @@ public:
     typedef std::vector<Ad::Ptr>::iterator iterator;
 
     Adbase(const std::string&);
-    void add(const Ad::Ptr&);
-    void update(const Ad::Ptr&);
-    bool contains(const Ad::Ptr&);
+    bool add(const Ad::Ptr&);
+    bool update(const Ad::Ptr&);
 
-    bool contains(const std::int64_t&) override;
     void sync() override;
     void show_table(std::ostream&) override;
 
-    iterator begin() { return vec_.begin(); }
-    iterator end() { return vec_.end(); }
+    void for_range(const std::function<void(Ad::Ptr&)>&);
+    Ad::Ptr get_copy_by_id(const std::int64_t&);
 
 private:
-
-    friend class BotExtended;
+    iterator get_by_id(const std::int64_t&);
     std::vector<Ad::Ptr> vec_;
 };
 

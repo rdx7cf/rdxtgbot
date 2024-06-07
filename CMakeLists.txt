@@ -24,7 +24,6 @@ add_executable(tgbot
     logger.h        logger.cpp
     userextended.h  userextended.cpp
     botextended.h   botextended.cpp
-    threads.h       threads.cpp
     ad.h            ad.cpp
     tmextended.h
     ctime++.h  ctime++.cpp
