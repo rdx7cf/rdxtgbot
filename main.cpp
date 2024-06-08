@@ -83,9 +83,10 @@ int main(int argc, char** argv)
     Logger::write("BOT INITIALIZING...");
     Logger::write("-------------------");
 
-    std::jthread long_polling(&BotExtended::long_polling, &bot);
-    std::jthread auto_syncing(&BotExtended::auto_sync, &bot, std::cref(interval));
-    std::jthread advertising(&BotExtended::advertising, &bot);
+    std::jthread long_polling(&BotExtended::long_polling, &bot, std::stop_source().get_token());
+    std::jthread auto_syncing(&BotExtended::auto_sync, &bot, std::stop_source().get_token(), std::cref(interval));
+    std::jthread advertising(&BotExtended::advertising, &bot, std::stop_source().get_token());
+
 
     signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
 
