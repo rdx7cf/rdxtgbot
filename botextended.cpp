@@ -62,7 +62,7 @@ void BotExtended::notify_one(const std::int64_t& user_id, const std::string& mes
         getApi().sendMessage(user_id, message);
         Logger::write(": INFO : BOT : [" + std::to_string(user_id) + "] RECEIVED MESSAGE.");
     }
-    catch(const std::exception& ex)
+    catch(const std::exception& e)
     {
         Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
     }
