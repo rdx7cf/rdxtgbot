@@ -105,7 +105,7 @@ int main(int argc, char** argv)
         std::cout << "\nAVAILABLE COMMANDS:"
                      "\n1. Show users table;\t\t\t2. Show ads table;\n"
                      "3. Send a message to a user;\t\t4. Send a message to all users;\n"
-                     "5. Add an advertisement;\t\t6. Edit an advertisement;\n"
+                     "5. Add an advertisement;\t\t6. Update an advertisement;\n"
                      "7. Sync the userbase with the file;\t8. Quit.\n"
                      "Enter a number: "; // Тут можно было бы и raw-формат использовать...
 
@@ -126,7 +126,7 @@ int main(int argc, char** argv)
         {
             std::int64_t user_id;
             std::string message;
-
+            std::cout << "\n<SENDING A MESSAGE TO A USER>\n";
             std::cout << "Enter user's Telegram ID: ";
             user_id = enter_number(std::cin, std::cout);
 
@@ -140,6 +140,7 @@ int main(int argc, char** argv)
         case 4:
         {
             std::string message;
+            std::cout << "\n<SENDING A MESSAGE TO ALL USERS>\n";
             std::cout << "Enter a message for all users: ";
             std::getline(std::cin, message);
 
@@ -152,7 +153,7 @@ int main(int argc, char** argv)
             Ad::Ptr ad (new Ad());
             std::tm t;
 
-
+            std::cout << "\n<ADDING AN AD>\n";
             std::cout << "Enter the owner's name: ";
             std::getline(std::cin, ad->owner);
 
@@ -186,7 +187,7 @@ int main(int argc, char** argv)
         }
         case 6:
         {
-
+            std::cout << "\n<UPDATING AN AD>\n";
             std::cout << "Enter an id of an ad to edit: ";
 
             Ad::Ptr ad = bot.adbase_->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
@@ -196,12 +197,17 @@ int main(int argc, char** argv)
                 break;
             }
             std::cout << "Choose a field to edit:\n"
-                         "1. Owner name;\t2. Text;\n"
-                         "3. On/Off;\t4. Schedule;\n"
+                         "1. Owner name;\t\t2. Text;\n"
+                         "3. On/Off;\t\t4. Schedule;\n"
                          "5. Expiration date;\t6. Quit.\n"
                          "Enter a number: ";
             switch(enter_number(std::cin, std::cout))
             {
+            case INT_MAX:
+                bot.userbase_->sync();
+                bot.adbase_->sync();
+                bot.notify_all("It seems we're saying goodbye...");
+                return 0;
             case 1:
                 std::cout << "Enter a new name: ";
                 std::getline(std::cin, ad->owner);
