@@ -25,3 +25,9 @@ public:
     void notify_all(const std::string&);
     void advertising(std::stop_token);
 };
+
+// Listeners
+
+void anymsg(const TgBot::Message::Ptr&, const BotExtended&);
+void noncom(const TgBot::Message::Ptr&, const BotExtended&);
+void start(const TgBot::Message::Ptr&, const BotExtended&);
