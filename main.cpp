@@ -14,7 +14,6 @@
 #include <tgbot/tgbot.h>
 
 #include "database.h"
-#include "listeners.h"
 #include "myhttpclient.h"
 #include "logger.h"
 #include "botextended.h"

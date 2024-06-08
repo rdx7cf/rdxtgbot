@@ -1,5 +1,4 @@
 #include "botextended.h"
-#include "listeners.h"
 
 void BotExtended::long_polling(std::stop_token tok)
 {
@@ -112,3 +111,30 @@ void BotExtended::advertising(std::stop_token tok)
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
+
+// Listeners
+
+void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
+{
+    if(!bot.userbase_->add(UserExtended::Ptr(new UserExtended(message->from))))
+        bot.userbase_->update(message->from);
+
+    std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] SENT '" + message->text + "'.";
+    Logger::write(log_message);
+}
+
+void noncom(const TgBot::Message::Ptr& message, const BotExtended& bot)
+{
+    if(bot.getApi().blockedByUser(message->chat->id)) return;
+
+    bot.getApi().sendMessage(message->chat->id, "They haven't taught me this command yet.");
+}
+
+void start(const TgBot::Message::Ptr& message, const BotExtended& bot)
+{
+    if(bot.getApi().blockedByUser(message->chat->id)) return;
+
+    bot.getApi().sendMessage(message->chat->id, "At the moment I'm just an echo bot. They will teach me to do something lately.");
+}
+
+
