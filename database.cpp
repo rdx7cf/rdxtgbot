@@ -473,7 +473,7 @@ bool Adbase::update(const Ad::Ptr& entry)
         {
             info_updated = true;
             (*existing_ad_it)->schedule = entry->schedule;
-            (*existing_ad_it)->schedule_str != entry->schedule_str;
+            (*existing_ad_it)->schedule_str = entry->schedule_str;
         }
 
         if(entry->added_on != (*existing_ad_it)->added_on)
@@ -492,6 +492,16 @@ bool Adbase::update(const Ad::Ptr& entry)
             return false;
     }
     Logger::write(": INFO : BAS : ADS : [" + std::to_string(entry->id) + "] [" + entry->owner + "] UPDATED.");
+
+    send_query(
+                (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
+                + std::string("', text='") + std::string(entry->text)
+                + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
+                + std::string(", schedule='") + entry->schedule_str
+                + std::string("', added_on=") + std::to_string(entry->added_on)
+                + std::string(", expiring_on=") + std::to_string(entry->expiring_on)
+                + std::string(" WHERE id=") + std::to_string(entry->id)
+            );
 
     return true;
 }
@@ -540,7 +550,7 @@ void Adbase::show_table(std::ostream& os)
     {
         std::tm added_on = localtime_ts(entry->added_on);
         std::tm expiring_on = localtime_ts(entry->expiring_on);
-        os << std::left << std::setw(10) << std::to_string(entry->id) << std::setw(24) << entry->owner << std::setw(24) << entry->schedule_str << std::put_time(&added_on, "%d-%m-%Y %H-%M-%S") << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H-%M-%S") << std::endl;
+        os << std::left << std::setw(10) << std::to_string(entry->id) << std::setw(24) << entry->owner << std::setw(24) << entry->schedule_str << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S") << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S") << std::endl;
     };
 
     for_range(f);
