@@ -102,9 +102,10 @@ int main(int argc, char** argv)
 
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:\n1. Show users table;\t2. Show ads table;\n"
-                     "3. Send a message to a user;\t4. Send a message to all users;\n"
-                     "5. Add an advertisement;\t6. Edit an advertisement;\n"
+        std::cout << "\nAVAILABLE COMMANDS:"
+                     "\n1. Show users table;\t\t\t2. Show ads table;\n"
+                     "3. Send a message to a user;\t\t4. Send a message to all users;\n"
+                     "5. Add an advertisement;\t\t6. Edit an advertisement;\n"
                      "7. Sync the userbase with the file;\t8. Quit.\n"
                      "Enter a number: "; // Тут можно было бы и raw-формат использовать...
 
@@ -197,7 +198,7 @@ int main(int argc, char** argv)
             std::cout << "Choose a field to edit:\n"
                          "1. Owner name;\t2. Text;\n"
                          "3. On/Off;\t4. Schedule;\n"
-                         "5.Expiration date;\t6. Quit.\n"
+                         "5. Expiration date;\t6. Quit.\n"
                          "Enter a number: ";
             switch(enter_number(std::cin, std::cout))
             {
@@ -266,7 +267,6 @@ int enter_number(std::istream& is, std::ostream& os)
     }
 
     is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    os << std::endl;
 
     return choice;
 }

@@ -57,8 +57,15 @@ void BotExtended::auto_sync(std::stop_token tok, const std::int32_t& seconds)
 
 void BotExtended::notify_one(const std::int64_t& user_id, const std::string& message)
 {
-    getApi().sendMessage(user_id, message);
-    Logger::write(": INFO : BOT : [" + std::to_string(user_id) + "] RECEIVED MESSAGE.");
+    try
+    {
+        getApi().sendMessage(user_id, message);
+        Logger::write(": INFO : BOT : [" + std::to_string(user_id) + "] RECEIVED MESSAGE.");
+    }
+    catch(const std::exception& ex)
+    {
+        Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+    }
 }
 
 void BotExtended::notify_all(const std::string& message)
