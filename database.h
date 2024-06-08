@@ -16,6 +16,7 @@
 #include "logger.h"
 #include "userextended.h"
 #include "ad.h"
+#include "ctime++.h"
 
 class Database
 {
@@ -30,18 +31,15 @@ public:
 
     virtual ~Database() {}
 
-    virtual bool contains(const std::int64_t&) = 0;
     virtual void sync() = 0;
     virtual void show_table(std::ostream&) = 0;
 
-protected:
-    friend class BotExtended;
 
+protected:
     std::string filename_;
     std::string last_err_msg_;
 
     static std::mutex mutex_sql_;
-
     std::mutex mutex_vec_;
 
     void copy_sql_file();
@@ -52,19 +50,21 @@ class Userbase : public Database
 {
 public:
     typedef std::shared_ptr<Userbase> Ptr;
+    typedef std::vector<UserExtended::Ptr>::iterator iterator;
 
     Userbase(const std::string&);
 
-    void add(const UserExtended::Ptr&);
-    void update(const UserExtended::Ptr&);
-    bool contains(const TgBot::User::Ptr&);
+    bool add(const UserExtended::Ptr&);
+    bool update(const TgBot::User::Ptr&);
 
-    bool contains(const std::int64_t&) override;
     void sync() override;
     void show_table(std::ostream&) override;
 
+    void for_range(const std::function<void(UserExtended::Ptr&)>&);
+    UserExtended::Ptr get_copy_by_id(const std::int64_t&);
+
 private:
-    friend class BotExtended;
+    iterator get_by_id(const std::int64_t&);
     std::vector<UserExtended::Ptr> vec_;
 };
 
@@ -72,17 +72,21 @@ class Adbase : public Database
 {
 public:
     typedef std::shared_ptr<Adbase> Ptr;
+    typedef std::vector<Ad::Ptr>::iterator iterator;
 
     Adbase(const std::string&);
-    void add(const Ad::Ptr&);
-    void update(const Ad::Ptr&);
-    bool contains(const Ad::Ptr&);
+    bool add(const Ad::Ptr&);
+    bool update(const Ad::Ptr&);
 
-    bool contains(const std::int64_t&) override;
     void sync() override;
     void show_table(std::ostream&) override;
 
+    void for_range(const std::function<void(Ad::Ptr&)>&);
+    Ad::Ptr get_copy_by_id(const std::int64_t&);
+
 private:
-    friend class BotExtended;
+    iterator get_by_id(const std::int64_t&);
     std::vector<Ad::Ptr> vec_;
 };
+
+std::vector<TmExtended> extract_schedule(const std::string&);
