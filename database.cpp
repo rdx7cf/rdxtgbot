@@ -351,7 +351,7 @@ void Userbase::sync()
 
 void Userbase::show_table(std::ostream& os)
 {
-    os << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
+    os << std::endl << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
     std::function<void(UserExtended::Ptr&)> f = [&os](UserExtended::Ptr& entry)
     {
         os << std::left << std::setw(16) << std::to_string(entry->id) << std::setw(32) << entry->username << entry->firstName << std::endl;
@@ -544,7 +544,7 @@ void Adbase::sync()
 
 void Adbase::show_table(std::ostream& os)
 {
-    os << std::left << std::setw(10) << "ID" << std::setw(24) << "OWNER" << std::setw(24) << "SCHEDULE" << "ADDED ON" << "\t\t" << "EXPIRING ON" << std::endl;
+    os << std::endl << std::left << std::setw(10) << "ID" << std::setw(24) << "OWNER" << std::setw(24) << "SCHEDULE" << "ADDED ON" << "\t\t" << "EXPIRING ON" << std::endl;
 
     std::function<void(Ad::Ptr&)> f = [&os](Ad::Ptr& entry)
     {
