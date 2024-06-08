@@ -99,9 +99,11 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
 
 // DATABASE
 
-std::mutex Database::mutex_sql_ {}; // ODR-use.
+template<class T>
+std::mutex Database<T>::mutex_sql_ {}; // ODR-use.
 
-void Database::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container)
+template<class T>
+void Database<T>::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container)
 {
     std::lock_guard<std::mutex> lock(mutex_sql_);
 
@@ -139,7 +141,8 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
     sqlite3_close(db);
 }
 
-void Database::copy_sql_file()
+template<class T>
+void Database<T>::copy_sql_file()
 {
     std::lock_guard<std::mutex> lock(mutex_sql_); // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
     boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);

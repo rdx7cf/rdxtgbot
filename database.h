@@ -18,6 +18,7 @@
 #include "ad.h"
 #include "ctime++.h"
 
+template<class T>
 class Database
 {
 public:
@@ -34,6 +35,8 @@ public:
     virtual void sync() = 0;
     virtual void show_table(std::ostream&) = 0;
 
+    void for_range(const std::function<void(T&)>&);
+
 
 protected:
     std::string filename_;
@@ -41,12 +44,13 @@ protected:
 
     static std::mutex mutex_sql_;
     std::mutex mutex_vec_;
+    std::vector<T> vec_;
 
     void copy_sql_file();
     void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
 };
 
-class Userbase : public Database
+class Userbase : public Database<UserExtended::Ptr>
 {
 public:
     typedef std::shared_ptr<Userbase> Ptr;
@@ -60,15 +64,13 @@ public:
     void sync() override;
     void show_table(std::ostream&) override;
 
-    void for_range(const std::function<void(UserExtended::Ptr&)>&);
     UserExtended::Ptr get_copy_by_id(const std::int64_t&);
 
 private:
     iterator get_by_id(const std::int64_t&);
-    std::vector<UserExtended::Ptr> vec_;
 };
 
-class Adbase : public Database
+class Adbase : public Database<Ad::Ptr>
 {
 public:
     typedef std::shared_ptr<Adbase> Ptr;
@@ -81,12 +83,10 @@ public:
     void sync() override;
     void show_table(std::ostream&) override;
 
-    void for_range(const std::function<void(Ad::Ptr&)>&);
     Ad::Ptr get_copy_by_id(const std::int64_t&);
 
 private:
     iterator get_by_id(const std::int64_t&);
-    std::vector<Ad::Ptr> vec_;
 };
 
 std::vector<TmExtended> extract_schedule(const std::string&);
