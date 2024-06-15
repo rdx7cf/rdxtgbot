@@ -59,6 +59,7 @@ int main(int argc, char** argv)
 
     MyHttpClient mHC;
     BotExtended bot(bot_token, mHC, filename);
+    bot.getApi().sendRequest(std::string());
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");

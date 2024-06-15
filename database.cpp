@@ -4,7 +4,7 @@
 // AUX SECTION OPEN //
 /////////////////////
 
-static std::vector<std::string> split(const std::string& str, const char& delim)
+static std::vector<std::string> split(const std::string& str, char delim)
 {
     typedef std::string::const_iterator iter;
 
