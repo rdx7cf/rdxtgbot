@@ -25,6 +25,19 @@ static std::vector<std::string> split(const std::string& str, char delim)
     return ret;
 }
 
+static std::string string_shortener(const std::string& str, std::string::size_type desired_sz)
+{
+    auto sz = str.size();
+
+    if(sz >= desired_sz)
+        return std::string(str, 0, desired_sz - 3) + std::string("...");
+    else if(str[sz - 1] == '\n')
+        return std::string(str, 0, sz - 1);
+    else
+        return str;
+}
+
+
 std::vector<TmExtended> extract_schedule(const std::string& raw)
 {
 
@@ -358,10 +371,26 @@ void Userbase::sync()
 
 void Userbase::show_table(std::ostream& os)
 {
-    os << std::endl << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
+    os << std::endl << std::left
+       << std::setw(16) << "ID"
+       << std::setw(8) << "TASKS"
+       << std::setw(6) << "BOT"
+       << std::setw(6) << "LANG"
+       << std::setw(6) << "PREM"
+       << std::setw(18) << "USERNAME"
+       << std::setw(18) << "FIRSTNAME"
+       << std::endl;
     std::function<void(UserExtended::Ptr&)> f = [&os](UserExtended::Ptr& entry)
     {
-        os << std::left << std::setw(16) << std::to_string(entry->id) << std::setw(32) << entry->username << entry->firstName << std::endl;
+        os << std::left
+           << std::setw(16) << std::to_string(entry->id)
+           << std::setw(8) <<  entry->activeTasks.to_string()
+           << std::setw(6) <<  (entry->isBot ? "Yes" : "No")
+           << std::setw(6) <<  entry->languageCode
+           << std::setw(6) <<  (entry->isPremium ? "Yes" : "No")
+           << std::setw(18) << string_shortener(entry->username, 16)
+           << std::setw(18) << string_shortener(entry->firstName, 16)
+           << std::endl;
     };
     for_range(f);
 }
@@ -551,13 +580,29 @@ void Adbase::sync()
 
 void Adbase::show_table(std::ostream& os)
 {
-    os << std::endl << std::left << std::setw(6) << "ID" << std::setw(24) << "OWNER" << std::setw(8) << "ACTIVE" << std::setw(32) << "SCHEDULE" << "ADDED ON" << "\t\t\t" << "EXPIRING ON" << std::endl;
+    os << std::endl
+       << std::left << std::setw(6) << "ID"
+       << std::setw(8) << "ACTIVE"
+       << std::setw(18) << "OWNER"
+       << std::setw(18) << "TEXT"
+       << std::setw(18) << "SCHEDULE"
+       << "ADDED ON"
+       << "\t\t" << "EXPIRING ON"
+       << std::endl;
 
     std::function<void(Ad::Ptr&)> f = [&os](Ad::Ptr& entry)
     {
         std::tm added_on = localtime_ts(entry->added_on);
         std::tm expiring_on = localtime_ts(entry->expiring_on);
-        os << std::left << std::setw(6) << std::to_string(entry->id) << std::setw(24) << entry->owner << std::setw(8) << (entry->active ? "Yes" : "No") << std::setw(32) << entry->schedule_str << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S") << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S") << std::endl;
+        os << std::left
+           << std::setw(6) << std::to_string(entry->id)
+           << std::setw(8) << (entry->active ? "Yes" : "No")
+           << std::setw(18) << string_shortener(entry->owner, 16)
+           << std::setw(18) << string_shortener(entry->text, 16)
+           << std::setw(18) << string_shortener(entry->schedule_str, 16)
+           << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S")
+           << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S")
+           << std::endl;
     };
 
     for_range(f);
