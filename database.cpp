@@ -33,15 +33,21 @@ std::vector<TmExtended> extract_schedule(const std::string& raw)
 
     for(std::string space_delim; std::getline(raw_stream, space_delim, ' '); )
     {
-        if(space_delim.size() != 5)
-            throw Database::db_exception("Invalid schedule time format: '" + raw + "'.");
-
         auto splitted = split(space_delim, ':');
 
         TmExtended t {};
 
-        t.tm_hour = std::stoi(splitted[0]);
-        t.tm_min = std::stoi(splitted[1]);
+        try
+        {
+            t.tm_hour = std::stoi(splitted[0]);
+            t.tm_min = std::stoi(splitted[1]);
+
+        }
+        catch(...)
+        {
+            Logger::write(": ERROR : BAS : Invalid schedule time format: '" + space_delim + "'.");
+            continue;
+        }
 
         result.push_back(t);
     }
@@ -81,10 +87,10 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
     ad->active = columns[3];
 
     ad->schedule_str = columns[4];
-    if(ad->schedule_str.size())
-        ad->schedule = extract_schedule(ad->schedule_str);
-    else
-        throw Database::db_exception("No schedule specified for: '" + ad->owner + "'.");
+    ad->schedule = extract_schedule(ad->schedule_str);
+    if(ad->schedule.size() == 0)
+        Logger::write(": WARN : BAS : No schedule specified for: '" + ad->owner + "'.");
+
     ad->added_on = std::stol(columns[5]);
     ad->expiring_on = std::stol(columns[6]);
 
