@@ -89,7 +89,10 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
     ad->schedule_str = columns[4];
     ad->schedule = extract_schedule(ad->schedule_str);
     if(ad->schedule.size() == 0)
+    {
         Logger::write(": WARN : BAS : No schedule specified for: '" + ad->owner + "'.");
+        ad->schedule_str.clear();
+    }
 
     ad->added_on = std::stol(columns[5]);
     ad->expiring_on = std::stol(columns[6]);
@@ -548,13 +551,13 @@ void Adbase::sync()
 
 void Adbase::show_table(std::ostream& os)
 {
-    os << std::endl << std::left << std::setw(10) << "ID" << std::setw(24) << "OWNER" << std::setw(24) << "SCHEDULE" << "ADDED ON" << "\t\t" << "EXPIRING ON" << std::endl;
+    os << std::endl << std::left << std::setw(6) << "ID" << std::setw(24) << "OWNER" << std::setw(8) << "ACTIVE" << std::setw(32) << "SCHEDULE" << "ADDED ON" << "\t\t\t" << "EXPIRING ON" << std::endl;
 
     std::function<void(Ad::Ptr&)> f = [&os](Ad::Ptr& entry)
     {
         std::tm added_on = localtime_ts(entry->added_on);
         std::tm expiring_on = localtime_ts(entry->expiring_on);
-        os << std::left << std::setw(10) << std::to_string(entry->id) << std::setw(24) << entry->owner << std::setw(24) << entry->schedule_str << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S") << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S") << std::endl;
+        os << std::left << std::setw(6) << std::to_string(entry->id) << std::setw(24) << entry->owner << std::setw(8) << (entry->active ? "Yes" : "No") << std::setw(32) << entry->schedule_str << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S") << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S") << std::endl;
     };
 
     for_range(f);

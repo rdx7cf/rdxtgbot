@@ -175,8 +175,13 @@ int main(int argc, char** argv)
 
             std::cout << "Enter the time schedule ('15:30 17:30 00:00 01:05'): ";
             std::getline(std::cin, ad->schedule_str);
-
             ad->schedule = extract_schedule(ad->schedule_str);
+            if(ad->schedule.size() == 0)
+            {
+                Logger::write(": WARN : BAS : No schedule specified for: '" + ad->owner + "'.");
+                ad->schedule_str.clear();
+            }
+
             ad->added_on = static_cast<std::int64_t>(std::time(nullptr));
             ad->expiring_on = static_cast<std::int64_t>(mktime(&t));
 
@@ -227,6 +232,11 @@ int main(int argc, char** argv)
                 std::cout << "Enter the time schedule ('15:30 17:30 00:00 01:05'): ";
                 std::getline(std::cin, ad->schedule_str);
                 ad->schedule = extract_schedule(ad->schedule_str);
+                if(ad->schedule.size() == 0)
+                {
+                    Logger::write(": WARN : BAS : No schedule specified for: '" + ad->owner + "'.");
+                    ad->schedule_str.clear();
+                }
                 break;
             case 5:
                 std::tm t {};
