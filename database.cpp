@@ -118,7 +118,7 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
 
         sqlite3_close(db);
 
-        throw Database::db_exception(last_err_msg_ + "\n:: QUERY ::\n" + query);
+        throw Database::db_exception(last_err_msg_);
     }
 
     rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
@@ -128,12 +128,10 @@ void Database::send_query(const std::string& query, int (*callback)(void*, int, 
     {
         last_err_msg_ =  err_msg;
 
-        Logger::write(": ERROR : BAS : " + last_err_msg_);
+        Logger::write(": ERROR : BAS : " + last_err_msg_ + " :: QUERY :: " + query);
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
-
-        throw Database::db_exception(last_err_msg_ + "\n:: QUERY ::\n" + query);
     }
 
     sqlite3_close(db);
