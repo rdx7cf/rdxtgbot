@@ -153,6 +153,7 @@ int main(int argc, char** argv)
             std::tm t;
 
             std::cout << "\n<ADDING AN AD>\n";
+            ad->id = bot.adbase_->get_last_id() + 1;
             std::cout << "Enter the owner's name: ";
             std::getline(std::cin, ad->owner);
 
