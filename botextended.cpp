@@ -84,26 +84,34 @@ void BotExtended::advertising(std::stop_token tok)
 {
     std::tm current = localtime_ts(std::time(nullptr));
 
+    std::function<void(Ad::Ptr&)> f = [this, &current](Ad::Ptr& ad)
+    {
+        std::for_each(ad->schedule.begin(), ad->schedule.end(), [this, &current, &ad](TmExtended& time_point)
+        {
+            if(ad->active)
+            {
+                if(std::time(nullptr) >= ad->expiring_on)
+                {
+                    ad->active = false;
+                    return;
+                }
+
+                if (((current.tm_hour == time_point.tm_hour && current.tm_min >= time_point.tm_min) || current.tm_hour > time_point.tm_hour) && !time_point.executed) // Такое монструозное условие нужно для того, чтобы учитывалась разница и между часами, и между часами:минутами (то есть чтобы временная точка типа 15:30 также была допустима)
+                {
+                    notify_all(ad->text);
+                    time_point.executed = true;
+                }
+                else if((current.tm_hour < time_point.tm_hour || (current.tm_hour == time_point.tm_hour && current.tm_min < time_point.tm_min)) && time_point.executed)
+                {
+                    time_point.executed = false;
+                }
+            }
+        });
+    };
+
     while(!tok.stop_requested())
     {
-        std::function<void(Ad::Ptr&)> f = [this, &current](Ad::Ptr& ad)
-        {
-            std::for_each(ad->schedule.begin(), ad->schedule.end(), [this, &current, &ad](TmExtended& time_point)
-            {
-                if(ad->active)
-                {
-                    if (((current.tm_hour == time_point.tm_hour && current.tm_min >= time_point.tm_min) || current.tm_hour > time_point.tm_hour) && !time_point.executed) // Такое монструозное условие нужно для того, чтобы учитывалась разница и между часами, и между часами:минутами (то есть чтобы временная точка типа 15:30 также была допустима)
-                    {
-                        notify_all(ad->text);
-                        time_point.executed = true;
-                    }
-                    else if((current.tm_hour < time_point.tm_hour || (current.tm_hour == time_point.tm_hour && current.tm_min < time_point.tm_min)) && time_point.executed)
-                    {
-                        time_point.executed = false;
-                    }
-                }
-            });
-        };
+
         adbase_->for_range(f);
 
         current = localtime_ts(std::time(nullptr));
