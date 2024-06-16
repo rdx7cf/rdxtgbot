@@ -347,7 +347,7 @@ void Userbase::sync()
         throw ex;
     }
 
-    std::function<void(UserExtended::Ptr&)> f = [this](UserExtended::Ptr& user)
+    auto f = [this](UserExtended::Ptr& user) // Для замыканий лучше использовать auto, а не std::function. Это не одно и то же: std::function для замыканий работает медленно и занимает больше памяти.
     {
         send_query(
                     (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
@@ -561,7 +561,7 @@ void Adbase::sync()
         throw ex;
     }
 
-    std::function<void(Ad::Ptr&)> f = [this](Ad::Ptr& entry)
+    auto f = [this](Ad::Ptr& entry)
     {
         send_query(
                     (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
@@ -590,7 +590,7 @@ void Adbase::show_table(std::ostream& os)
        << "\t\t" << "EXPIRING ON"
        << std::endl;
 
-    std::function<void(Ad::Ptr&)> f = [&os](Ad::Ptr& entry)
+    auto f = [&os](Ad::Ptr& entry)
     {
         std::tm added_on = localtime_ts(entry->added_on);
         std::tm expiring_on = localtime_ts(entry->expiring_on);

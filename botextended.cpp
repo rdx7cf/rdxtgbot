@@ -71,7 +71,7 @@ void BotExtended::notify_all(const std::string& message)
 {
     Logger::write(": INFO : BOT : NOTIFYING ALL...");
 
-    std::function<void(UserExtended::Ptr&)> f = [this, &message](UserExtended::Ptr& user)
+    auto f = [this, &message](UserExtended::Ptr& user)
     {
         notify_one(user->id, message);
     };
@@ -84,7 +84,7 @@ void BotExtended::advertising(std::stop_token tok)
 {
     std::tm current = localtime_ts(std::time(nullptr));
 
-    std::function<void(Ad::Ptr&)> f = [this, &current](Ad::Ptr& ad)
+    auto f = [this, &current](Ad::Ptr& ad)
     {
         std::for_each(ad->schedule.begin(), ad->schedule.end(), [this, &current, &ad](TmExtended& time_point)
         {
@@ -112,7 +112,6 @@ void BotExtended::advertising(std::stop_token tok)
 
     while(!tok.stop_requested())
     {
-
         adbase_->for_range(f);
 
         current = localtime_ts(std::time(nullptr));
