@@ -97,7 +97,7 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
     ad->id = std::stol(columns[0]);
     ad->owner = columns[1];
     ad->text = columns[2];
-    ad->active = columns[3];
+    ad->active = std::stoi(columns[3]);
 
     ad->schedule_str = columns[4];
     ad->schedule = extract_schedule(ad->schedule_str);
