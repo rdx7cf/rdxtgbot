@@ -90,4 +90,4 @@ private:
     std::vector<Ad::Ptr> vec_;
 };
 
-std::vector<TmExtended> extract_schedule(const std::string&);
+std::vector<TmExtended> extract_schedule(const std::string&, const std::string&);

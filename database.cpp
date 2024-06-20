@@ -37,32 +37,52 @@ static std::string string_shortener(const std::string& str, std::string::size_ty
         return str;
 }
 
-
-std::vector<TmExtended> extract_schedule(const std::string& raw)
+std::vector<TmExtended> extract_schedule(const std::string& raw_tpoint, const std::string& raw_wday)
 {
 
     std::vector<TmExtended> result;
-    std::stringstream raw_stream(raw);
+    std::stringstream raw_tpoint_stream(raw_tpoint);
 
-    for(std::string space_delim; std::getline(raw_stream, space_delim, ' '); )
+    for(std::string tpoint_str; std::getline(raw_tpoint_stream, tpoint_str, ' '); )
     {
-        auto splitted = split(space_delim, ':');
+        auto tpoint_splitted = split(tpoint_str, ':');
 
         TmExtended t {};
 
         try
         {
-            t.tm_hour = std::stoi(splitted[0]);
-            t.tm_min = std::stoi(splitted[1]);
-
+            t.tm_hour = std::stoi(tpoint_splitted[0]);
+            t.tm_min = std::stoi(tpoint_splitted[1]);
         }
         catch(...)
         {
-            Logger::write(": ERROR : BAS : Invalid schedule time format: '" + space_delim + "'.");
+            Logger::write(": ERROR : BAS : Invalid schedule timepoint formatting: '" + tpoint_str + "'.");
             continue;
         }
 
-        result.push_back(t);
+        std::stringstream raw_wday_stream(raw_wday);
+        for(std::string wday_str; std::getline(raw_wday_stream, wday_str, ' '); )
+        {
+            try
+            {
+                int wday = std::stoi(wday_str);
+
+                if(wday < 0 || 6 < wday)
+                    throw std::exception();
+
+                t.tm_wday = std::stoi(wday_str);
+
+            }
+            catch(...)
+            {
+                Logger::write(": ERROR : BAS : Invalid schedule weekday formatting: '" + wday_str + "'.");
+                continue;
+            }
+
+            result.push_back(t);
+        }
+
+
     }
 
     return result;
@@ -99,16 +119,19 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
     ad->text = columns[2];
     ad->active = std::stoi(columns[3]);
 
-    ad->schedule_str = columns[4];
-    ad->schedule = extract_schedule(ad->schedule_str);
+    ad->tpoints_str = columns[4];
+    ad->wdays_str = columns[5];
+    ad->schedule = extract_schedule(ad->tpoints_str, ad->wdays_str);
     if(ad->schedule.size() == 0)
     {
         Logger::write(": WARN : BAS : No schedule specified for: '" + ad->owner + "'.");
-        ad->schedule_str.clear();
+        ad->active = false;
+        ad->tpoints_str.clear();
+        ad->wdays_str.clear();
     }
 
-    ad->added_on = std::stol(columns[5]);
-    ad->expiring_on = std::stol(columns[6]);
+    ad->added_on = std::stol(columns[6]);
+    ad->expiring_on = std::stol(columns[7]);
 
     reinterpret_cast<std::vector<Ad::Ptr>*>(ads)->push_back(ad);
 
@@ -417,7 +440,7 @@ Adbase::Adbase(const std::string& filename) : Database(filename)
         std::lock_guard<std::mutex> lock(mutex_vec_);
         send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN,schedule TEXT,added_on INTEGER,expiring_on INTEGER);"
+                    "CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN,tpoints TEXT,wdays TEXT,added_on INTEGER,expiring_on INTEGER);"
                     "SELECT * FROM ads",
                     extract_ad,
                     &vec_
@@ -451,14 +474,16 @@ bool Adbase::add(const Ad::Ptr& entry)
     }
 
     send_query(
-        (std::string)"INSERT INTO ads (owner, text, active, schedule, added_on, expiring_on) VALUES ('"
+        (std::string)"INSERT INTO ads (owner, text, active, tpoints, wdays, added_on, expiring_on) VALUES ('"
         + std::string(entry->owner)
         + std::string("', '")
         + std::string(entry->text)
         + std::string("', ")
         + std::string(entry->active ? "TRUE" : "FALSE")
         + std::string(", '")
-        + entry->schedule_str
+        + entry->tpoints_str
+        + std::string("', '")
+        + entry->wdays_str
         + std::string("', ")
         + std::to_string(entry->added_on)
         + std::string(", ")
@@ -505,11 +530,19 @@ bool Adbase::update(const Ad::Ptr& entry)
             (*existing_ad_it)->active = entry->active;
         }
 
-        if(entry->schedule_str != (*existing_ad_it)->schedule_str)
+        if(entry->tpoints_str != (*existing_ad_it)->tpoints_str)
         {
             info_updated = true;
             (*existing_ad_it)->schedule = entry->schedule;
-            (*existing_ad_it)->schedule_str = entry->schedule_str;
+            (*existing_ad_it)->tpoints_str = entry->tpoints_str;
+            (*existing_ad_it)->wdays_str = entry->wdays_str;
+        }
+
+        if(entry->wdays_str != (*existing_ad_it)->wdays_str)
+        {
+            info_updated = true;
+            (*existing_ad_it)->schedule = entry->schedule;
+            (*existing_ad_it)->wdays_str = entry->wdays_str;
         }
 
         if(entry->added_on != (*existing_ad_it)->added_on)
@@ -533,7 +566,8 @@ bool Adbase::update(const Ad::Ptr& entry)
                 (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
                 + std::string("', text='") + std::string(entry->text)
                 + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
-                + std::string(", schedule='") + entry->schedule_str
+                + std::string(", tpoints='") + entry->tpoints_str
+                + std::string("', wdays='") + entry->wdays_str
                 + std::string("', added_on=") + std::to_string(entry->added_on)
                 + std::string(", expiring_on=") + std::to_string(entry->expiring_on)
                 + std::string(" WHERE id=") + std::to_string(entry->id)
@@ -567,7 +601,8 @@ void Adbase::sync()
                     (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
                     + std::string("', text='") + std::string(entry->text)
                     + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
-                    + std::string(", schedule='") + entry->schedule_str
+                    + std::string(", tpoints='") + entry->tpoints_str
+                    + std::string("', wdays='") + entry->wdays_str
                     + std::string("', added_on=") + std::to_string(entry->added_on)
                     + std::string(", expiring_on=") + std::to_string(entry->expiring_on)
                     + std::string(" WHERE id=") + std::to_string(entry->id)
@@ -599,7 +634,7 @@ void Adbase::show_table(std::ostream& os)
            << std::setw(8) << (entry->active ? "Yes" : "No")
            << std::setw(18) << string_shortener(entry->owner, 16)
            << std::setw(18) << string_shortener(entry->text, 16)
-           << std::setw(18) << string_shortener(entry->schedule_str, 16)
+           << std::setw(18) << string_shortener(entry->tpoints_str, 16)
            << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S")
            << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S")
            << std::endl;

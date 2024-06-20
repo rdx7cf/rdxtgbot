@@ -83,12 +83,11 @@ void BotExtended::notify_all(const std::string& message)
 void BotExtended::advertising(std::stop_token tok)
 {
     std::tm current = localtime_ts(std::time(nullptr));
-
     auto f = [this, &current](Ad::Ptr& ad)
     {
         std::for_each(ad->schedule.begin(), ad->schedule.end(), [this, &current, &ad](TmExtended& time_point)
         {
-            if(ad->active)
+            if(ad->active && current.tm_wday == time_point.tm_wday)
             {
                 if(std::time(nullptr) >= ad->expiring_on)
                 {
@@ -105,8 +104,6 @@ void BotExtended::advertising(std::stop_token tok)
                     time_point.executed = false;
                 }
             }
-            else if (std::time(nullptr) < ad->expiring_on)
-                ad->active = true;
         });
     };
 

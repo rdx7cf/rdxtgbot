@@ -174,13 +174,19 @@ int main(int argc, char** argv)
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-            std::cout << "Enter the time schedule ('15:30 17:30 00:00 01:05'): ";
-            std::getline(std::cin, ad->schedule_str);
-            ad->schedule = extract_schedule(ad->schedule_str);
+            std::cout << "Enter timepoints ('15:30 17:30 00:00 01:05'): ";
+            std::getline(std::cin, ad->tpoints_str);
+
+            std::cout << "Enter weekdays ('0 1 2 3 4 5 6', where 0 is Sunday and 6 is Saturday): ";
+            std::getline(std::cin, ad->wdays_str);
+
+            ad->schedule = extract_schedule(ad->tpoints_str, ad->wdays_str);
             if(ad->schedule.size() == 0)
             {
                 Logger::write(": WARN : BAS : No schedule specified for: '" + ad->owner + "'.");
-                ad->schedule_str.clear();
+                ad->active = false;
+                ad->tpoints_str.clear();
+                ad->wdays_str.clear();
             }
 
             ad->added_on = static_cast<std::int64_t>(std::time(nullptr));
@@ -201,23 +207,29 @@ int main(int argc, char** argv)
                 std::cout << "There's no ad with such id.\n";
                 break;
             }
-            std::cout << "Choose a field to edit:\n"
+            std::cout << "Choose a field to update:\n"
                          "1. Owner name;\t\t2. Text;\n"
-                         "3. On/Off;\t\t4. Schedule;\n"
-                         "5. Expiration date;\t6. Quit.\n"
+                         "3. On/Off;\t\t4. Timepoints;\n"
+                         "5. Expiration date;\t6. Weekdays;\n"
+                         "7. Quit.\n"
                          "Enter a number: ";
             switch(enter_number(std::cin, std::cout))
             {
             case INT_MAX:
+            {
                 bot.userbase_->sync();
                 bot.adbase_->sync();
                 bot.notify_all("It seems we're saying goodbye...");
                 return 0;
+            }
             case 1:
+            {
                 std::cout << "Enter a new name: ";
                 std::getline(std::cin, ad->owner);
                 break;
+            }
             case 2:
+            {
                 ad->text = std::string();
                 std::cout << "Enter the text: \n";
                 for(std::string temp; std::getline(std::cin, temp); )
@@ -225,26 +237,50 @@ int main(int argc, char** argv)
                 clearerr(stdin);
                 std::cin.clear();
                 break;
+            }
             case 3:
+            {
                 std::cout << "ON / OFF (1 / 0): ";
                 ad->active = enter_number(std::cin, std::cout);
                 break;
+            }
             case 4:
+            {
                 std::cout << "Enter the time schedule ('15:30 17:30 00:00 01:05'): ";
-                std::getline(std::cin, ad->schedule_str);
-                ad->schedule = extract_schedule(ad->schedule_str);
+                std::getline(std::cin, ad->tpoints_str);
+                ad->schedule = extract_schedule(ad->tpoints_str, ad->wdays_str);
                 if(ad->schedule.size() == 0)
                 {
                     Logger::write(": WARN : BAS : No schedule specified for: '" + ad->owner + "'.");
-                    ad->schedule_str.clear();
+                    ad->active = false;
+                    ad->tpoints_str.clear();
+                    ad->wdays_str.clear();
                 }
                 break;
+            }
             case 5:
+            {
                 std::tm t {};
                 std::cout << "Enter the expiration date (D-M-Y H:M:S): ";
                 std::cin >> std::get_time(&t, "%d-%m-%Y %H:%M:%S");
                 ad->expiring_on = static_cast<std::int64_t>(mktime(&t));
                 break;
+            }
+            case 6:
+            {
+                std::cout << "Enter weekdays ('0 1 2 3 4 5 6', where 0 is Sunday and 6 is Saturday): ";
+                std::getline(std::cin, ad->wdays_str);
+                ad->schedule = extract_schedule(ad->tpoints_str, ad->wdays_str);
+                if(ad->schedule.size() == 0)
+                {
+                    Logger::write(": WARN : BAS : No schedule specified for: '" + ad->owner + "'.");
+                    ad->active = false;
+                    ad->tpoints_str.clear();
+                    ad->wdays_str.clear();
+                }
+                break;
+            }
+
             }
             bot.adbase_->update(ad);
             break;

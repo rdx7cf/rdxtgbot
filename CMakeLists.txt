@@ -26,6 +26,7 @@ add_executable(tgbot
     ad.h            ad.cpp
     tmextended.h
     ctime++.h  ctime++.cpp
+    schedule.h schedule.cpp
 )
 
 target_link_libraries(tgbot libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES} ${CURL_LIBRARIES})

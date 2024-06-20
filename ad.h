@@ -17,7 +17,8 @@ public:
     std::int64_t added_on;
     std::int64_t expiring_on;
     std::vector<TmExtended> schedule;
-    std::string schedule_str;
+    std::string tpoints_str;
+    std::string wdays_str;
 
     Ad(const std::int64_t& = 0,
        const std::string& = std::string(),
