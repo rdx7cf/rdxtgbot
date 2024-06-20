@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 {
     if(argc < 3)
     {
-        std::cout << "\nUSAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_DATABASE]' -A '[PATH_TO_ADBASE]' -L '[LOG_PATH]'\n\n"
+        std::cout << "\nUSAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_DATABASE]' -L '[LOG_PATH]'\n\n"
                      "-T '[API_TOKEN]'\n\n\tAn API token for your bot.\n\n\n "
                      "-D '[PATH_TO_DATABASE]'\n\n\tA path to a SQLite3 database file which contains user and ad tables.\n\tThe program will create one (but not the directories) if the specified doesn't exist.\n\n"
                      "-L '[LOG_PATH]'\n\n\tA path to a log file.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\tMight be omitted.\n\n"
