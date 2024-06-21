@@ -97,15 +97,17 @@ static int extract_user(void* users, int colcount, char** columns, char** colnam
     user->firstName = columns[3];
     user->lastName = columns[4];
     user->languageCode = columns[5];
-    user->isBot = columns[6];
-    user->isPremium = columns[7];
-    user->addedToAttachmentMenu = columns[8];
-    user->canJoinGroups = columns[9];
-    user->canReadAllGroupMessages = columns[10];
-    user->supportsInlineQueries = columns[11];
+    user->isBot = std::stoi(columns[6]);
+    user->isPremium = std::stoi(columns[7]);
+    user->addedToAttachmentMenu = std::stoi(columns[8]);
+    user->canJoinGroups = std::stoi(columns[9]);
+    user->canReadAllGroupMessages = std::stoi(columns[10]);
+    user->supportsInlineQueries = std::stoi(columns[11]);
     user->activeTasks = std::stoul(columns[12]);
+    user->blocked = std::stoi(columns[13]);
+    user->member_since = std::stol(columns[14]);
 
-    reinterpret_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
+    static_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
 
     return 0;
 }
@@ -133,7 +135,7 @@ static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
     ad->added_on = std::stol(columns[6]);
     ad->expiring_on = std::stol(columns[7]);
 
-    reinterpret_cast<std::vector<Ad::Ptr>*>(ads)->push_back(ad);
+    static_cast<std::vector<Ad::Ptr>*>(ads)->push_back(ad);
 
     return 0;
 }
@@ -197,7 +199,7 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
         std::lock_guard<std::mutex> lock(mutex_vec_);
         send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER);"
+                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_blocked BOOLEAN, tg_membersince INTEGER);"
                     "SELECT * FROM users",
                     extract_user,
                     &vec_
@@ -233,7 +235,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
 
 
     send_query(
-        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks) VALUES ("
+        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks, tg_blocked, tg_membersince) VALUES ("
         + std::to_string(entry->id)
         + std::string(", '")
         + std::string(entry->username)
@@ -244,19 +246,23 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         + std::string("', '")
         + std::string(entry->languageCode)
         + std::string("', ")
-        + std::string(entry->isBot ? "TRUE" : "FALSE")
+        + std::to_string(entry->isBot)
         + std::string(", ")
-        + std::string(entry->isPremium ? "TRUE" : "FALSE")
+        + std::to_string(entry->isPremium)
         + std::string(", ")
-        + std::string(entry->addedToAttachmentMenu ? "TRUE" : "FALSE")
+        + std::to_string(entry->addedToAttachmentMenu)
         + std::string(", ")
-        + std::string(entry->canJoinGroups ? "TRUE" : "FALSE")
+        + std::to_string(entry->canJoinGroups)
         + std::string(", ")
-        + std::string(entry->canReadAllGroupMessages ? "TRUE" : "FALSE")
+        + std::to_string(entry->canReadAllGroupMessages)
         + std::string(", ")
-        + std::string(entry->supportsInlineQueries ? "TRUE" : "FALSE")
+        + std::to_string(entry->supportsInlineQueries)
         + std::string(", ")
         + std::to_string(entry->activeTasks.to_ulong())
+        + std::string(", ")
+        + std::to_string(entry->blocked)
+        + std::string(", ")
+        + std::to_string(entry->member_since)
         + std::string(");"));
 
 
@@ -265,7 +271,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
     return true;
 }
 
-bool Userbase::update(const TgBot::User::Ptr& entry)
+bool Userbase::update(const UserExtended::Ptr& entry)
 {
 
     // VECTOR MUTEX SCOPE LOCK
@@ -343,6 +349,12 @@ bool Userbase::update(const TgBot::User::Ptr& entry)
             (*existing_user_it)->supportsInlineQueries = entry->supportsInlineQueries;
         }
 
+        if(entry->blocked != (*existing_user_it)->blocked)
+        {
+            info_updated = true;
+            (*existing_user_it)->blocked = entry->blocked;
+        }
+
         if(!info_updated)
             return false;
     }
@@ -351,7 +363,7 @@ bool Userbase::update(const TgBot::User::Ptr& entry)
     return true;
 }
 
-Userbase::iterator Userbase::get_by_id(const std::int64_t& id)
+Userbase::iterator Userbase::get_by_id(std::int64_t id)
 {
     return find_if(vec_.begin(), vec_.end(), [&id](const UserExtended::Ptr& x) { return x->id == id; });
 }
@@ -377,13 +389,15 @@ void Userbase::sync()
                     + std::string("', tg_fname='") + std::string(user->firstName)
                     + std::string("', tg_lname='") + std::string(user->lastName)
                     + std::string("', tg_langcode='")+ std::string(user->languageCode)
-                    + std::string("', tg_bot=") + std::string(user->isBot ? "TRUE" : "FALSE")
-                    + std::string(", tg_prem=") + std::string(user->isPremium ? "TRUE" : "FALSE")
-                    + std::string(", tg_ATAM=") + std::string(user->addedToAttachmentMenu ? "TRUE" : "FALSE")
-                    + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
-                    + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
-                    + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
+                    + std::string("', tg_bot=") + std::to_string(user->isBot)
+                    + std::string(", tg_prem=") + std::to_string(user->isPremium)
+                    + std::string(", tg_ATAM=") + std::to_string(user->addedToAttachmentMenu)
+                    + std::string(", tg_CJG=") + std::to_string(user->canJoinGroups)
+                    + std::string(", tg_CRAGM=") + std::to_string(user->canReadAllGroupMessages)
+                    + std::string(", tg_SIQ=") + std::to_string(user->supportsInlineQueries)
                     + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
+                    + std::string(", tg_blocked=") + std::to_string(user->blocked)
+                    + std::string(", tg_membersince=") + std::to_string(user->member_since)
                     + std::string(" WHERE tg_id=") + std::to_string(user->id)
                 );
     };
@@ -395,24 +409,31 @@ void Userbase::sync()
 void Userbase::show_table(std::ostream& os)
 {
     os << std::endl << std::left
-       << std::setw(16) << "ID"
+       << std::setw(18) << "ID"
        << std::setw(8) << "TASKS"
        << std::setw(6) << "BOT"
        << std::setw(6) << "LANG"
        << std::setw(6) << "PREM"
+       << std::setw(7) << "BLOCK"
        << std::setw(18) << "USERNAME"
        << std::setw(18) << "FIRSTNAME"
+       << "MEMBER SINCE"
        << std::endl;
-    std::function<void(UserExtended::Ptr&)> f = [&os](UserExtended::Ptr& entry)
+
+    auto f = [&os](UserExtended::Ptr& entry)
     {
+        std::tm ms = localtime_ts(entry->member_since);
+
         os << std::left
-           << std::setw(16) << std::to_string(entry->id)
+           << std::setw(18) << std::to_string(entry->id)
            << std::setw(8) <<  entry->activeTasks.to_string()
            << std::setw(6) <<  (entry->isBot ? "Yes" : "No")
            << std::setw(6) <<  entry->languageCode
            << std::setw(6) <<  (entry->isPremium ? "Yes" : "No")
+           << std::setw(7) <<  (entry->blocked ? "Yes" : "No")
            << std::setw(18) << string_shortener(entry->username, 16)
            << std::setw(18) << string_shortener(entry->firstName, 16)
+           << std::put_time(&ms, "%d-%m-%Y %H:%M:%S")
            << std::endl;
     };
     for_range(f);
@@ -424,7 +445,7 @@ void Userbase::for_range(const std::function<void(UserExtended::Ptr&)>& f)
     std::for_each(vec_.begin(), vec_.end(), f);
 }
 
-UserExtended::Ptr Userbase::get_copy_by_id(const int64_t& id)
+UserExtended::Ptr Userbase::get_copy_by_id(int64_t id)
 {
     auto current_it = get_by_id(id);
     if(current_it == vec_.end())
@@ -479,7 +500,7 @@ bool Adbase::add(const Ad::Ptr& entry)
         + std::string("', '")
         + std::string(entry->text)
         + std::string("', ")
-        + std::string(entry->active ? "TRUE" : "FALSE")
+        + std::to_string(entry->active)
         + std::string(", '")
         + entry->tpoints_str
         + std::string("', '")
@@ -565,7 +586,7 @@ bool Adbase::update(const Ad::Ptr& entry)
     send_query(
                 (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
                 + std::string("', text='") + std::string(entry->text)
-                + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
+                + std::string("', active=") + std::to_string(entry->active)
                 + std::string(", tpoints='") + entry->tpoints_str
                 + std::string("', wdays='") + entry->wdays_str
                 + std::string("', added_on=") + std::to_string(entry->added_on)
@@ -576,7 +597,7 @@ bool Adbase::update(const Ad::Ptr& entry)
     return true;
 }
 
-Adbase::iterator Adbase::get_by_id(const std::int64_t& id)
+Adbase::iterator Adbase::get_by_id(std::int64_t id)
 {
     return find_if(vec_.begin(), vec_.end(), [&id](const Ad::Ptr& x) { return x->id == id; });
 }
@@ -600,7 +621,7 @@ void Adbase::sync()
         send_query(
                     (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
                     + std::string("', text='") + std::string(entry->text)
-                    + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
+                    + std::string("', active=") + std::to_string(entry->active)
                     + std::string(", tpoints='") + entry->tpoints_str
                     + std::string("', wdays='") + entry->wdays_str
                     + std::string("', added_on=") + std::to_string(entry->added_on)
@@ -622,7 +643,7 @@ void Adbase::show_table(std::ostream& os)
        << std::setw(18) << "TEXT"
        << std::setw(18) << "SCHEDULE"
        << "ADDED ON"
-       << "\t\t" << "EXPIRING ON"
+       << "\t\t\t" << "EXPIRING ON"
        << std::endl;
 
     auto f = [&os](Ad::Ptr& entry)
@@ -636,7 +657,7 @@ void Adbase::show_table(std::ostream& os)
            << std::setw(18) << string_shortener(entry->text, 16)
            << std::setw(18) << string_shortener(entry->tpoints_str, 16)
            << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S")
-           << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S")
+           << "\t\t" << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S")
            << std::endl;
     };
 
@@ -649,7 +670,7 @@ void Adbase::for_range(const std::function<void(Ad::Ptr&)>& f)
     std::for_each(vec_.begin(), vec_.end(), f);
 }
 
-Ad::Ptr Adbase::get_copy_by_id(const int64_t& id)
+Ad::Ptr Adbase::get_copy_by_id(int64_t id)
 {
     auto current_it = get_by_id(id);
     if(current_it == vec_.end())

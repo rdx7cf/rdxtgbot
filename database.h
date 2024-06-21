@@ -55,16 +55,16 @@ public:
     Userbase(const std::string&);
 
     bool add(const UserExtended::Ptr&);
-    bool update(const TgBot::User::Ptr&);
+    bool update(const UserExtended::Ptr&);
 
     void sync() override;
     void show_table(std::ostream&) override;
 
     void for_range(const std::function<void(UserExtended::Ptr&)>&);
-    UserExtended::Ptr get_copy_by_id(const std::int64_t&);
+    UserExtended::Ptr get_copy_by_id(std::int64_t);
 
 private:
-    iterator get_by_id(const std::int64_t&);
+    iterator get_by_id(std::int64_t);
     std::vector<UserExtended::Ptr> vec_;
 };
 
@@ -82,11 +82,11 @@ public:
     void show_table(std::ostream&) override;
 
     void for_range(const std::function<void(Ad::Ptr&)>&);
-    Ad::Ptr get_copy_by_id(const std::int64_t&);
+    Ad::Ptr get_copy_by_id(std::int64_t);
     std::int64_t get_last_id() noexcept { return vec_.size(); }
 
 private:
-    iterator get_by_id(const std::int64_t&);
+    iterator get_by_id(std::int64_t);
     std::vector<Ad::Ptr> vec_;
 };
 

@@ -14,8 +14,8 @@ public:
     std::string owner;
     std::string text;
     bool active;
-    std::int64_t added_on;
-    std::int64_t expiring_on;
+    std::time_t added_on;
+    std::time_t expiring_on;
     std::vector<TmExtended> schedule;
     std::string tpoints_str;
     std::string wdays_str;
@@ -24,6 +24,6 @@ public:
        const std::string& = std::string(),
        const std::string& = std::string(),
        bool = false,
-       const std::int64_t& = 0,
-       const std::int64_t& = 0);
+       const std::time_t& = 0,
+       const std::time_t& = 0);
 };

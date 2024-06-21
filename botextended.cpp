@@ -121,8 +121,9 @@ void BotExtended::advertising(std::stop_token tok)
 
 void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
-    if(!bot.userbase_->add(UserExtended::Ptr(new UserExtended(message->from))))
-        bot.userbase_->update(message->from);
+    UserExtended::Ptr uptr (new UserExtended(message->from, bot.getApi().blockedByUser(message->chat->id), std::time(nullptr)));
+    if(!bot.userbase_->add(uptr))
+        bot.userbase_->update(uptr);
 
     std::string log_message = std::string(": INFO : BOT : [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] SENT '" + message->text + "'.";
     Logger::write(log_message);
