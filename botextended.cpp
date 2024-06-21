@@ -73,7 +73,10 @@ void BotExtended::notify_all(const std::string& message)
 
     auto f = [this, &message](UserExtended::Ptr& user)
     {
-        notify_one(user->id, message);
+        if(!user->blocked)
+            notify_one(user->id, message);
+        else
+            Logger::write(": INFO : BOT : [" + std::to_string(user_id) + "] BLOCKED THE BOT.");
     };
     userbase_->for_range(f);
 
