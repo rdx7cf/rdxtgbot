@@ -26,7 +26,7 @@ void BotExtended::long_polling(std::stop_token tok)
         }
 
     }
-    catch (const std::exception& e)
+    catch (...)
     {
         Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
     }
