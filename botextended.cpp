@@ -15,21 +15,20 @@ void BotExtended::long_polling(std::stop_token tok)
                                     { start(message, *this); });
 
     Logger::write(": INFO : SYS : LONG POLLING INITALIZED.");
-    notify_all("I'm alive!");
-    TgBot::TgLongPoll longPoll(*this, 100, 1);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    while(!tok.stop_requested())
+
+    try
     {
-        try
+        notify_all("I'm alive!");
+        TgBot::TgLongPoll longPoll(*this, 100, 1);
+        while(!tok.stop_requested())
         {
-            //Logger::write(": INFO : BOT : .");
             longPoll.start();
         }
-        catch (const std::exception& e)
-        {
-            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
-        }
 
+    }
+    catch (const std::exception& e)
+    {
+        Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
     }
     Logger::write(": INFO : SYS : LONG POLLING STOPPED.");
 
