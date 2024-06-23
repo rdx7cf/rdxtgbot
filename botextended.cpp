@@ -54,7 +54,7 @@ void BotExtended::auto_sync(std::stop_token tok, const std::int32_t& seconds)
     Logger::write(": INFO : SYS : LOOP SYNC STOPPED.");
 }
 
-void BotExtended::notify_one(const std::int64_t& user_id, const std::string& message)
+void BotExtended::notify_one(std::int64_t user_id, const std::string& message)
 {
     try
     {
@@ -90,7 +90,7 @@ void BotExtended::advertising(std::stop_token tok)
     {
         std::for_each(ad->schedule.begin(), ad->schedule.end(), [this, &current, &ad](TmExtended& time_point)
         {
-            if(ad->active && current.tm_wday == time_point.tm_wday)
+            if(current.tm_wday == time_point.tm_wday && ad->active)
             {
                 if(std::time(nullptr) >= ad->expiring_on)
                 {

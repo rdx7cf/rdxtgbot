@@ -21,7 +21,7 @@ public:
 
     void long_polling(std::stop_token);
     void auto_sync(std::stop_token, const std::int32_t&);
-    void notify_one(const std::int64_t&, const std::string&);
+    void notify_one(std::int64_t, const std::string&);
     void notify_all(const std::string&);
     void advertising(std::stop_token);
 };

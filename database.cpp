@@ -670,7 +670,7 @@ void Adbase::for_range(const std::function<void(Ad::Ptr&)>& f)
     std::for_each(vec_.begin(), vec_.end(), f);
 }
 
-Ad::Ptr Adbase::get_copy_by_id(int64_t id)
+Ad::Ptr Adbase::get_copy_by_id(std::int64_t id)
 {
     auto current_it = get_by_id(id);
     if(current_it == vec_.end())

@@ -20,10 +20,10 @@ public:
     std::string tpoints_str;
     std::string wdays_str;
 
-    Ad(const std::int64_t& = 0,
+    Ad(std::int64_t = 0,
        const std::string& = std::string(),
        const std::string& = std::string(),
        bool = false,
-       const std::time_t& = 0,
-       const std::time_t& = 0);
+       std::time_t = 0,
+       std::time_t = 0);
 };
