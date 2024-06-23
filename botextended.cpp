@@ -8,23 +8,42 @@ void BotExtended::long_polling(std::stop_token tok)
 
     getEvents().onNonCommandMessage(
                 [this](TgBot::Message::Ptr message)
-                                    { noncom(message, *this); });
+
+    {
+        try
+        {
+            noncom(message, *this);
+        }
+        catch (const std::exception& e)
+        {
+            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+        }
+    });
 
     getEvents().onCommand("start",
                 [this](TgBot::Message::Ptr message)
-                                    { start(message, *this); });
+
+    {
+        try
+        {
+            start(message, *this);
+        }
+        catch (const std::exception& e)
+        {
+            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+        }
+    });
 
     Logger::write(": INFO : SYS : LONG POLLING INITALIZED.");
+    notify_all("I'm alive!");
+    TgBot::TgLongPoll longPoll(*this, 100, 1);
 
     try
     {
-        notify_all("I'm alive!");
-        TgBot::TgLongPoll longPoll(*this, 100, 1);
         while(!tok.stop_requested())
         {
             longPoll.start();
         }
-
     }
     catch (const std::exception& e)
     {
@@ -133,14 +152,11 @@ void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
 
 void noncom(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
-    if(bot.getApi().blockedByUser(message->chat->id)) return;
-
     bot.getApi().sendMessage(message->chat->id, "They haven't taught me this command yet.");
 }
 
 void start(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
-    if(bot.getApi().blockedByUser(message->chat->id)) return;
 
     bot.getApi().sendMessage(message->chat->id, "At the moment I'm just an echo bot. They will teach me to do something later.");
 }
