@@ -89,10 +89,10 @@ void BotExtended::notify_all(const std::string& message, Task flag)
 
     auto f = [this, &message, &flag](UserExtended::Ptr& user)
     {
-        if(!user->blocked)
+        if(!getApi().blockedByUser(user->id))
         {
             if(flag == Task::SYSTEM || user->activeTasks[static_cast<int>(flag)])
-                notify_one(user->id, message);
+                    notify_one(user->id, message);
         }
         else
             Logger::write(": INFO : BOT : User [" + std::to_string(user->id) + "] blocked the bot.");
@@ -146,10 +146,8 @@ void BotExtended::announcing(std::stop_token tok)
 
 void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
-    UserExtended::Ptr uptr(new UserExtended(message->from, bot.getApi().blockedByUser(message->chat->id)));
-
-    if(!bot.userbase_->add(uptr))
-        bot.userbase_->update(uptr);
+    if(!bot.userbase_->add(message->from))
+        bot.userbase_->update(message->from);
 
     std::string log_message = std::string(": INFO : BOT : User [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] has just sent: '" + message->text + "'.";
     Logger::write(log_message);
@@ -158,11 +156,16 @@ void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
 
 void noncom(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
+    if(bot.getApi().blockedByUser(message->chat->id))
+        return;
+
     bot.getApi().sendMessage(message->chat->id, "They haven't taught me this command yet.");
 }
 
 void start(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
+    if(bot.getApi().blockedByUser(message->chat->id))
+        return;
 
     bot.getApi().sendMessage(message->chat->id, "At the moment I'm just an echo bot. They will teach me to do something later.");
 }

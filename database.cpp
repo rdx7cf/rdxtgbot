@@ -104,8 +104,7 @@ static int extract_user(void* users, int colcount, char** columns, char** colnam
     user->canReadAllGroupMessages = std::stoi(columns[10]);
     user->supportsInlineQueries = std::stoi(columns[11]);
     user->activeTasks = std::stoul(columns[12]);
-    user->blocked = std::stoi(columns[13]);
-    user->member_since = std::stol(columns[14]);
+    user->member_since = std::stol(columns[13]);
 
     static_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
 
@@ -144,53 +143,6 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
 // AUX SECTION CLOSE //
 //////////////////////
 
-// DATABASE
-
-std::mutex Database::mutex_sql_ {}; // ODR-use.
-
-void Database::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container)
-{
-    std::lock_guard<std::mutex> lock(mutex_sql_);
-
-    char* err_msg = nullptr;
-
-    sqlite3* db;
-    int rc = sqlite3_open(filename_.c_str(), &db);
-
-    if(rc != SQLITE_OK)
-    {
-        last_err_msg_ = std::string("File '") + filename_ + "' is unavailable.";
-
-        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
-
-        sqlite3_close(db);
-
-        throw Database::db_exception(last_err_msg_);
-    }
-
-    rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
-
-
-    if(rc != SQLITE_OK)
-    {
-        last_err_msg_ =  err_msg;
-
-        Logger::write(": ERROR : DATABASE : " + last_err_msg_ + " :: QUERY :: " + query);
-
-        sqlite3_free(err_msg);
-        sqlite3_close(db);
-    }
-
-    sqlite3_close(db);
-}
-
-void Database::copy_sql_file()
-{
-    std::lock_guard<std::mutex> lock(mutex_sql_); // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
-    boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
-    Logger::write(": INFO : FILESYSTEM : File '" + filename_ + "' has been copied.");
-}
-
 // USERBASE
 
 Userbase::Userbase(const std::string& filename) : Database(filename)
@@ -199,7 +151,7 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
         std::lock_guard<std::mutex> lock(mutex_vec_);
         send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_blocked BOOLEAN, tg_membersince INTEGER);"
+                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_membersince INTEGER);"
                     "SELECT * FROM users",
                     extract_user,
                     &vec_
@@ -210,7 +162,7 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
     Logger::write(": INFO : DATABASE : Userbase has been initialized.");
 }
 
-bool Userbase::add(const UserExtended::Ptr& entry)
+bool Userbase::add(const TgBot::User::Ptr& entry)
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
@@ -218,7 +170,8 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         if(get_by_id(entry->id) != vec_.end())
             return false;
 
-        vec_.push_back(entry);
+
+        vec_.push_back(UserExtended::Ptr(new UserExtended(entry)));
     }
 
     try
@@ -235,7 +188,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
 
 
     send_query(
-        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks, tg_blocked, tg_membersince) VALUES ("
+        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks, tg_membersince) VALUES ("
         + std::to_string(entry->id)
         + std::string(", '")
         + std::string(entry->username)
@@ -260,18 +213,16 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         + std::string(", ")
         + std::to_string(entry->activeTasks.to_ulong())
         + std::string(", ")
-        + std::to_string(entry->blocked)
-        + std::string(", ")
         + std::to_string(entry->member_since)
         + std::string(");"));
 
 
-    Logger::write(": INFO : DATABASE : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] ADDED.");
+    Logger::write(": INFO : DATABASE : New user [" + std::to_string(entry->id) + "] [" + entry->firstName + "] has been added.");
 
     return true;
 }
 
-bool Userbase::update(const UserExtended::Ptr& entry)
+bool Userbase::update(const TgBot::User::Ptr& entry)
 {
 
     // VECTOR MUTEX SCOPE LOCK
@@ -349,23 +300,12 @@ bool Userbase::update(const UserExtended::Ptr& entry)
             (*existing_user_it)->supportsInlineQueries = entry->supportsInlineQueries;
         }
 
-        /*if(entry->blocked != (*existing_user_it)->blocked)
-        {
-            info_updated = true;
-            (*existing_user_it)->blocked = entry->blocked;
-        }*/
-
         if(!info_updated)
             return false;
     }
     Logger::write(": INFO : DATABASE : User [" + std::to_string(entry->id) + "] [" + entry->firstName + "] has been updated.");
 
     return true;
-}
-
-Userbase::iterator Userbase::get_by_id(std::int64_t id)
-{
-    return find_if(vec_.begin(), vec_.end(), [&id](const UserExtended::Ptr& x) { return x->id == id; });
 }
 
 void Userbase::sync()
@@ -396,7 +336,6 @@ void Userbase::sync()
                     + std::string(", tg_CRAGM=") + std::to_string(user->canReadAllGroupMessages)
                     + std::string(", tg_SIQ=") + std::to_string(user->supportsInlineQueries)
                     + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
-                    + std::string(", tg_blocked=") + std::to_string(user->blocked)
                     + std::string(", tg_membersince=") + std::to_string(user->member_since)
                     + std::string(" WHERE tg_id=") + std::to_string(user->id)
                 );
@@ -414,7 +353,6 @@ void Userbase::show_table(std::ostream& os)
        << std::setw(6) << "BOT"
        << std::setw(6) << "LANG"
        << std::setw(6) << "PREM"
-       << std::setw(7) << "BLOCK"
        << std::setw(18) << "USERNAME"
        << std::setw(18) << "FIRSTNAME"
        << "MEMBER SINCE"
@@ -430,7 +368,6 @@ void Userbase::show_table(std::ostream& os)
            << std::setw(6) <<  (entry->isBot ? "Yes" : "No")
            << std::setw(6) <<  entry->languageCode
            << std::setw(6) <<  (entry->isPremium ? "Yes" : "No")
-           << std::setw(7) <<  (entry->blocked ? "Yes" : "No")
            << std::setw(18) << string_shortener(entry->username, 16)
            << std::setw(18) << string_shortener(entry->firstName, 16)
            << std::put_time(&ms, "%d-%m-%Y %H:%M:%S")
@@ -439,19 +376,6 @@ void Userbase::show_table(std::ostream& os)
     for_range(f);
 }
 
-void Userbase::for_range(const std::function<void(UserExtended::Ptr&)>& f)
-{
-    std::lock_guard<std::mutex> lock_vec(mutex_vec_);
-    std::for_each(vec_.begin(), vec_.end(), f);
-}
-
-UserExtended::Ptr Userbase::get_copy_by_id(int64_t id)
-{
-    auto current_it = get_by_id(id);
-    if(current_it == vec_.end())
-        return nullptr;
-    return UserExtended::Ptr(new UserExtended(*(*current_it)));
-}
 
 // NOTIFBASE
 
@@ -608,11 +532,6 @@ bool Notifbase::update(const Notification::Ptr& entry)
     return true;
 }
 
-Notifbase::iterator Notifbase::get_by_id(std::int64_t id)
-{
-    return find_if(vec_.begin(), vec_.end(), [&id](const Notification::Ptr& x) { return x->id == id; });
-}
-
 void Notifbase::sync()
 {
     try
@@ -675,16 +594,3 @@ void Notifbase::show_table(std::ostream& os)
     for_range(f);
 }
 
-void Notifbase::for_range(const std::function<void(Notification::Ptr&)>& f)
-{
-    std::lock_guard<std::mutex> lock_vec(mutex_vec_);
-    std::for_each(vec_.begin(), vec_.end(), f);
-}
-
-Notification::Ptr Notifbase::get_copy_by_id(std::int64_t id)
-{
-    auto current_it = get_by_id(id);
-    if(current_it == vec_.end())
-        return nullptr;
-    return Notification::Ptr(new Notification(*(*current_it)));
-}
