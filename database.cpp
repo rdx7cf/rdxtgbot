@@ -1,5 +1,7 @@
 #include "database.h"
 
+namespace Data
+{
 ///////////////////////
 // AUX SECTION OPEN //
 /////////////////////
@@ -145,7 +147,7 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
 
 // USERBASE
 
-Userbase::Userbase(const std::string& filename) : Database(filename)
+Userbase::Userbase()
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
@@ -169,7 +171,6 @@ bool Userbase::add(const UserExtended::Ptr& entry)
 
         if(get_by_id(entry->id) != vec_.end())
             return false;
-
 
         vec_.push_back(entry);
     }
@@ -379,7 +380,7 @@ void Userbase::show_table(std::ostream& os)
 
 // NOTIFBASE
 
-Notifbase::Notifbase(const std::string& filename) : Database(filename)
+Notifbase::Notifbase()
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
@@ -594,3 +595,5 @@ void Notifbase::show_table(std::ostream& os)
     for_range(f);
 }
 
+
+}

@@ -16,11 +16,11 @@ public:
 
     enum class Task{SYSTEM = -1, ADS, CURRENCY};
 
-    Userbase::Ptr userbase_;
-    Notifbase::Ptr notifbase_;
+    Data::Userbase::Ptr userbase_;
+    Data::Notifbase::Ptr notifbase_;
 
-    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const std::string& db_path, const std::string& url = "https://api.telegram.org")
-        : TgBot::Bot(token, httpClient, url), userbase_(new Userbase(db_path)), notifbase_(new Notifbase(db_path)) {}
+    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const std::string& url = "https://api.telegram.org")
+        : TgBot::Bot(token, httpClient, url), userbase_(new Data::Userbase()), notifbase_(new Data::Notifbase()) {}
 
     void long_polling(std::stop_token);
 

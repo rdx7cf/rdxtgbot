@@ -10,8 +10,7 @@
 class UserExtended : public TgBot::User
 {
 public:
-    typedef std::shared_ptr<UserExtended> Ptr;
-
+    using Ptr = std::shared_ptr<UserExtended>;
 
     UserExtended(std::int64_t ms = std::time(nullptr), unsigned long bset = 0b1000) : member_since(ms), activeTasks(bset) {}
     UserExtended(const TgBot::User::Ptr& tgu, std::time_t ms = std::time(nullptr), unsigned long bset = 0b1000) : TgBot::User(*tgu), member_since(ms), activeTasks(bset) {}

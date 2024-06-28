@@ -18,7 +18,11 @@
 #include "notification.h"
 #include "ctime++.h"
 
+namespace Data
+{
+
 inline std::mutex mutex_sql_ {};
+inline std::string filename_ {};
 
 template<typename T>
 class Database
@@ -33,8 +37,6 @@ public:
         db_exception(const std::string& what_arg) : std::runtime_error(what_arg) {}
     };
 
-    Database(const std::string& filename) : filename_(filename) {}
-
     virtual ~Database() {}
 
     virtual void sync() = 0;
@@ -47,9 +49,7 @@ public:
     std::int64_t get_last_id() noexcept { return vec_.size(); }
 
 protected:
-    std::string filename_;
     std::string last_err_msg_;
-
     std::mutex mutex_vec_;
 
     iterator get_by_id(std::int64_t);
@@ -64,7 +64,7 @@ class Userbase : public Database<UserExtended>
 public:
     using Ptr = std::shared_ptr<Userbase>;
 
-    Userbase(const std::string&);
+    Userbase();
 
     bool add(const UserExtended::Ptr&) override;
     bool update(const UserExtended::Ptr&) override;
@@ -78,7 +78,7 @@ class Notifbase : public Database<Notification>
 public:
     using Ptr = std::shared_ptr<Notifbase>;
 
-    Notifbase(const std::string&);
+    Notifbase();
 
     bool add(const Notification::Ptr&) override;
     bool update(const Notification::Ptr&) override;
@@ -155,3 +155,6 @@ Database<T>::PtrT Database<T>::get_copy_by_id(std::int64_t id)
 }
 
 std::vector<TmExtended> extract_schedule(const std::string&, const std::string&);
+
+}
+
