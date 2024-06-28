@@ -26,6 +26,7 @@ add_executable(tgbot
     notification.h            notification.cpp
     tmextended.h
     ctime++.h  ctime++.cpp
+    dataentry.h
 
 )
 
