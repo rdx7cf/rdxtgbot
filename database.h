@@ -21,7 +21,7 @@
 namespace Data
 {
 
-inline std::mutex mutex_sql_ {};
+// inline std::mutex mutex_sql_ {}; https://www.sqlite.org/threadsafe.html
 inline std::string filename_ {};
 
 template<typename T>
@@ -90,8 +90,6 @@ public:
 template<typename T>
 void Database<T>::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container)
 {
-    std::lock_guard<std::mutex> lock(mutex_sql_);
-
     char* err_msg = nullptr;
 
     sqlite3* db;
@@ -127,7 +125,6 @@ void Database<T>::send_query(const std::string& query, int (*callback)(void*, in
 template<typename T>
 void Database<T>::copy_sql_file()
 {
-    std::lock_guard<std::mutex> lock(mutex_sql_); // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
     boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
     Logger::write(": INFO : FILESYSTEM : File '" + filename_ + "' has been copied.");
 }
