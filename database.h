@@ -18,7 +18,6 @@
 #include "notification.h"
 #include "ctime++.h"
 
-template<class T>
 class Database
 {
 public:
@@ -35,8 +34,6 @@ public:
     virtual void sync() = 0;
     virtual void show_table(std::ostream&) = 0;
 
-    void for_range(const std::function<void(T&)>&);
-
 
 protected:
     std::string filename_;
@@ -44,13 +41,12 @@ protected:
 
     static std::mutex mutex_sql_;
     std::mutex mutex_vec_;
-    std::vector<T> vec_;
 
     void copy_sql_file();
     void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
 };
 
-class Userbase : public Database<UserExtended::Ptr>
+class Userbase : public Database
 {
 public:
     typedef std::shared_ptr<Userbase> Ptr;
@@ -64,15 +60,6 @@ public:
     void sync() override;
     void show_table(std::ostream&) override;
 
-<<<<<<< HEAD
-    UserExtended::Ptr get_copy_by_id(const std::int64_t&);
-
-private:
-    iterator get_by_id(const std::int64_t&);
-};
-
-class Adbase : public Database<Ad::Ptr>
-=======
     void for_range(const std::function<void(UserExtended::Ptr&)>&);
     UserExtended::Ptr get_copy_by_id(std::int64_t);
 
@@ -82,7 +69,6 @@ private:
 };
 
 class Notifbase : public Database
->>>>>>> testing
 {
 public:
     typedef std::shared_ptr<Notifbase> Ptr;
@@ -95,12 +81,6 @@ public:
     void sync() override;
     void show_table(std::ostream&) override;
 
-<<<<<<< HEAD
-    Ad::Ptr get_copy_by_id(const std::int64_t&);
-
-private:
-    iterator get_by_id(const std::int64_t&);
-=======
     void for_range(const std::function<void(Notification::Ptr&)>&);
     Notification::Ptr get_copy_by_id(std::int64_t);
     std::int64_t get_last_id() noexcept { return vec_.size(); }
@@ -108,7 +88,6 @@ private:
 private:
     iterator get_by_id(std::int64_t);
     std::vector<Notification::Ptr> vec_;
->>>>>>> testing
 };
 
 std::vector<TmExtended> extract_schedule(const std::string&, const std::string&);
