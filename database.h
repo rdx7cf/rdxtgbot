@@ -22,6 +22,7 @@ namespace Data
 {
 
 // inline std::mutex mutex_sql_ {}; https://www.sqlite.org/threadsafe.html
+// virtual public Database ?
 inline std::string filename_ {};
 
 template<typename T>
