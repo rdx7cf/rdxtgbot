@@ -83,18 +83,16 @@ void BotExtended::notify_one(std::int64_t user_id, const std::string& message)
     }
 }
 
-void BotExtended::notify_all(const std::string& message, bool isAd)
+void BotExtended::notify_all(const std::string& message, Task flag)
 {
     Logger::write(": INFO : BOT : Notifying all users...");
 
-    auto f = [this, &message, &isAd](UserExtended::Ptr& user)
+    auto f = [this, &message, &flag](UserExtended::Ptr& user)
     {
         if(!user->blocked)
         {
-            if(isAd && user->activeTasks[0] == 1)
-                return;
-
-            notify_one(user->id, message);
+            if(flag == Task::SYSTEM || user->activeTasks[static_cast<int>(flag)])
+                notify_one(user->id, message);
         }
         else
             Logger::write(": INFO : BOT : User [" + std::to_string(user->id) + "] blocked the bot.");
@@ -104,7 +102,7 @@ void BotExtended::notify_all(const std::string& message, bool isAd)
     Logger::write(": INFO : BOT : Users has been notified.");
 }
 
-void BotExtended::advertising(std::stop_token tok)
+void BotExtended::announcing(std::stop_token tok)
 {
     std::time_t current_timestamp;
     std::tm current;
@@ -122,7 +120,7 @@ void BotExtended::advertising(std::stop_token tok)
                 }
                 if (((current.tm_hour == time_point.tm_hour && current.tm_min >= time_point.tm_min) || current.tm_hour > time_point.tm_hour) && !time_point.executed) // Такое монструозное условие нужно для того, чтобы учитывалась разница и между часами, и между часами:минутами (то есть чтобы временная точка типа 15:30 также была допустима)
                 {
-                    notify_all(notif->text, notif->is_ad);
+                    notify_all(notif->text, Task::ADS);
                     time_point.executed = true;
                 }
                 else if((current.tm_hour < time_point.tm_hour || (current.tm_hour == time_point.tm_hour && current.tm_min < time_point.tm_min)) && time_point.executed)

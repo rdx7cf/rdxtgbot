@@ -14,6 +14,8 @@ class BotExtended : public TgBot::Bot
 {
 public:
 
+    enum class Task{SYSTEM = -1, ADS, CURRENCY};
+
     Userbase::Ptr userbase_;
     Notifbase::Ptr notifbase_;
 
@@ -28,10 +30,11 @@ public:
     void notify_one(std::int64_t,
                     const std::string&);
 
-    void notify_all(const std::string&, bool = false);
+    void notify_all(const std::string&,
+                    Task = Task::SYSTEM);
 
 
-    void advertising(std::stop_token);
+    void announcing(std::stop_token);
 };
 
 // Listeners

@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     // Using std::bind is a workaround for GCC10.
     std::jthread long_polling(std::bind(&BotExtended::long_polling, &bot, std::placeholders::_1));
     std::jthread auto_syncing(std::bind(&BotExtended::auto_sync, &bot, std::placeholders::_1, std::cref(interval)));
-    std::jthread advertising(std::bind(&BotExtended::advertising, &bot, std::placeholders::_1));
+    std::jthread announcing(std::bind(&BotExtended::announcing, &bot, std::placeholders::_1));
 
 
 

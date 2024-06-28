@@ -349,11 +349,11 @@ bool Userbase::update(const UserExtended::Ptr& entry)
             (*existing_user_it)->supportsInlineQueries = entry->supportsInlineQueries;
         }
 
-        if(entry->blocked != (*existing_user_it)->blocked)
+        /*if(entry->blocked != (*existing_user_it)->blocked)
         {
             info_updated = true;
             (*existing_user_it)->blocked = entry->blocked;
-        }
+        }*/
 
         if(!info_updated)
             return false;
