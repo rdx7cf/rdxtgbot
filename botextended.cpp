@@ -146,8 +146,10 @@ void BotExtended::announcing(std::stop_token tok)
 
 void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
-    if(!bot.userbase_->add(message->from))
-        bot.userbase_->update(message->from);
+    UserExtended::Ptr uptr(new UserExtended(message->from));
+
+    if(!bot.userbase_->add(uptr))
+        bot.userbase_->update(uptr);
 
     std::string log_message = std::string(": INFO : BOT : User [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] has just sent: '" + message->text + "'.";
     Logger::write(log_message);

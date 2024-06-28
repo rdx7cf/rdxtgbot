@@ -162,7 +162,7 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
     Logger::write(": INFO : DATABASE : Userbase has been initialized.");
 }
 
-bool Userbase::add(const TgBot::User::Ptr& entry)
+bool Userbase::add(const UserExtended::Ptr& entry)
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
@@ -171,7 +171,7 @@ bool Userbase::add(const TgBot::User::Ptr& entry)
             return false;
 
 
-        vec_.push_back(UserExtended::Ptr(new UserExtended(entry)));
+        vec_.push_back(entry);
     }
 
     try
@@ -222,7 +222,7 @@ bool Userbase::add(const TgBot::User::Ptr& entry)
     return true;
 }
 
-bool Userbase::update(const TgBot::User::Ptr& entry)
+bool Userbase::update(const UserExtended::Ptr& entry)
 {
 
     // VECTOR MUTEX SCOPE LOCK

@@ -66,8 +66,8 @@ public:
 
     Userbase(const std::string&);
 
-    bool add(const TgBot::User::Ptr&) override;
-    bool update(const TgBot::User::Ptr&) override;
+    bool add(const UserExtended::Ptr&) override;
+    bool update(const UserExtended::Ptr&) override;
 
     void sync() override;
     void show_table(std::ostream&) override;
