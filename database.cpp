@@ -4,7 +4,7 @@
 // AUX SECTION OPEN //
 /////////////////////
 
-static std::vector<std::string> split(const std::string& str, const char& delim)
+static std::vector<std::string> split(const std::string& str, char delim)
 {
     typedef std::string::const_iterator iter;
 
@@ -25,25 +25,64 @@ static std::vector<std::string> split(const std::string& str, const char& delim)
     return ret;
 }
 
-std::vector<TmExtended> extract_schedule(const std::string& raw)
+static std::string string_shortener(const std::string& str, std::string::size_type desired_sz)
+{
+    auto sz = str.size();
+
+    if(sz >= desired_sz)
+        return std::string(str, 0, desired_sz - 3) + std::string("...");
+    else if(str[sz - 1] == '\n')
+        return std::string(str, 0, sz - 1);
+    else
+        return str;
+}
+
+std::vector<TmExtended> extract_schedule(const std::string& raw_tpoint, const std::string& raw_wday)
 {
 
     std::vector<TmExtended> result;
-    std::stringstream raw_stream(raw);
+    std::stringstream raw_tpoint_stream(raw_tpoint);
 
-    for(std::string space_delim; std::getline(raw_stream, space_delim, ' '); )
+    for(std::string tpoint_str; std::getline(raw_tpoint_stream, tpoint_str, ' '); )
     {
-        if(space_delim.size() != 5)
-            throw Database::db_exception("Invalid schedule time format: '" + raw + "'.");
-
-        auto splitted = split(space_delim, ':');
+        auto tpoint_splitted = split(tpoint_str, ':');
 
         TmExtended t {};
 
-        t.tm_hour = std::stoi(splitted[0]);
-        t.tm_min = std::stoi(splitted[1]);
+        try
+        {
+            t.tm_hour = std::stoi(tpoint_splitted[0]);
+            t.tm_min = std::stoi(tpoint_splitted[1]);
+        }
+        catch(...)
+        {
+            Logger::write(": ERROR : DATABASE : Invalid schedule timepoint formatting: '" + tpoint_str + "'.");
+            continue;
+        }
 
-        result.push_back(t);
+        std::stringstream raw_wday_stream(raw_wday);
+        for(std::string wday_str; std::getline(raw_wday_stream, wday_str, ' '); )
+        {
+            try
+            {
+                int wday = std::stoi(wday_str);
+
+                if(wday < 0 || 6 < wday)
+                    throw std::exception();
+
+                t.tm_wday = std::stoi(wday_str);
+
+            }
+            catch(...)
+            {
+                Logger::write(": ERROR : DATABASE : Invalid schedule weekday formatting: '" + wday_str + "'.");
+                continue;
+            }
+
+            result.push_back(t);
+        }
+
+
     }
 
     return result;
@@ -58,37 +97,45 @@ static int extract_user(void* users, int colcount, char** columns, char** colnam
     user->firstName = columns[3];
     user->lastName = columns[4];
     user->languageCode = columns[5];
-    user->isBot = columns[6];
-    user->isPremium = columns[7];
-    user->addedToAttachmentMenu = columns[8];
-    user->canJoinGroups = columns[9];
-    user->canReadAllGroupMessages = columns[10];
-    user->supportsInlineQueries = columns[11];
+    user->isBot = std::stoi(columns[6]);
+    user->isPremium = std::stoi(columns[7]);
+    user->addedToAttachmentMenu = std::stoi(columns[8]);
+    user->canJoinGroups = std::stoi(columns[9]);
+    user->canReadAllGroupMessages = std::stoi(columns[10]);
+    user->supportsInlineQueries = std::stoi(columns[11]);
     user->activeTasks = std::stoul(columns[12]);
+    user->blocked = std::stoi(columns[13]);
+    user->member_since = std::stol(columns[14]);
 
-    reinterpret_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
+    static_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
 
     return 0;
 }
 
-static int extract_ad(void* ads, int colcount, char** columns, char** colnames)
+static int extract_notif(void* notifs, int colcount, char** columns, char** colnames)
 {
-    Ad::Ptr ad(new Ad);
+    Notification::Ptr notif(new Notification);
 
-    ad->id = std::stol(columns[0]);
-    ad->owner = columns[1];
-    ad->text = columns[2];
-    ad->active = columns[3];
+    notif->id = std::stol(columns[0]);
+    notif->owner = columns[1];
+    notif->text = columns[2];
+    notif->active = std::stoi(columns[3]);
+    notif->is_ad = std::stoi(columns[4]);
+    notif->tpoints_str = columns[5];
+    notif->wdays_str = columns[6];
+    notif->schedule = extract_schedule(notif->tpoints_str, notif->wdays_str);
+    if(notif->schedule.size() == 0)
+    {
+        Logger::write(": WARN : DATABASE : No schedule specified for: '" + notif->owner + "'.");
+        notif->active = false;
+        notif->tpoints_str.clear();
+        notif->wdays_str.clear();
+    }
 
-    ad->schedule_str = columns[4];
-    if(ad->schedule_str.size())
-        ad->schedule = extract_schedule(ad->schedule_str);
-    else
-        throw Database::db_exception("No schedule specified for: '" + ad->owner + "'.");
-    ad->added_on = std::stol(columns[5]);
-    ad->expiring_on = std::stol(columns[6]);
+    notif->added_on = std::stol(columns[7]);
+    notif->expiring_on = std::stol(columns[8]);
 
-    reinterpret_cast<std::vector<Ad::Ptr>*>(ads)->push_back(ad);
+    static_cast<std::vector<Notification::Ptr>*>(notifs)->push_back(notif);
 
     return 0;
 }
@@ -114,13 +161,13 @@ void Database<T>::send_query(const std::string& query, int (*callback)(void*, in
 
     if(rc != SQLITE_OK)
     {
-        last_err_msg_ = std::string("FILE UNAVAILABLE: '") + filename_ + "'";
+        last_err_msg_ = std::string("File '") + filename_ + "' is unavailable.";
 
-        Logger::write(": ERROR : BAS : " + last_err_msg_);
+        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
 
         sqlite3_close(db);
 
-        throw Database::db_exception(last_err_msg_ + "\n:: QUERY ::\n" + query);
+        throw Database::db_exception(last_err_msg_);
     }
 
     rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
@@ -130,12 +177,10 @@ void Database<T>::send_query(const std::string& query, int (*callback)(void*, in
     {
         last_err_msg_ =  err_msg;
 
-        Logger::write(": ERROR : BAS : " + last_err_msg_);
+        Logger::write(": ERROR : DATABASE : " + last_err_msg_ + " :: QUERY :: " + query);
 
         sqlite3_free(err_msg);
         sqlite3_close(db);
-
-        throw Database::db_exception(last_err_msg_ + "\n:: QUERY ::\n" + query);
     }
 
     sqlite3_close(db);
@@ -146,7 +191,7 @@ void Database<T>::copy_sql_file()
 {
     std::lock_guard<std::mutex> lock(mutex_sql_); // Declaring a lock_guard with the same SQL mutex before calling this function leads to deadlock.
     boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
-    Logger::write(": INFO : FIL : '" + filename_ + "' COPIED.");
+    Logger::write(": INFO : FILESYSTEM : File '" + filename_ + "' has been copied.");
 }
 
 // USERBASE
@@ -157,7 +202,7 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
         std::lock_guard<std::mutex> lock(mutex_vec_);
         send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER);"
+                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_blocked BOOLEAN, tg_membersince INTEGER);"
                     "SELECT * FROM users",
                     extract_user,
                     &vec_
@@ -165,7 +210,7 @@ Userbase::Userbase(const std::string& filename) : Database(filename)
 
     }
 
-    Logger::write(": INFO : BAS : USR : INITIALIZED.");
+    Logger::write(": INFO : DATABASE : Userbase has been initialized.");
 }
 
 bool Userbase::add(const UserExtended::Ptr& entry)
@@ -193,7 +238,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
 
 
     send_query(
-        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks) VALUES ("
+        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks, tg_blocked, tg_membersince) VALUES ("
         + std::to_string(entry->id)
         + std::string(", '")
         + std::string(entry->username)
@@ -204,28 +249,32 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         + std::string("', '")
         + std::string(entry->languageCode)
         + std::string("', ")
-        + std::string(entry->isBot ? "TRUE" : "FALSE")
+        + std::to_string(entry->isBot)
         + std::string(", ")
-        + std::string(entry->isPremium ? "TRUE" : "FALSE")
+        + std::to_string(entry->isPremium)
         + std::string(", ")
-        + std::string(entry->addedToAttachmentMenu ? "TRUE" : "FALSE")
+        + std::to_string(entry->addedToAttachmentMenu)
         + std::string(", ")
-        + std::string(entry->canJoinGroups ? "TRUE" : "FALSE")
+        + std::to_string(entry->canJoinGroups)
         + std::string(", ")
-        + std::string(entry->canReadAllGroupMessages ? "TRUE" : "FALSE")
+        + std::to_string(entry->canReadAllGroupMessages)
         + std::string(", ")
-        + std::string(entry->supportsInlineQueries ? "TRUE" : "FALSE")
+        + std::to_string(entry->supportsInlineQueries)
         + std::string(", ")
         + std::to_string(entry->activeTasks.to_ulong())
+        + std::string(", ")
+        + std::to_string(entry->blocked)
+        + std::string(", ")
+        + std::to_string(entry->member_since)
         + std::string(");"));
 
 
-    Logger::write(": INFO : BAS : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] ADDED.");
+    Logger::write(": INFO : DATABASE : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] ADDED.");
 
     return true;
 }
 
-bool Userbase::update(const TgBot::User::Ptr& entry)
+bool Userbase::update(const UserExtended::Ptr& entry)
 {
 
     // VECTOR MUTEX SCOPE LOCK
@@ -303,15 +352,21 @@ bool Userbase::update(const TgBot::User::Ptr& entry)
             (*existing_user_it)->supportsInlineQueries = entry->supportsInlineQueries;
         }
 
+        /*if(entry->blocked != (*existing_user_it)->blocked)
+        {
+            info_updated = true;
+            (*existing_user_it)->blocked = entry->blocked;
+        }*/
+
         if(!info_updated)
             return false;
     }
-    Logger::write(": INFO : BAS : USR : [" + std::to_string(entry->id) + "] [" + entry->firstName + "] UPDATED.");
+    Logger::write(": INFO : DATABASE : User [" + std::to_string(entry->id) + "] [" + entry->firstName + "] has been updated.");
 
     return true;
 }
 
-Userbase::iterator Userbase::get_by_id(const std::int64_t& id)
+Userbase::iterator Userbase::get_by_id(std::int64_t id)
 {
     return find_if(vec_.begin(), vec_.end(), [&id](const UserExtended::Ptr& x) { return x->id == id; });
 }
@@ -325,39 +380,64 @@ void Userbase::sync()
     catch(const boost::filesystem::filesystem_error& ex)
     {
         last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FIL : " + last_err_msg_);
+        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
 
         throw ex;
     }
 
-    std::function<void(UserExtended::Ptr&)> f = [this](UserExtended::Ptr& user)
+    auto f = [this](UserExtended::Ptr& user) // Для замыканий лучше использовать auto, а не std::function. Это не одно и то же: std::function для замыканий работает медленно и занимает больше памяти.
     {
         send_query(
                     (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
                     + std::string("', tg_fname='") + std::string(user->firstName)
                     + std::string("', tg_lname='") + std::string(user->lastName)
                     + std::string("', tg_langcode='")+ std::string(user->languageCode)
-                    + std::string("', tg_bot=") + std::string(user->isBot ? "TRUE" : "FALSE")
-                    + std::string(", tg_prem=") + std::string(user->isPremium ? "TRUE" : "FALSE")
-                    + std::string(", tg_ATAM=") + std::string(user->addedToAttachmentMenu ? "TRUE" : "FALSE")
-                    + std::string(", tg_CJG=") + std::string(user->canJoinGroups ? "TRUE" : "FALSE")
-                    + std::string(", tg_CRAGM=") + std::string(user->canReadAllGroupMessages ? "TRUE" : "FALSE")
-                    + std::string(", tg_SIQ=") + std::string(user->supportsInlineQueries ? "TRUE" : "FALSE")
+                    + std::string("', tg_bot=") + std::to_string(user->isBot)
+                    + std::string(", tg_prem=") + std::to_string(user->isPremium)
+                    + std::string(", tg_ATAM=") + std::to_string(user->addedToAttachmentMenu)
+                    + std::string(", tg_CJG=") + std::to_string(user->canJoinGroups)
+                    + std::string(", tg_CRAGM=") + std::to_string(user->canReadAllGroupMessages)
+                    + std::string(", tg_SIQ=") + std::to_string(user->supportsInlineQueries)
                     + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
+                    + std::string(", tg_blocked=") + std::to_string(user->blocked)
+                    + std::string(", tg_membersince=") + std::to_string(user->member_since)
                     + std::string(" WHERE tg_id=") + std::to_string(user->id)
                 );
     };
     for_range(f);
 
-    Logger::write(": INFO : BAS : USR : SYNC OK.");
+    Logger::write(": INFO : DATABASE : Users have been synced with the SQL file.");
 }
 
 void Userbase::show_table(std::ostream& os)
 {
-    os << std::endl << std::left << std::setw(16) << "ID" << std::setw(32) << "USERNAME" << "FIRSTNAME" << std::endl;
-    std::function<void(UserExtended::Ptr&)> f = [&os](UserExtended::Ptr& entry)
+    os << std::endl << std::left
+       << std::setw(18) << "ID"
+       << std::setw(8) << "TASKS"
+       << std::setw(6) << "BOT"
+       << std::setw(6) << "LANG"
+       << std::setw(6) << "PREM"
+       << std::setw(7) << "BLOCK"
+       << std::setw(18) << "USERNAME"
+       << std::setw(18) << "FIRSTNAME"
+       << "MEMBER SINCE"
+       << std::endl;
+
+    auto f = [&os](UserExtended::Ptr& entry)
     {
-        os << std::left << std::setw(16) << std::to_string(entry->id) << std::setw(32) << entry->username << entry->firstName << std::endl;
+        std::tm ms = localtime_ts(entry->member_since);
+
+        os << std::left
+           << std::setw(18) << std::to_string(entry->id)
+           << std::setw(8) <<  entry->activeTasks.to_string()
+           << std::setw(6) <<  (entry->isBot ? "Yes" : "No")
+           << std::setw(6) <<  entry->languageCode
+           << std::setw(6) <<  (entry->isPremium ? "Yes" : "No")
+           << std::setw(7) <<  (entry->blocked ? "Yes" : "No")
+           << std::setw(18) << string_shortener(entry->username, 16)
+           << std::setw(18) << string_shortener(entry->firstName, 16)
+           << std::put_time(&ms, "%d-%m-%Y %H:%M:%S")
+           << std::endl;
     };
     for_range(f);
 }
@@ -368,7 +448,7 @@ void Userbase::for_range(const std::function<void(UserExtended::Ptr&)>& f)
     std::for_each(vec_.begin(), vec_.end(), f);
 }
 
-UserExtended::Ptr Userbase::get_copy_by_id(const int64_t& id)
+UserExtended::Ptr Userbase::get_copy_by_id(int64_t id)
 {
     auto current_it = get_by_id(id);
     if(current_it == vec_.end())
@@ -376,25 +456,25 @@ UserExtended::Ptr Userbase::get_copy_by_id(const int64_t& id)
     return UserExtended::Ptr(new UserExtended(*(*current_it)));
 }
 
-// ADBASE
+// NOTIFBASE
 
-Adbase::Adbase(const std::string& filename) : Database(filename)
+Notifbase::Notifbase(const std::string& filename) : Database(filename)
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
         send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN,schedule TEXT,added_on INTEGER,expiring_on INTEGER);"
-                    "SELECT * FROM ads",
-                    extract_ad,
+                    "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN, is_ad BOOLEAN,tpoints TEXT,wdays TEXT,added_on INTEGER,expiring_on INTEGER);"
+                    "SELECT * FROM notifications",
+                    extract_notif,
                     &vec_
                 );
     }
 
-    Logger::write(": INFO : BAS : USR : INITIALIZED.");
+    Logger::write(": INFO : DATABASE : Notifbase has been initialized.");
 }
 
-bool Adbase::add(const Ad::Ptr& entry)
+bool Notifbase::add(const Notification::Ptr& entry)
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
@@ -412,32 +492,36 @@ bool Adbase::add(const Ad::Ptr& entry)
     catch(const boost::filesystem::filesystem_error& ex)
     {
         last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FS : " + last_err_msg_);
+        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
 
         throw ex;
     }
 
     send_query(
-        (std::string)"INSERT INTO ads (owner, text, active, schedule, added_on, expiring_on) VALUES ('"
+        (std::string)"INSERT INTO notifications (owner, text, active, is_ad, tpoints, wdays, added_on, expiring_on) VALUES ('"
         + std::string(entry->owner)
         + std::string("', '")
         + std::string(entry->text)
         + std::string("', ")
-        + std::string(entry->active ? "TRUE" : "FALSE")
+        + std::to_string(entry->active)
+        + std::string(", ")
+        + std::to_string(entry->is_ad)
         + std::string(", '")
-        + entry->schedule_str
+        + entry->tpoints_str
+        + std::string("', '")
+        + entry->wdays_str
         + std::string("', ")
         + std::to_string(entry->added_on)
         + std::string(", ")
         + std::to_string(entry->expiring_on)
         + std::string(");"));
 
-    Logger::write(": INFO : BAS : ADS : [" + std::to_string(entry->id) + "] [" + entry->owner + "] ADDED.");
+    Logger::write(": INFO : DATABASE : New notification [" + std::to_string(entry->id) + "] [" + entry->owner + "] has been added.");
 
     return true;
 }
 
-bool Adbase::update(const Ad::Ptr& entry)
+bool Notifbase::update(const Notification::Ptr& entry)
 {
     // VECTOR MUTEX SCOPE LOCK
     {
@@ -445,76 +529,94 @@ bool Adbase::update(const Ad::Ptr& entry)
 
         // Searching for the ad in the vector.
 
-        auto existing_ad_it = get_by_id(entry->id);
+        auto existing_notif_it = get_by_id(entry->id);
 
-        if(existing_ad_it == vec_.end())
+        if(existing_notif_it == vec_.end())
             return false;
 
         bool info_updated = false;
 
         // Updating the entry in the vector.
 
-        if(entry->owner != (*existing_ad_it)->owner)
+        if(entry->owner != (*existing_notif_it)->owner)
         {
             info_updated = true;
-            (*existing_ad_it)->owner = entry->owner;
+            (*existing_notif_it)->owner = entry->owner;
         }
 
-        if(entry->text != (*existing_ad_it)->text)
+        if(entry->text != (*existing_notif_it)->text)
         {
             info_updated = true;
-            (*existing_ad_it)->text = entry->text;
+            (*existing_notif_it)->text = entry->text;
         }
 
-        if(entry->active != (*existing_ad_it)->active)
+        if(entry->active != (*existing_notif_it)->active)
         {
             info_updated = true;
-            (*existing_ad_it)->active = entry->active;
+            (*existing_notif_it)->active = entry->active;
         }
 
-        if(entry->schedule_str != (*existing_ad_it)->schedule_str)
+        if(entry->is_ad != (*existing_notif_it)->is_ad)
         {
             info_updated = true;
-            (*existing_ad_it)->schedule = entry->schedule;
-            (*existing_ad_it)->schedule_str = entry->schedule_str;
+            (*existing_notif_it)->is_ad = entry->is_ad;
         }
 
-        if(entry->added_on != (*existing_ad_it)->added_on)
+        if(entry->tpoints_str != (*existing_notif_it)->tpoints_str)
         {
             info_updated = true;
-            (*existing_ad_it)->added_on = entry->added_on;
+            (*existing_notif_it)->schedule = entry->schedule;
+            (*existing_notif_it)->tpoints_str = entry->tpoints_str;
+            (*existing_notif_it)->wdays_str = entry->wdays_str;
         }
 
-        if(entry->expiring_on != (*existing_ad_it)->expiring_on)
+        if(entry->wdays_str != (*existing_notif_it)->wdays_str)
         {
             info_updated = true;
-            (*existing_ad_it)->expiring_on = entry->expiring_on;
+            (*existing_notif_it)->schedule = entry->schedule;
+            (*existing_notif_it)->wdays_str = entry->wdays_str;
+        }
+
+        if(entry->added_on != (*existing_notif_it)->added_on)
+        {
+            info_updated = true;
+            (*existing_notif_it)->added_on = entry->added_on;
+        }
+
+        if(entry->expiring_on != (*existing_notif_it)->expiring_on)
+        {
+            info_updated = true;
+            (*existing_notif_it)->expiring_on = entry->expiring_on;
         }
 
         if(!info_updated)
             return false;
     }
-    Logger::write(": INFO : BAS : ADS : [" + std::to_string(entry->id) + "] [" + entry->owner + "] UPDATED.");
+
 
     send_query(
-                (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
+                (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                 + std::string("', text='") + std::string(entry->text)
-                + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
-                + std::string(", schedule='") + entry->schedule_str
+                + std::string("', active=") + std::to_string(entry->active)
+                + std::string(", is_ad=") + std::to_string(entry->is_ad)
+                + std::string(", tpoints='") + entry->tpoints_str
+                + std::string("', wdays='") + entry->wdays_str
                 + std::string("', added_on=") + std::to_string(entry->added_on)
                 + std::string(", expiring_on=") + std::to_string(entry->expiring_on)
                 + std::string(" WHERE id=") + std::to_string(entry->id)
             );
 
+    Logger::write(": INFO : DATABASE : Notification [" + std::to_string(entry->id) + "] [" + entry->owner + "] has been updated.");
+
     return true;
 }
 
-Adbase::iterator Adbase::get_by_id(const std::int64_t& id)
+Notifbase::iterator Notifbase::get_by_id(std::int64_t id)
 {
-    return find_if(vec_.begin(), vec_.end(), [&id](const Ad::Ptr& x) { return x->id == id; });
+    return find_if(vec_.begin(), vec_.end(), [&id](const Notification::Ptr& x) { return x->id == id; });
 }
 
-void Adbase::sync()
+void Notifbase::sync()
 {
     try
     {
@@ -523,18 +625,19 @@ void Adbase::sync()
     catch(const boost::filesystem::filesystem_error& ex)
     {
         last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FIL : " + last_err_msg_);
+        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
 
         throw ex;
     }
 
-    std::function<void(Ad::Ptr&)> f = [this](Ad::Ptr& entry)
+    auto f = [this](Notification::Ptr& entry)
     {
         send_query(
-                    (std::string)"UPDATE ads SET owner='" + std::string(entry->owner)
+                    (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                     + std::string("', text='") + std::string(entry->text)
-                    + std::string("', active=") + std::string(entry->active ? "TRUE" : "FALSE")
-                    + std::string(", schedule='") + entry->schedule_str
+                    + std::string("', active=") + std::to_string(entry->active)
+                    + std::string(", tpoints='") + entry->tpoints_str
+                    + std::string("', wdays='") + entry->wdays_str
                     + std::string("', added_on=") + std::to_string(entry->added_on)
                     + std::string(", expiring_on=") + std::to_string(entry->expiring_on)
                     + std::string(" WHERE id=") + std::to_string(entry->id)
@@ -542,33 +645,49 @@ void Adbase::sync()
     };
     for_range(f);
 
-    Logger::write(": INFO : BAS : ADS : SYNC OK.");
+    Logger::write(": INFO : DATABASE : Notifications have been synced with the SQL base.");
 }
 
-void Adbase::show_table(std::ostream& os)
+void Notifbase::show_table(std::ostream& os)
 {
-    os << std::endl << std::left << std::setw(10) << "ID" << std::setw(24) << "OWNER" << std::setw(24) << "SCHEDULE" << "ADDED ON" << "\t\t" << "EXPIRING ON" << std::endl;
+    os << std::endl
+       << std::left << std::setw(6) << "ID"
+       << std::setw(8) << "ACTIVE"
+       << std::setw(18) << "OWNER"
+       << std::setw(18) << "TEXT"
+       << std::setw(18) << "SCHEDULE"
+       << "ADDED ON"
+       << "\t\t\t" << "EXPIRING ON"
+       << std::endl;
 
-    std::function<void(Ad::Ptr&)> f = [&os](Ad::Ptr& entry)
+    auto f = [&os](Notification::Ptr& entry)
     {
         std::tm added_on = localtime_ts(entry->added_on);
         std::tm expiring_on = localtime_ts(entry->expiring_on);
-        os << std::left << std::setw(10) << std::to_string(entry->id) << std::setw(24) << entry->owner << std::setw(24) << entry->schedule_str << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S") << '\t' << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S") << std::endl;
+        os << std::left
+           << std::setw(6) << std::to_string(entry->id)
+           << std::setw(8) << (entry->active ? "Yes" : "No")
+           << std::setw(18) << string_shortener(entry->owner, 16)
+           << std::setw(18) << string_shortener(entry->text, 16)
+           << std::setw(18) << string_shortener(entry->tpoints_str, 16)
+           << std::put_time(&added_on, "%d-%m-%Y %H:%M:%S")
+           << "\t\t" << std::put_time(&expiring_on, "%d-%m-%Y %H:%M:%S")
+           << std::endl;
     };
 
     for_range(f);
 }
 
-void Adbase::for_range(const std::function<void(Ad::Ptr&)>& f)
+void Notifbase::for_range(const std::function<void(Notification::Ptr&)>& f)
 {
     std::lock_guard<std::mutex> lock_vec(mutex_vec_);
     std::for_each(vec_.begin(), vec_.end(), f);
 }
 
-Ad::Ptr Adbase::get_copy_by_id(const int64_t& id)
+Notification::Ptr Notifbase::get_copy_by_id(std::int64_t id)
 {
     auto current_it = get_by_id(id);
     if(current_it == vec_.end())
         return nullptr;
-    return Ad::Ptr(new Ad(*(*current_it)));
+    return Notification::Ptr(new Notification(*(*current_it)));
 }

@@ -15,7 +15,7 @@
 
 #include "logger.h"
 #include "userextended.h"
-#include "ad.h"
+#include "notification.h"
 #include "ctime++.h"
 
 template<class T>
@@ -59,11 +59,12 @@ public:
     Userbase(const std::string&);
 
     bool add(const UserExtended::Ptr&);
-    bool update(const TgBot::User::Ptr&);
+    bool update(const UserExtended::Ptr&);
 
     void sync() override;
     void show_table(std::ostream&) override;
 
+<<<<<<< HEAD
     UserExtended::Ptr get_copy_by_id(const std::int64_t&);
 
 private:
@@ -71,22 +72,43 @@ private:
 };
 
 class Adbase : public Database<Ad::Ptr>
+=======
+    void for_range(const std::function<void(UserExtended::Ptr&)>&);
+    UserExtended::Ptr get_copy_by_id(std::int64_t);
+
+private:
+    iterator get_by_id(std::int64_t);
+    std::vector<UserExtended::Ptr> vec_;
+};
+
+class Notifbase : public Database
+>>>>>>> testing
 {
 public:
-    typedef std::shared_ptr<Adbase> Ptr;
-    typedef std::vector<Ad::Ptr>::iterator iterator;
+    typedef std::shared_ptr<Notifbase> Ptr;
+    typedef std::vector<Notification::Ptr>::iterator iterator;
 
-    Adbase(const std::string&);
-    bool add(const Ad::Ptr&);
-    bool update(const Ad::Ptr&);
+    Notifbase(const std::string&);
+    bool add(const Notification::Ptr&);
+    bool update(const Notification::Ptr&);
 
     void sync() override;
     void show_table(std::ostream&) override;
 
+<<<<<<< HEAD
     Ad::Ptr get_copy_by_id(const std::int64_t&);
 
 private:
     iterator get_by_id(const std::int64_t&);
+=======
+    void for_range(const std::function<void(Notification::Ptr&)>&);
+    Notification::Ptr get_copy_by_id(std::int64_t);
+    std::int64_t get_last_id() noexcept { return vec_.size(); }
+
+private:
+    iterator get_by_id(std::int64_t);
+    std::vector<Notification::Ptr> vec_;
+>>>>>>> testing
 };
 
-std::vector<TmExtended> extract_schedule(const std::string&);
+std::vector<TmExtended> extract_schedule(const std::string&, const std::string&);

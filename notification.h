@@ -5,24 +5,27 @@
 #include <vector>
 #include "tmextended.h"
 
-class Ad
+class Notification
 {
 public:
-    typedef std::shared_ptr<Ad> Ptr;
+    typedef std::shared_ptr<Notification> Ptr;
 
     std::int64_t id;
     std::string owner;
     std::string text;
     bool active;
-    std::int64_t added_on;
-    std::int64_t expiring_on;
+    bool is_ad;
+    std::time_t added_on;
+    std::time_t expiring_on;
     std::vector<TmExtended> schedule;
-    std::string schedule_str;
+    std::string tpoints_str;
+    std::string wdays_str;
 
-    Ad(const std::int64_t& = 0,
+    Notification(std::int64_t = 0,
        const std::string& = std::string(),
        const std::string& = std::string(),
        bool = false,
-       const std::int64_t& = 0,
-       const std::int64_t& = 0);
+       bool = false,
+       std::time_t = 0,
+       std::time_t = 0);
 };
