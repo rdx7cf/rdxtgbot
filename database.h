@@ -18,7 +18,7 @@
 #include "notification.h"
 #include "ctime++.h"
 
-class Database
+class SQLBase
 {
 public:
     class db_exception : public std::runtime_error
@@ -46,7 +46,7 @@ protected:
     void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
 };
 
-class Userbase : public Database
+class Usertable : public SQLBase
 {
 public:
     typedef std::shared_ptr<Userbase> Ptr;
@@ -68,7 +68,7 @@ private:
     std::vector<UserExtended::Ptr> vec_;
 };
 
-class Notifbase : public Database
+class Notiftable : public SQLBase
 {
 public:
     typedef std::shared_ptr<Notifbase> Ptr;
