@@ -8,6 +8,7 @@
 #include <tgbot/tgbot.h>
 
 #include "database.h"
+#include "sqlfile.h"
 #include "logger.h"
 
 class BotExtended : public TgBot::Bot
@@ -16,11 +17,11 @@ public:
 
     enum class Task{SYSTEM = -1, ADS, CURRENCY};
 
-    Data::Userbase::Ptr userbase_;
-    Data::Notifbase::Ptr notifbase_;
+    Userbase::Ptr userbase_;
+    Notifbase::Ptr notifbase_;
 
-    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const std::string& url = "https://api.telegram.org")
-        : TgBot::Bot(token, httpClient, url), userbase_(new Data::Userbase()), notifbase_(new Data::Notifbase()) {}
+    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const std::shared_ptr<SQLFile>& file, const std::string& url = "https://api.telegram.org")
+        : TgBot::Bot(token, httpClient, url), userbase_(new Userbase(file)), notifbase_(new Notifbase(file)) {}
 
     void long_polling(std::stop_token);
 

@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <functional>
 #include <algorithm>
-
+#include <memory>
 
 #include <tgbot/tgbot.h>
 #include <boost/filesystem.hpp>
@@ -17,19 +17,14 @@
 #include "userextended.h"
 #include "notification.h"
 #include "ctime++.h"
-
-namespace Data
-{
-
-// inline std::mutex mutex_sql_ {}; https://www.sqlite.org/threadsafe.html
-// virtual public Database ?
-inline std::string filename_ {};
+#include "sqlfile.h"
 
 template<typename T>
 class Database
 {
 public:
     using PtrT = std::shared_ptr<T>;
+    using PtrF = std::shared_ptr<SQLFile>;
     using iterator = std::vector<PtrT>::iterator;
 
     class db_exception : public std::runtime_error
@@ -38,6 +33,7 @@ public:
         db_exception(const std::string& what_arg) : std::runtime_error(what_arg) {}
     };
 
+    Database(const PtrF& file) : file_(file) {}
     virtual ~Database() {}
 
     virtual void sync() = 0;
@@ -50,14 +46,11 @@ public:
     std::int64_t get_last_id() noexcept { return vec_.size(); }
 
 protected:
-    std::string last_err_msg_;
     std::mutex mutex_vec_;
+    PtrF file_;
+    std::vector<PtrT> vec_;
 
     iterator get_by_id(std::int64_t);
-    void copy_sql_file();
-    void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
-
-    std::vector<PtrT> vec_;
 };
 
 class Userbase : public Database<UserExtended>
@@ -65,7 +58,7 @@ class Userbase : public Database<UserExtended>
 public:
     using Ptr = std::shared_ptr<Userbase>;
 
-    Userbase();
+    Userbase(const Database<UserExtended>::PtrF&);
 
     bool add(const UserExtended::Ptr&) override;
     bool update(const UserExtended::Ptr&) override;
@@ -79,7 +72,7 @@ class Notifbase : public Database<Notification>
 public:
     using Ptr = std::shared_ptr<Notifbase>;
 
-    Notifbase();
+    Notifbase(const Database<Notification>::PtrF&);
 
     bool add(const Notification::Ptr&) override;
     bool update(const Notification::Ptr&) override;
@@ -87,48 +80,6 @@ public:
     void sync() override;
     void show_table(std::ostream&) override;
 };
-
-template<typename T>
-void Database<T>::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container)
-{
-    char* err_msg = nullptr;
-
-    sqlite3* db;
-    int rc = sqlite3_open(filename_.c_str(), &db);
-
-    if(rc != SQLITE_OK)
-    {
-        last_err_msg_ = std::string("File '") + filename_ + "' is unavailable.";
-
-        Logger::write(": ERROR : DATABASE : " + last_err_msg_);
-
-        sqlite3_close(db);
-
-        throw Database::db_exception(last_err_msg_);
-    }
-
-    rc = sqlite3_exec(db, query.c_str(), callback, container, &err_msg);
-
-
-    if(rc != SQLITE_OK)
-    {
-        last_err_msg_ =  err_msg;
-
-        Logger::write(": ERROR : DATABASE : " + last_err_msg_ + " :: QUERY :: " + query);
-
-        sqlite3_free(err_msg);
-        sqlite3_close(db);
-    }
-
-    sqlite3_close(db);
-}
-
-template<typename T>
-void Database<T>::copy_sql_file()
-{
-    boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
-    Logger::write(": INFO : FILESYSTEM : File '" + filename_ + "' has been copied.");
-}
 
 template<typename T>
 Database<T>::iterator Database<T>::get_by_id(std::int64_t id)
@@ -153,6 +104,3 @@ Database<T>::PtrT Database<T>::get_copy_by_id(std::int64_t id)
 }
 
 std::vector<TmExtended> extract_schedule(const std::string&, const std::string&);
-
-}
-

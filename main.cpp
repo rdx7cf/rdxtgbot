@@ -14,6 +14,7 @@
 #include <tgbot/tgbot.h>
 
 #include "database.h"
+#include "sqlfile.h"
 #include "myhttpclient.h"
 #include "logger.h"
 #include "botextended.h"
@@ -36,6 +37,7 @@ int main(int argc, char** argv)
     std::cout << "\nINITIALIZING...\n";
 
     std::string bot_token;
+    std::string db_path;
     std::int32_t interval = -1;
 
     std::vector<std::string> params(argv, argv + argc);
@@ -52,12 +54,13 @@ int main(int argc, char** argv)
     it = std::find(params.begin(), params.end(), "-D");
 
     if(it != params.end())
-        Data::filename_ = *(++it);
+        db_path = *(++it);
     else
         throw std::runtime_error("No Database file specified!");
 
     MyHttpClient mHC;
-    BotExtended bot(bot_token, mHC);
+    std::shared_ptr<SQLFile> file (new SQLFile(db_path));
+    BotExtended bot(bot_token, mHC, file);
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");
@@ -181,7 +184,7 @@ int main(int argc, char** argv)
             std::cout << "Enter weekdays ('0 1 2 3 4 5 6', where 0 is Sunday and 6 is Saturday): ";
             std::getline(std::cin, notif->wdays_str);
 
-            notif->schedule = Data::extract_schedule(notif->tpoints_str, notif->wdays_str);
+            notif->schedule = extract_schedule(notif->tpoints_str, notif->wdays_str);
             if(notif->schedule.size() == 0)
             {
                 Logger::write(": WARN : DATABASE : No schedule specified for: '" + notif->owner + "'.");
@@ -255,7 +258,7 @@ int main(int argc, char** argv)
             {
                 std::cout << "Enter the time schedule ('15:30 17:30 00:00 01:05'): ";
                 std::getline(std::cin, notif->tpoints_str);
-                notif->schedule = Data::extract_schedule(notif->tpoints_str, notif->wdays_str);
+                notif->schedule = extract_schedule(notif->tpoints_str, notif->wdays_str);
                 if(notif->schedule.size() == 0)
                 {
                     Logger::write(": WARN : DATABASE : No schedule specified for: '" + notif->owner + "'.");
@@ -277,7 +280,7 @@ int main(int argc, char** argv)
             {
                 std::cout << "Enter weekdays ('0 1 2 3 4 5 6', where 0 is Sunday and 6 is Saturday): ";
                 std::getline(std::cin, notif->wdays_str);
-                notif->schedule = Data::extract_schedule(notif->tpoints_str, notif->wdays_str);
+                notif->schedule = extract_schedule(notif->tpoints_str, notif->wdays_str);
                 if(notif->schedule.size() == 0)
                 {
                     Logger::write(": WARN : DATABASE : No schedule specified for: '" + notif->owner + "'.");
@@ -295,8 +298,8 @@ int main(int argc, char** argv)
         case 7:
             bot.userbase_->sync();
             bot.notifbase_->sync();
-            std::cout << "The userbase is saved to '" << Data::filename_ << "'; the backup is '" << Data::filename_ << ".bak'.\n";
-            std::cout << "The adbase is saved to '" << Data::filename_ << "'; the backup is '" << Data::filename_ << ".bak'.\n";
+            std::cout << "The userbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
+            std::cout << "The adbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
             break;
         case 8:
             bot.userbase_->sync();

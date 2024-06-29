@@ -23,9 +23,10 @@ add_executable(tgbot
     logger.h        logger.cpp
     userextended.h
     botextended.h   botextended.cpp
-    notification.h            notification.cpp
+    notification.h  notification.cpp
     tmextended.h
     ctime++.h  ctime++.cpp
+    sqlfile.h     sqlfile.cpp
 
 )
 

@@ -7,11 +7,10 @@
 #include "ctime++.h"
 
 
-class Logger
+struct Logger
 {
-public:
+    Logger() = delete;
+
     static std::string filename_;
     static void write(const std::string& message);
-private:
-    Logger();
 };

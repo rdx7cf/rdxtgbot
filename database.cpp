@@ -1,7 +1,5 @@
 #include "database.h"
 
-namespace Data
-{
 ///////////////////////
 // AUX SECTION OPEN //
 /////////////////////
@@ -147,11 +145,11 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
 
 // USERBASE
 
-Userbase::Userbase()
+Userbase::Userbase(const Database<UserExtended>::PtrF& file) : Database<UserExtended>(file)
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
-        send_query
+        file_->send_query
                 (
                     "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_membersince INTEGER);"
                     "SELECT * FROM users",
@@ -175,20 +173,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         vec_.push_back(entry);
     }
 
-    try
-    {
-        copy_sql_file();
-    }
-    catch(const boost::filesystem::filesystem_error& ex)
-    {
-        last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FS : " + last_err_msg_);
-
-        throw ex;
-    }
-
-
-    send_query(
+    file_->send_query(
         (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks, tg_membersince) VALUES ("
         + std::to_string(entry->id)
         + std::string(", '")
@@ -311,21 +296,9 @@ bool Userbase::update(const UserExtended::Ptr& entry)
 
 void Userbase::sync()
 {
-    try
-    {
-        copy_sql_file();
-    }
-    catch(const boost::filesystem::filesystem_error& ex)
-    {
-        last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
-
-        throw ex;
-    }
-
     auto f = [this](UserExtended::Ptr& user) // Для замыканий лучше использовать auto, а не std::function. Это не одно и то же: std::function для замыканий работает медленно и занимает больше памяти.
     {
-        send_query(
+        file_->send_query(
                     (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
                     + std::string("', tg_fname='") + std::string(user->firstName)
                     + std::string("', tg_lname='") + std::string(user->lastName)
@@ -380,11 +353,11 @@ void Userbase::show_table(std::ostream& os)
 
 // NOTIFBASE
 
-Notifbase::Notifbase()
+Notifbase::Notifbase(const Database<Notification>::PtrF& file) : Database<Notification>(file)
 {
     {
         std::lock_guard<std::mutex> lock(mutex_vec_);
-        send_query
+        file_->send_query
                 (
                     "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN, is_ad BOOLEAN,tpoints TEXT,wdays TEXT,added_on INTEGER,expiring_on INTEGER);"
                     "SELECT * FROM notifications",
@@ -407,19 +380,7 @@ bool Notifbase::add(const Notification::Ptr& entry)
         vec_.push_back(entry);
     }
 
-    try
-    {
-        copy_sql_file();
-    }
-    catch(const boost::filesystem::filesystem_error& ex)
-    {
-        last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
-
-        throw ex;
-    }
-
-    send_query(
+    file_->send_query(
         (std::string)"INSERT INTO notifications (owner, text, active, is_ad, tpoints, wdays, added_on, expiring_on) VALUES ('"
         + std::string(entry->owner)
         + std::string("', '")
@@ -516,7 +477,7 @@ bool Notifbase::update(const Notification::Ptr& entry)
     }
 
 
-    send_query(
+    file_->send_query(
                 (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                 + std::string("', text='") + std::string(entry->text)
                 + std::string("', active=") + std::to_string(entry->active)
@@ -535,21 +496,9 @@ bool Notifbase::update(const Notification::Ptr& entry)
 
 void Notifbase::sync()
 {
-    try
-    {
-        copy_sql_file();
-    }
-    catch(const boost::filesystem::filesystem_error& ex)
-    {
-        last_err_msg_ = ex.what();
-        Logger::write(": ERROR : FILESYSTEM : " + last_err_msg_);
-
-        throw ex;
-    }
-
     auto f = [this](Notification::Ptr& entry)
     {
-        send_query(
+        file_->send_query(
                     (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                     + std::string("', text='") + std::string(entry->text)
                     + std::string("', active=") + std::to_string(entry->active)
@@ -593,7 +542,4 @@ void Notifbase::show_table(std::ostream& os)
     };
 
     for_range(f);
-}
-
-
 }
