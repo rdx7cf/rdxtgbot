@@ -12,8 +12,8 @@ class UserExtended : public TgBot::User
 public:
     using Ptr = std::shared_ptr<UserExtended>;
 
-    UserExtended(std::int64_t ms = std::time(nullptr), unsigned long bset = 0b1000) : member_since(ms), activeTasks(bset) {}
-    UserExtended(const TgBot::User::Ptr& tgu, std::time_t ms = std::time(nullptr), unsigned long bset = 0b1000) : TgBot::User(*tgu), member_since(ms), activeTasks(bset) {}
+    UserExtended(std::int64_t ms = std::time(nullptr), unsigned long bset = 0b0001) : member_since(ms), activeTasks(bset) {}
+    UserExtended(const TgBot::User::Ptr& tgu, std::time_t ms = std::time(nullptr), unsigned long bset = 0b0001) : TgBot::User(*tgu), member_since(ms), activeTasks(bset) {}
 
     std::time_t member_since;
     std::bitset<4> activeTasks; // For the future: this bitmask remembers if user had some loop task active before the bot shutdown (one bit for each task).
