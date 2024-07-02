@@ -44,7 +44,7 @@ public:
 
     void for_range(const std::function<void(PtrT&)>&);
     void for_range(const std::function<void(const PtrT&)>&) const;
-    PtrT get_copy_by_id(std::int64_t) const;
+    PtrT get_copy_by_id(std::int64_t) const noexcept;
     std::int64_t get_last_id() const noexcept { return vec_.size(); }
 
 protected:
@@ -52,8 +52,8 @@ protected:
     PtrF file_;
     std::vector<PtrT> vec_;
 
-    iterator get_by_id(std::int64_t);
-    const_iterator get_by_id(std::int64_t) const;
+    iterator get_by_id(std::int64_t) noexcept;
+    const_iterator get_by_id(std::int64_t) const noexcept;
 };
 
 class Userbase : public Database<UserExtended>
@@ -85,14 +85,16 @@ public:
 };
 
 template<typename T>
-Database<T>::iterator Database<T>::get_by_id(std::int64_t id)
+Database<T>::iterator Database<T>::get_by_id(std::int64_t id) noexcept
 {
+    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
     return std::find_if(vec_.begin(), vec_.end(), [&id](const PtrT& x) { return x->id == id; });
 }
 
 template<typename T>
-Database<T>::const_iterator Database<T>::get_by_id(std::int64_t id) const
+Database<T>::const_iterator Database<T>::get_by_id(std::int64_t id) const noexcept
 {
+    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
     return std::find_if(vec_.cbegin(), vec_.cend(), [&id](const PtrT& x) { return x->id == id; });
 }
 
@@ -111,7 +113,7 @@ void Database<T>::for_range(const std::function<void(const PtrT&)>& f) const
 }
 
 template<typename T>
-Database<T>::PtrT Database<T>::get_copy_by_id(std::int64_t id) const
+Database<T>::PtrT Database<T>::get_copy_by_id(std::int64_t id) const noexcept
 {
     auto current_it = get_by_id(id);
     if(current_it == vec_.cend())
