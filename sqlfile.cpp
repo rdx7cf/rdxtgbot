@@ -22,7 +22,7 @@ SQLFile::~SQLFile()
     sqlite3_close(connection_);
 }
 
-void SQLFile::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container)
+void SQLFile::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container) const
 {
     std::lock_guard<std::mutex> lock(mtx_sql_);
 
@@ -47,7 +47,7 @@ void SQLFile::send_query(const std::string& query, int (*callback)(void*, int, c
     }
 }
 
-void SQLFile::backup()
+void SQLFile::backup() const
 {
     boost::filesystem::copy_file(filename_, filename_ + ".bak", boost::filesystem::copy_options::overwrite_existing);
     Logger::write(": INFO : FILESYSTEM : File '" + filename_ + "' has been copied.");

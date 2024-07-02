@@ -148,7 +148,7 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
 Userbase::Userbase(const Database<UserExtended>::PtrF& file) : Database<UserExtended>(file)
 {
     {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
+        std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->send_query
                 (
                     "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_membersince INTEGER);"
@@ -165,7 +165,7 @@ Userbase::Userbase(const Database<UserExtended>::PtrF& file) : Database<UserExte
 bool Userbase::add(const UserExtended::Ptr& entry)
 {
     {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
+        std::lock_guard<std::mutex> lock(mtx_vec_);
 
         if(get_by_id(entry->id) != vec_.end())
             return false;
@@ -213,7 +213,7 @@ bool Userbase::update(const UserExtended::Ptr& entry)
 
     // VECTOR MUTEX SCOPE LOCK
     {
-        std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+        std::lock_guard<std::mutex> lock_vec(mtx_vec_);
 
         // Searching for the user in the vector.
 
@@ -319,7 +319,7 @@ void Userbase::sync()
     Logger::write(": INFO : DATABASE : Users have been synced with the SQL file.");
 }
 
-void Userbase::show_table(std::ostream& os)
+void Userbase::show_table(std::ostream& os) const
 {
     os << std::endl << std::left
        << std::setw(18) << "ID"
@@ -332,7 +332,7 @@ void Userbase::show_table(std::ostream& os)
        << "MEMBER SINCE"
        << std::endl;
 
-    auto f = [&os](UserExtended::Ptr& entry)
+    auto f = [&os](const UserExtended::Ptr& entry)
     {
         std::tm ms = localtime_ts(entry->member_since);
 
@@ -356,7 +356,7 @@ void Userbase::show_table(std::ostream& os)
 Notifbase::Notifbase(const Database<Notification>::PtrF& file) : Database<Notification>(file)
 {
     {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
+        std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->send_query
                 (
                     "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN, is_ad BOOLEAN,tpoints TEXT,wdays TEXT,added_on INTEGER,expiring_on INTEGER);"
@@ -372,7 +372,7 @@ Notifbase::Notifbase(const Database<Notification>::PtrF& file) : Database<Notifi
 bool Notifbase::add(const Notification::Ptr& entry)
 {
     {
-        std::lock_guard<std::mutex> lock(mutex_vec_);
+        std::lock_guard<std::mutex> lock(mtx_vec_);
 
         if(get_by_id(entry->id) != vec_.end())
             return false;
@@ -408,7 +408,7 @@ bool Notifbase::update(const Notification::Ptr& entry)
 {
     // VECTOR MUTEX SCOPE LOCK
     {
-        std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+        std::lock_guard<std::mutex> lock_vec(mtx_vec_);
 
         // Searching for the ad in the vector.
 
@@ -514,7 +514,7 @@ void Notifbase::sync()
     Logger::write(": INFO : DATABASE : Notifications have been synced with the SQL base.");
 }
 
-void Notifbase::show_table(std::ostream& os)
+void Notifbase::show_table(std::ostream& os) const
 {
     os << std::endl
        << std::left << std::setw(6) << "ID"
@@ -526,7 +526,7 @@ void Notifbase::show_table(std::ostream& os)
        << "\t\t\t" << "EXPIRING ON"
        << std::endl;
 
-    auto f = [&os](Notification::Ptr& entry)
+    auto f = [&os](const Notification::Ptr& entry)
     {
         std::tm added_on = localtime_ts(entry->added_on);
         std::tm expiring_on = localtime_ts(entry->expiring_on);

@@ -20,12 +20,12 @@ public:
     SQLFile(const std::string&, sqlite3* = nullptr);
     ~SQLFile();
 
-    void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr);
+    void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr) const;
 private:
-    std::mutex mtx_sql_;
+    mutable std::mutex mtx_sql_;
     std::string filename_;
     sqlite3* connection_;
-    char* err_msg_;
+    mutable char* err_msg_;
 
-    void backup();
+    void backup() const;
 };

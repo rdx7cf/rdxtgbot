@@ -14,7 +14,6 @@
 class BotExtended : public TgBot::Bot
 {
 public:
-
     enum class Task{SYSTEM = -1, ADS, CURRENCY};
 
     Userbase::Ptr userbase_;

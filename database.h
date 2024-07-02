@@ -26,6 +26,7 @@ public:
     using PtrT = std::shared_ptr<T>;
     using PtrF = std::shared_ptr<SQLFile>;
     using iterator = std::vector<PtrT>::iterator;
+    using const_iterator = std::vector<PtrT>::const_iterator;
 
     class db_exception : public std::runtime_error
     {
@@ -37,20 +38,22 @@ public:
     virtual ~Database() {}
 
     virtual void sync() = 0;
-    virtual void show_table(std::ostream&) = 0;
+    virtual void show_table(std::ostream&) const = 0;
     virtual bool add(const PtrT&) = 0;
     virtual bool update(const PtrT&) = 0;
 
     void for_range(const std::function<void(PtrT&)>&);
-    PtrT get_copy_by_id(std::int64_t);
-    std::int64_t get_last_id() noexcept { return vec_.size(); }
+    void for_range(const std::function<void(const PtrT&)>&) const;
+    PtrT get_copy_by_id(std::int64_t) const;
+    std::int64_t get_last_id() const noexcept { return vec_.size(); }
 
 protected:
-    std::mutex mutex_vec_;
+    mutable std::mutex mtx_vec_;
     PtrF file_;
     std::vector<PtrT> vec_;
 
     iterator get_by_id(std::int64_t);
+    const_iterator get_by_id(std::int64_t) const;
 };
 
 class Userbase : public Database<UserExtended>
@@ -64,7 +67,7 @@ public:
     bool update(const UserExtended::Ptr&) override;
 
     void sync() override;
-    void show_table(std::ostream&) override;
+    void show_table(std::ostream&) const override;
 };
 
 class Notifbase : public Database<Notification>
@@ -78,27 +81,40 @@ public:
     bool update(const Notification::Ptr&) override;
 
     void sync() override;
-    void show_table(std::ostream&) override;
+    void show_table(std::ostream&) const override;
 };
 
 template<typename T>
 Database<T>::iterator Database<T>::get_by_id(std::int64_t id)
 {
-    return find_if(vec_.begin(), vec_.end(), [&id](const PtrT& x) { return x->id == id; });
+    return std::find_if(vec_.begin(), vec_.end(), [&id](const PtrT& x) { return x->id == id; });
+}
+
+template<typename T>
+Database<T>::const_iterator Database<T>::get_by_id(std::int64_t id) const
+{
+    return std::find_if(vec_.cbegin(), vec_.cend(), [&id](const PtrT& x) { return x->id == id; });
 }
 
 template<typename T>
 void Database<T>::for_range(const std::function<void(PtrT&)>& f)
 {
-    std::lock_guard<std::mutex> lock_vec(mutex_vec_);
+    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
     std::for_each(vec_.begin(), vec_.end(), f);
 }
 
 template<typename T>
-Database<T>::PtrT Database<T>::get_copy_by_id(std::int64_t id)
+void Database<T>::for_range(const std::function<void(const PtrT&)>& f) const
+{
+    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
+    std::for_each(vec_.cbegin(), vec_.cend(), f);
+}
+
+template<typename T>
+Database<T>::PtrT Database<T>::get_copy_by_id(std::int64_t id) const
 {
     auto current_it = get_by_id(id);
-    if(current_it == vec_.end())
+    if(current_it == vec_.cend())
         return nullptr;
     return PtrT(new T(*(*current_it)));
 }
