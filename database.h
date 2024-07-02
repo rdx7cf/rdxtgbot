@@ -37,7 +37,7 @@ public:
     Database(const PtrF& file) : file_(file) {}
     virtual ~Database() {}
 
-    virtual void sync() = 0;
+    virtual void sync() const = 0;
     virtual void show_table(std::ostream&) const = 0;
     virtual bool add(const PtrT&) = 0;
     virtual bool update(const PtrT&) = 0;
@@ -66,7 +66,7 @@ public:
     bool add(const UserExtended::Ptr&) override;
     bool update(const UserExtended::Ptr&) override;
 
-    void sync() override;
+    void sync() const override;
     void show_table(std::ostream&) const override;
 };
 
@@ -80,7 +80,7 @@ public:
     bool add(const Notification::Ptr&) override;
     bool update(const Notification::Ptr&) override;
 
-    void sync() override;
+    void sync() const override;
     void show_table(std::ostream&) const override;
 };
 

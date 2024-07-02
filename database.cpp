@@ -294,9 +294,9 @@ bool Userbase::update(const UserExtended::Ptr& entry)
     return true;
 }
 
-void Userbase::sync()
+void Userbase::sync() const
 {
-    auto f = [this](UserExtended::Ptr& user) // Для замыканий лучше использовать auto, а не std::function. Это не одно и то же: std::function для замыканий работает медленно и занимает больше памяти.
+    auto f = [this](const UserExtended::Ptr& user) // Для замыканий лучше использовать auto, а не std::function. Это не одно и то же: std::function для замыканий работает медленно и занимает больше памяти.
     {
         file_->send_query(
                     (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
@@ -494,9 +494,9 @@ bool Notifbase::update(const Notification::Ptr& entry)
     return true;
 }
 
-void Notifbase::sync()
+void Notifbase::sync() const
 {
-    auto f = [this](Notification::Ptr& entry)
+    auto f = [this](const Notification::Ptr& entry)
     {
         file_->send_query(
                     (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
