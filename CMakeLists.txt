@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2)
+cmake_minimum_required(VERSION 3.11)
 project(tgbot)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -27,7 +27,6 @@ add_executable(tgbot
     tmextended.h
     ctime++.h  ctime++.cpp
     sqlfile.h     sqlfile.cpp
-
 )
 
 target_link_libraries(tgbot libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES} ${CURL_LIBRARIES})

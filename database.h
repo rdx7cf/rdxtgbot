@@ -121,4 +121,4 @@ Database<T>::PtrT Database<T>::get_copy_by_id(std::int64_t id) const noexcept
     return PtrT(new T(*(*current_it)));
 }
 
-std::vector<TmExtended> extract_schedule(const std::string&, const std::string&);
+std::vector<TmExtended> extract_schedule(const std::string&, const std::string&) noexcept;

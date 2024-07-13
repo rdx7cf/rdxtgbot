@@ -4,7 +4,7 @@
 // AUX SECTION OPEN //
 /////////////////////
 
-static std::vector<std::string> split(const std::string& str, char delim)
+static std::vector<std::string> split(const std::string& str, char delim) noexcept
 {
     typedef std::string::const_iterator iter;
 
@@ -25,7 +25,7 @@ static std::vector<std::string> split(const std::string& str, char delim)
     return ret;
 }
 
-static std::string string_shortener(const std::string& str, std::string::size_type desired_sz)
+static std::string string_shortener(const std::string& str, std::string::size_type desired_sz) noexcept
 {
     auto sz = str.size();
 
@@ -37,7 +37,7 @@ static std::string string_shortener(const std::string& str, std::string::size_ty
         return str;
 }
 
-std::vector<TmExtended> extract_schedule(const std::string& raw_tpoint, const std::string& raw_wday)
+std::vector<TmExtended> extract_schedule(const std::string& raw_tpoint, const std::string& raw_wday) noexcept
 {
 
     std::vector<TmExtended> result;

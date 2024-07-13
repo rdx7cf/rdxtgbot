@@ -25,16 +25,16 @@ public:
     void long_polling(std::stop_token);
 
     void auto_sync(std::stop_token,
-                   std::int32_t);
+                   std::int32_t) const;
 
     void notify_one(std::int64_t,
-                    const std::string&);
+                    const std::string&) const noexcept;
 
     void notify_all(const std::string&,
-                    Task = Task::SYSTEM);
+                    Task = Task::SYSTEM) const noexcept;
 
 
-    void announcing(std::stop_token);
+    void announcing(std::stop_token, Task);
 };
 
 // Listeners

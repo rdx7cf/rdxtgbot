@@ -32,7 +32,7 @@ void BotExtended::long_polling(std::stop_token tok)
         }
     });
 
-    Logger::write(": INFO : THREADS : Long polling has been initialized.");
+    Logger::write(": INFO : BOT : Long polling has been initialized.");
     notify_all("I'm alive!");
     TgBot::TgLongPoll longPoll(*this, 100, 1);
 
@@ -47,35 +47,35 @@ void BotExtended::long_polling(std::stop_token tok)
             Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
         }
     }
-    Logger::write(": INFO : THREADS : Long polling has been stopped.");
+    Logger::write(": INFO : BOT : Long polling has been stopped.");
 
 }
 
-void BotExtended::auto_sync(std::stop_token tok, std::int32_t seconds)
+void BotExtended::auto_sync(std::stop_token tok, std::int32_t seconds) const
 {
     if(seconds < 0)
         return;
 
-    Logger::write(": INFO : THREADS : Loop sync has been started.");
+    Logger::write(": INFO : BOT : Loop sync has been started.");
 
     while(!tok.stop_requested())
     {
         userbase_->sync();
         notifbase_->sync();
-        Logger::write(": INFO : DATABASE : Next sync will be in: " + std::to_string(seconds) + " seconds.");
+        Logger::write(": INFO : BOT : Next sync will be in: " + std::to_string(seconds) + " seconds.");
         for(std::int32_t wait = 0; wait < seconds && !tok.stop_requested(); ++wait )
             std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    Logger::write(": INFO : THREADS : Loop sync has been stopped.");
+    Logger::write(": INFO : BOT : Loop sync has been stopped.");
 }
 
-void BotExtended::notify_one(std::int64_t user_id, const std::string& message)
+void BotExtended::notify_one(std::int64_t user_id, const std::string& message) const noexcept
 {
     try
     {
         getApi().sendMessage(user_id, message);
-        Logger::write(": INFO : BOT : User [" + std::to_string(user_id) + "] has received message.");
+        Logger::write(": INFO : BOT : User [" + std::to_string(user_id) + "] has received the message.");
     }
     catch(const std::exception& e)
     {
@@ -83,33 +83,40 @@ void BotExtended::notify_one(std::int64_t user_id, const std::string& message)
     }
 }
 
-void BotExtended::notify_all(const std::string& message, Task flag)
+void BotExtended::notify_all(const std::string& message, Task flag) const noexcept
 {
     Logger::write(": INFO : BOT : Notifying all users...");
 
     auto f = [this, &message, &flag](UserExtended::Ptr& user)
     {
-        if(!getApi().blockedByUser(user->id))
+        try
         {
-            if(flag == Task::SYSTEM || user->activeTasks[static_cast<int>(flag)])
-                    notify_one(user->id, message);
+            if(!getApi().blockedByUser(user->id))
+            {
+                if(flag == Task::SYSTEM || user->activeTasks[static_cast<int>(flag)])
+                        notify_one(user->id, message);
+            }
+            else
+                Logger::write(": INFO : BOT : User [" + std::to_string(user->id) + "] blocked the bot.");
         }
-        else
-            Logger::write(": INFO : BOT : User [" + std::to_string(user->id) + "] blocked the bot.");
+        catch(const std::exception& e)
+        {
+            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+        }
     };
     userbase_->for_range(f);
 
     Logger::write(": INFO : BOT : Users has been notified.");
 }
 
-void BotExtended::announcing(std::stop_token tok)
+void BotExtended::announcing(std::stop_token tok, Task t)
 {
     std::time_t current_timestamp;
     std::tm current;
 
-    auto f = [this, &current, &current_timestamp](Notification::Ptr& notif)
+    auto f = [this, &current, &current_timestamp, &t](Notification::Ptr& notif)
     {
-        std::for_each(notif->schedule.begin(), notif->schedule.end(), [this, &current, &current_timestamp, &notif](TmExtended& time_point)
+        std::for_each(notif->schedule.begin(), notif->schedule.end(), [this, &current, &current_timestamp, &notif, &t](TmExtended& time_point)
         {
             if(current.tm_wday == time_point.tm_wday && notif->active)
             {
@@ -120,7 +127,7 @@ void BotExtended::announcing(std::stop_token tok)
                 }
                 if (((current.tm_hour == time_point.tm_hour && current.tm_min >= time_point.tm_min) || current.tm_hour > time_point.tm_hour) && !time_point.executed) // Такое монструозное условие нужно для того, чтобы учитывалась разница и между часами, и между часами:минутами (то есть чтобы временная точка типа 15:30 также была допустима)
                 {
-                    notify_all(notif->text, Task::ADS);
+                    notify_all(notif->text, t);
                     time_point.executed = true;
                 }
                 else if((current.tm_hour < time_point.tm_hour || (current.tm_hour == time_point.tm_hour && current.tm_min < time_point.tm_min)) && time_point.executed)

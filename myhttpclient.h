@@ -8,7 +8,7 @@
 
 class MyHttpClient : public TgBot::CurlHttpClient
 {
-private:
+public:
     std::string makeRequest(const TgBot::Url& url, const std::vector<TgBot::HttpReqArg>& args) const override
     {
         while (1)
@@ -21,7 +21,6 @@ private:
             {
                 //to_filelog(std::string(": ERROR : CURL : ") + std::string(e.what(), std::strlen(e.what()) - 1));
             }
-            //std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
 };
