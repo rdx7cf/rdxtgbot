@@ -108,14 +108,12 @@ void Database<T>::auto_sync(std::stop_token tok) const
 template<typename T>
 Database<T>::iterator Database<T>::get_by_id(std::int64_t id) noexcept
 {
-    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
     return std::find_if(vec_.begin(), vec_.end(), [&id](const PtrT& x) { return x->id == id; });
 }
 
 template<typename T>
 Database<T>::const_iterator Database<T>::get_by_id(std::int64_t id) const noexcept
 {
-    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
     return std::find_if(vec_.cbegin(), vec_.cend(), [&id](const PtrT& x) { return x->id == id; });
 }
 
@@ -136,6 +134,7 @@ void Database<T>::for_range(const std::function<void(const PtrT&)>& f) const
 template<typename T>
 Database<T>::PtrT Database<T>::get_copy_by_id(std::int64_t id) const noexcept
 {
+    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
     auto current_it = get_by_id(id);
     if(current_it == vec_.cend())
         return nullptr;

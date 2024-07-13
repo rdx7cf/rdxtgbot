@@ -35,9 +35,8 @@ void SQLFile::send_query(const std::string& query, int (*callback)(void*, int, c
 
 void SQLFile::backup() const
 {
-    if(copies_counter_ > 5) copies_counter_ = 0;
-
     std::lock_guard<std::mutex> lock(mtx_sql_);
+    if(copies_counter_ > 5) copies_counter_ = 0;
     boost::filesystem::copy_file(filename_, filename_ + "_" + std::to_string(copies_counter_) + ".bak", boost::filesystem::copy_options::overwrite_existing);
     Logger::write(": INFO : FILESYSTEM : File '" + filename_ + "' has been copied.");
 }
