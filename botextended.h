@@ -19,19 +19,14 @@ public:
     Userbase::Ptr userbase_;
     Notifbase::Ptr notifbase_;
 
-    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const std::shared_ptr<SQLFile>& file, const std::string& url = "https://api.telegram.org")
-        : TgBot::Bot(token, httpClient, url), userbase_(new Userbase(file)), notifbase_(new Notifbase(file)) {}
+    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const Userbase::Ptr& users, const Notifbase::Ptr& notif , const std::string& url = "https://api.telegram.org")
+        : TgBot::Bot(token, httpClient, url), userbase_(users), notifbase_(notif) {}
 
     void long_polling(std::stop_token);
 
-    void auto_sync(std::stop_token,
-                   std::int32_t) const;
+    void notify_one(std::int64_t, const std::string&) const noexcept;
 
-    void notify_one(std::int64_t,
-                    const std::string&) const noexcept;
-
-    void notify_all(const std::string&,
-                    Task = Task::SYSTEM) const noexcept;
+    void notify_all(const std::string&, Task = Task::SYSTEM) const noexcept;
 
 
     void announcing(std::stop_token, Task);

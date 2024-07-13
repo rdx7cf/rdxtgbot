@@ -145,7 +145,7 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
 
 // USERBASE
 
-Userbase::Userbase(const Database<UserExtended>::PtrF& file) : Database<UserExtended>(file)
+Userbase::Userbase(const Database<UserExtended>::PtrF& file, int interval) : Database<UserExtended>(file, interval)
 {
     {
         std::lock_guard<std::mutex> lock(mtx_vec_);
@@ -353,7 +353,7 @@ void Userbase::show_table(std::ostream& os) const noexcept
 
 // NOTIFBASE
 
-Notifbase::Notifbase(const Database<Notification>::PtrF& file) : Database<Notification>(file)
+Notifbase::Notifbase(const Database<Notification>::PtrF& file, int interval) : Database<Notification>(file, interval)
 {
     {
         std::lock_guard<std::mutex> lock(mtx_vec_);

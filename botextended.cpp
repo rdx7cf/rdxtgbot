@@ -51,25 +51,6 @@ void BotExtended::long_polling(std::stop_token tok)
 
 }
 
-void BotExtended::auto_sync(std::stop_token tok, std::int32_t seconds) const
-{
-    if(seconds < 0)
-        return;
-
-    Logger::write(": INFO : BOT : Loop sync has been started.");
-
-    while(!tok.stop_requested())
-    {
-        userbase_->sync();
-        notifbase_->sync();
-        Logger::write(": INFO : BOT : Next sync will be in: " + std::to_string(seconds) + " seconds.");
-        for(std::int32_t wait = 0; wait < seconds && !tok.stop_requested(); ++wait )
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-
-    Logger::write(": INFO : BOT : Loop sync has been stopped.");
-}
-
 void BotExtended::notify_one(std::int64_t user_id, const std::string& message) const noexcept
 {
     try

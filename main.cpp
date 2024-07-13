@@ -30,7 +30,8 @@ int main(int argc, char** argv)
                      "-T '[API_TOKEN]'\n\n\tAn API token for your bot.\n\n\n "
                      "-D '[PATH_TO_DATABASE]'\n\n\tA path to a SQLite3 database file which contains user and ad tables.\n\tThe program will create one (but not the directories) if the specified doesn't exist.\n\n"
                      "-L '[LOG_PATH]'\n\n\tA path to a log file.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\tMight be omitted.\n\n"
-                     "-S [SECONDS]\n\n\tEnables auto-sync of internal and external storages.\n\tThe program uses a vector for fast access and a SQLite3 database for long-term storage.\n\tMight be omitted.\n\n";
+                     "-S [SECONDS]\n\n\tEnables auto-sync of internal and external storages.\n\tThe program uses a vector for fast access and a SQLite3 database for long-term storage.\n\tMight be omitted.\n\n"
+                     "-C [COPY_COUNT]\n\n\tSet count of SQL file backup copies.\n\tDefault is 5.\n\tMight be omitted.\n\n";
         return 1;
     }
 
@@ -39,6 +40,7 @@ int main(int argc, char** argv)
     std::string bot_token;
     std::string db_path;
     std::int32_t interval = -1;
+    int copies_counter = 5;
 
     std::vector<std::string> params(argv, argv + argc);
     // SET API TOKEN
@@ -58,18 +60,11 @@ int main(int argc, char** argv)
     else
         throw std::runtime_error("No Database file specified!");
 
-    MyHttpClient mHC;
-    std::shared_ptr<SQLFile> file (new SQLFile(db_path));
-    BotExtended bot(bot_token, mHC, file);
-
-    // SET LOG_FILE
-    it = std::find(params.begin(), params.end(), "-L");
+    // SET COPIES COUNTER
+    it = std::find(params.begin(), params.end(), "-C");
 
     if(it != params.end())
-        Logger::filename_ = *(++it);
-    else
-        std::cout << "** No log file specified, using the default file: './log.log'." << std::endl;
-
+        copies_counter = std::stoi(*(++it));
 
     // SET AUTO_SYNC
     it = std::find(params.begin(), params.end(), "-S");
@@ -80,14 +75,31 @@ int main(int argc, char** argv)
         std::cout << "** Loop sync is DISABLED." << std::endl;
 
 
+    MyHttpClient mhc;
+    std::shared_ptr<SQLFile> file (new SQLFile(db_path, copies_counter, interval));
+    Userbase::Ptr userbase_ptr(new Userbase(file, interval));
+    Notifbase::Ptr notifbase_ptr(new Notifbase(file, interval));
+    BotExtended bot(bot_token, mhc, userbase_ptr, notifbase_ptr);
+
+    // SET LOG_FILE
+    it = std::find(params.begin(), params.end(), "-L");
+
+    if(it != params.end())
+        Logger::filename_ = *(++it);
+    else
+        std::cout << "** No log file specified, using the default file: './log.log'." << std::endl;
+
     Logger::write("-------------------");
     Logger::write("BOT INITIALIZING...");
     Logger::write("-------------------");
 
     // Using std::bind is a workaround for GCC10.
     std::jthread long_polling(std::bind(&BotExtended::long_polling, &bot, std::placeholders::_1));
-    std::jthread auto_syncing(std::bind(&BotExtended::auto_sync, &bot, std::placeholders::_1, std::cref(interval)));
-    std::jthread auto_backuping(std::bind(&SQLFile::auto_backup, file, std::placeholders::_1, std::cref(interval)));
+
+    std::jthread auto_syncing_users(std::bind(&Database<UserExtended>::auto_sync, userbase_ptr, std::placeholders::_1));
+    std::jthread auto_syncing_notif(std::bind(&Database<Notification>::auto_sync, notifbase_ptr, std::placeholders::_1));
+
+    std::jthread auto_backuping(std::bind(&SQLFile::auto_backup, file, std::placeholders::_1));
     std::jthread announcing(std::bind(&BotExtended::announcing, &bot, std::placeholders::_1, BotExtended::Task::ADS));
 
 
@@ -113,15 +125,15 @@ int main(int argc, char** argv)
         switch(enter_number(std::cin, std::cout))
         {
         case INT_MAX:
-            bot.userbase_->sync();
-            bot.notifbase_->sync();
+            userbase_ptr->sync();
+            notifbase_ptr->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         case 1:
-            bot.userbase_->show_table(std::cout);
+            userbase_ptr->show_table(std::cout);
             break;
         case 2:
-            bot.notifbase_->show_table(std::cout);
+            notifbase_ptr->show_table(std::cout);
             break;
         case 3:
         {
@@ -155,7 +167,7 @@ int main(int argc, char** argv)
             std::tm t;
 
             std::cout << "\n<ADDING A NOTIFICATION>\n";
-            notif->id = bot.notifbase_->get_last_id() + 1;
+            notif->id = notifbase_ptr->get_last_id() + 1;
             std::cout << "Enter the owner's name: ";
             std::getline(std::cin, notif->owner);
 
@@ -197,7 +209,7 @@ int main(int argc, char** argv)
             notif->added_on = static_cast<std::int64_t>(std::time(nullptr));
             notif->expiring_on = static_cast<std::int64_t>(mktime(&t));
 
-            bot.notifbase_->add(notif);
+            notifbase_ptr->add(notif);
 
             break;
         }
@@ -206,7 +218,7 @@ int main(int argc, char** argv)
             std::cout << "\n<UPDATING A NOTIFICATION>\n";
             std::cout << "Enter an id of a notification to update: ";
 
-            Notification::Ptr notif = bot.notifbase_->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
+            Notification::Ptr notif = notifbase_ptr->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
             if(!notif)
             {
                 std::cout << "There's no notification with such id.\n";
@@ -222,8 +234,8 @@ int main(int argc, char** argv)
             {
             case INT_MAX:
             {
-                bot.userbase_->sync();
-                bot.notifbase_->sync();
+                userbase_ptr->sync();
+                notifbase_ptr->sync();
                 bot.notify_all("It seems we're saying goodbye...");
                 return 0;
             }
@@ -293,18 +305,18 @@ int main(int argc, char** argv)
             }
 
             }
-            bot.notifbase_->update(notif);
+            notifbase_ptr->update(notif);
             break;
         }
         case 7:
-            bot.userbase_->sync();
-            bot.notifbase_->sync();
+            userbase_ptr->sync();
+            notifbase_ptr->sync();
             std::cout << "The userbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
             std::cout << "The adbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
             break;
         case 8:
-            bot.userbase_->sync();
-            bot.notifbase_->sync();
+            userbase_ptr->sync();
+            notifbase_ptr->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
