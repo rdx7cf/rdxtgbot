@@ -208,7 +208,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
     return true;
 }
 
-bool Userbase::update(const UserExtended::Ptr& entry)
+bool Userbase::update(const UserExtended::Ptr& entry) noexcept
 {
 
     // VECTOR MUTEX SCOPE LOCK
@@ -319,7 +319,7 @@ void Userbase::sync() const
     Logger::write(": INFO : DATABASE : Users have been synced with the SQL file.");
 }
 
-void Userbase::show_table(std::ostream& os) const
+void Userbase::show_table(std::ostream& os) const noexcept
 {
     os << std::endl << std::left
        << std::setw(18) << "ID"
@@ -404,7 +404,7 @@ bool Notifbase::add(const Notification::Ptr& entry)
     return true;
 }
 
-bool Notifbase::update(const Notification::Ptr& entry)
+bool Notifbase::update(const Notification::Ptr& entry) noexcept
 {
     // VECTOR MUTEX SCOPE LOCK
     {
@@ -476,12 +476,10 @@ bool Notifbase::update(const Notification::Ptr& entry)
             return false;
     }
 
-
     file_->send_query(
                 (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                 + std::string("', text='") + std::string(entry->text)
                 + std::string("', active=") + std::to_string(entry->active)
-                + std::string(", is_ad=") + std::to_string(entry->is_ad)
                 + std::string(", tpoints='") + entry->tpoints_str
                 + std::string("', wdays='") + entry->wdays_str
                 + std::string("', added_on=") + std::to_string(entry->added_on)
@@ -514,7 +512,7 @@ void Notifbase::sync() const
     Logger::write(": INFO : DATABASE : Notifications have been synced with the SQL base.");
 }
 
-void Notifbase::show_table(std::ostream& os) const
+void Notifbase::show_table(std::ostream& os) const noexcept
 {
     os << std::endl
        << std::left << std::setw(6) << "ID"

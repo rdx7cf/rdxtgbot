@@ -2,6 +2,7 @@
 
 #include <string>
 #include <map>
+#include <thread>
 
 #include <sqlite3.h>
 #include <boost/filesystem.hpp>
@@ -20,12 +21,14 @@ public:
     SQLFile(const std::string&, sqlite3* = nullptr);
     ~SQLFile();
 
-    void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr) const;
+    void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr) const noexcept;
+    void auto_backup(std::stop_token, std::int32_t) const noexcept;
+
 private:
     mutable std::mutex mtx_sql_;
     std::string filename_;
     sqlite3* connection_;
-    mutable char* err_msg_;
+    mutable char* err_msg_; 
 
     void backup() const;
 };

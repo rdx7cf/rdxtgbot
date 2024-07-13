@@ -38,9 +38,9 @@ public:
     virtual ~Database() {}
 
     virtual void sync() const = 0;
-    virtual void show_table(std::ostream&) const = 0;
+    virtual void show_table(std::ostream&) const noexcept = 0;
     virtual bool add(const PtrT&) = 0;
-    virtual bool update(const PtrT&) = 0;
+    virtual bool update(const PtrT&) noexcept = 0;
 
     void for_range(const std::function<void(PtrT&)>&);
     void for_range(const std::function<void(const PtrT&)>&) const;
@@ -64,10 +64,10 @@ public:
     Userbase(const Database<UserExtended>::PtrF&);
 
     bool add(const UserExtended::Ptr&) override;
-    bool update(const UserExtended::Ptr&) override;
+    bool update(const UserExtended::Ptr&) noexcept override;
 
     void sync() const override;
-    void show_table(std::ostream&) const override;
+    void show_table(std::ostream&) const noexcept override;
 };
 
 class Notifbase : public Database<Notification>
@@ -78,10 +78,10 @@ public:
     Notifbase(const Database<Notification>::PtrF&);
 
     bool add(const Notification::Ptr&) override;
-    bool update(const Notification::Ptr&) override;
+    bool update(const Notification::Ptr&) noexcept override;
 
     void sync() const override;
-    void show_table(std::ostream&) const override;
+    void show_table(std::ostream&) const noexcept override;
 };
 
 template<typename T>
