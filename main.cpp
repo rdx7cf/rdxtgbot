@@ -76,9 +76,9 @@ int main(int argc, char** argv)
 
 
     MyHttpClient mhc;
-    std::shared_ptr<SQLFile> file (new SQLFile(db_path, copies_counter, interval));
-    Userbase::Ptr userbase_ptr(new Userbase(file, interval));
-    Notifbase::Ptr notifbase_ptr(new Notifbase(file, interval));
+    std::shared_ptr<SQLFile> file = std::make_shared<SQLFile>(db_path, copies_counter, interval);
+    Userbase::Ptr userbase_ptr = std::make_shared<Userbase>(file, interval);
+    Notifbase::Ptr notifbase_ptr= std::make_shared<Notifbase>(file, interval);
     BotExtended bot(bot_token, mhc, userbase_ptr, notifbase_ptr);
 
     // SET LOG_FILE
@@ -163,7 +163,7 @@ int main(int argc, char** argv)
         }
         case 5:
         {
-            Notification::Ptr notif (new Notification());
+            Notification::Ptr notif = std::make_shared<Notification>();
             std::tm t;
 
             std::cout << "\n<ADDING A NOTIFICATION>\n";

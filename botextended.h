@@ -28,7 +28,6 @@ public:
 
     void notify_all(const std::string&, Task = Task::SYSTEM) const noexcept;
 
-
     void announcing(std::stop_token, Task);
 };
 

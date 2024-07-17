@@ -134,7 +134,7 @@ void BotExtended::announcing(std::stop_token tok, Task t)
 
 void anymsg(const TgBot::Message::Ptr& message, const BotExtended& bot)
 {
-    UserExtended::Ptr uptr(new UserExtended(message->from));
+    UserExtended::Ptr uptr = std::make_shared<UserExtended>(message->from);
 
     if(!bot.userbase_->add(uptr))
         bot.userbase_->update(uptr);

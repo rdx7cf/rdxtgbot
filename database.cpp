@@ -90,7 +90,7 @@ std::vector<TmExtended> extract_schedule(const std::string& raw_tpoint, const st
 
 static int extract_user(void* users, int colcount, char** columns, char** colnames)
 {
-    UserExtended::Ptr user(new UserExtended);
+    UserExtended::Ptr user = std::make_shared<UserExtended>();
 
     user->id = std::stol(columns[1]);
     user->username = columns[2];
@@ -113,7 +113,7 @@ static int extract_user(void* users, int colcount, char** columns, char** colnam
 
 static int extract_notif(void* notifs, int colcount, char** columns, char** colnames)
 {
-    Notification::Ptr notif(new Notification);
+    Notification::Ptr notif = std::make_shared<Notification>();
 
     notif->id = std::stol(columns[0]);
     notif->owner = columns[1];
@@ -145,7 +145,7 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
 
 // USERBASE
 
-Userbase::Userbase(const Database<UserExtended>::PtrF& file, int interval) : Database<UserExtended>(file, interval)
+Userbase::Userbase(const Database<UserExtended>::sPtrF& file, int interval) : Database<UserExtended>(file, interval)
 {
     {
         std::lock_guard<std::mutex> lock(mtx_vec_);
@@ -353,7 +353,7 @@ void Userbase::show_table(std::ostream& os) const noexcept
 
 // NOTIFBASE
 
-Notifbase::Notifbase(const Database<Notification>::PtrF& file, int interval) : Database<Notification>(file, interval)
+Notifbase::Notifbase(const Database<Notification>::sPtrF& file, int interval) : Database<Notification>(file, interval)
 {
     {
         std::lock_guard<std::mutex> lock(mtx_vec_);
