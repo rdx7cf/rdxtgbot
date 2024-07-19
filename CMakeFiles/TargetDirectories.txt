@@ -1,3 +1,0 @@
-/home/ruslan/Git/tgbot/CMakeFiles/tgbot.dir
-/home/ruslan/Git/tgbot/CMakeFiles/edit_cache.dir
-/home/ruslan/Git/tgbot/CMakeFiles/rebuild_cache.dir
