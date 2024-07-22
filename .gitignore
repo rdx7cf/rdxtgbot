@@ -1,4 +1,6 @@
 thoughts/
 backup/
 build*/
+.cmake/
+.qtc/
 CMakeLists.txt.user
