@@ -1,6 +1,6 @@
 #include "sqlfile.h"
 
-SQLFile::SQLFile(const std::string& filename, int copies_counter, int interval) : filename_(filename), copies_counter_(copies_counter), interval_(interval)
+SQLFile::SQLFile(const std::string& filename, int copies_max, int interval) : filename_(filename), copies_max_(copies_max), copies_counter_(0), interval_(interval)
 {
     int rc = sqlite3_open(filename_.c_str(), &connection_);
 
@@ -36,8 +36,9 @@ void SQLFile::send_query(const std::string& query, int (*callback)(void*, int, c
 void SQLFile::backup() const
 {
     std::lock_guard<std::mutex> lock(mtx_sql_);
-    if(copies_counter_ > 5) copies_counter_ = 0;
+    if(copies_counter_ >= copies_max_) copies_counter_ = 0;
     boost::filesystem::copy_file(filename_, filename_ + "_" + std::to_string(copies_counter_) + ".bak", boost::filesystem::copy_options::overwrite_existing);
+    ++copies_counter_;
     Logger::write(": INFO : FILESYSTEM : File '" + filename_ + "' has been copied.");
 }
 

@@ -29,6 +29,7 @@ private:
     std::string filename_;
     sqlite3* connection_;
     mutable char* err_msg_;
+    int copies_max_;
     mutable int copies_counter_;
     int interval_;
 
