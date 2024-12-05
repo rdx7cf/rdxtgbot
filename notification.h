@@ -8,7 +8,7 @@
 class Notification
 {
 public:
-    typedef std::shared_ptr<Notification> Ptr;
+    using Ptr = std::shared_ptr<Notification>;
 
     std::int64_t id;
     std::string owner;
