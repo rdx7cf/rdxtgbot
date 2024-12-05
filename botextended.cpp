@@ -65,7 +65,7 @@ void BotExtended::long_polling(std::stop_token tok)
         if(query->data == "list_servers")
         {
             if(user->vps_names.size() == 0)
-                getApi().sendMessage(query->from->id, "You have no VPS available at the time.", false, 0, kb_initial);
+                getApi().editMessageText("You have no VPS available. Maybe I can help you another way?", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_initial);
             else
             {
                 TgBot::InlineKeyboardMarkup::Ptr kb_servers = std::make_shared<TgBot::InlineKeyboardMarkup>();
@@ -76,7 +76,7 @@ void BotExtended::long_polling(std::stop_token tok)
 
                     TgBot::InlineKeyboardButton::Ptr vps_button = std::make_shared<TgBot::InlineKeyboardButton>();
                     vps_button->text = vps_name;
-                    vps_button->callbackData = std::string("vn:") + vps_name;
+                    vps_button->callbackData = std::string("v:") + vps_name;
 
                     row.push_back(vps_button);
                     kb_servers->inlineKeyboard.push_back(row);
@@ -85,24 +85,24 @@ void BotExtended::long_polling(std::stop_token tok)
                 getApi().editMessageText("Choose a VPS to operate with.", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_servers);
             }
         }
-        else if(StringTools::startsWith(query->data, "vn"))
-        {
+        else if(StringTools::startsWith(query->data, "v:"))
+        { 
             TgBot::InlineKeyboardMarkup::Ptr kb_actions = std::make_shared<TgBot::InlineKeyboardMarkup>();
             std::vector<TgBot::InlineKeyboardButton::Ptr> row;
 
             TgBot::InlineKeyboardButton::Ptr reboot_button = std::make_shared<TgBot::InlineKeyboardButton>();
             reboot_button->text = "Reboot";
-            reboot_button->callbackData = std::string("ac:reboot:") + query->data;
+            reboot_button->callbackData = std::string("a:reboot:") + query->data;
             row.push_back(reboot_button);
 
             TgBot::InlineKeyboardButton::Ptr stop_button = std::make_shared<TgBot::InlineKeyboardButton>();
             stop_button->text = "Stop";
-            stop_button->callbackData = std::string("ac:stop:") + query->data;
+            stop_button->callbackData = std::string("a:stop:") + query->data;
             row.push_back(stop_button);
 
             TgBot::InlineKeyboardButton::Ptr start_button = std::make_shared<TgBot::InlineKeyboardButton>();
             start_button->text = "Start";
-            start_button->callbackData = std::string("ac:start:") + query->data;
+            start_button->callbackData = std::string("a:start:") + query->data;
             row.push_back(start_button);
 
             kb_actions->inlineKeyboard.push_back(row);
@@ -110,9 +110,18 @@ void BotExtended::long_polling(std::stop_token tok)
             getApi().editMessageText("Choose an action to perform.", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_actions);
 
         }
-        else if(StringTools::startsWith(query->data, "ac"))
+        else if(StringTools::startsWith(query->data, "a:"))
         {
+            auto user = userbase_->get_copy_by_id(query->from->id);
             std::vector<std::string> input = StringTools::split(query->data, ':');
+
+            if(std::search(user->vps_names_str.begin(), user->vps_names_str.end(), input[3].begin(), input[3].end()) == user->vps_names_str.end())
+            {
+                getApi().editMessageText("You're not allowed to perform this action.", query->from->id, query->message->messageId);
+                getApi().sendMessage(query->from->id, "How can I help you?", false, 0, kb_initial);
+                return;
+            }
+
             BashCommand cmd;
             if(input[1] == "reboot")
             {
@@ -120,12 +129,15 @@ void BotExtended::long_polling(std::stop_token tok)
                 cmd.execute();
 
                 if(!cmd.ExitStatus)
-                    getApi().editMessageText(std::string("The VPS \"") + input[3] + "\" has been restarted. Well, at least it didn't crashed me. "
-                                                                                    "Here's the raw output:\n\nstderr: " + cmd.StdErr + "\nstdout:" + cmd.StdOut + "",
+                    getApi().editMessageText(std::string("The VPS \"") + input[3] + "\" has been restarted. Well, at least it didn't crashed me.\n"
+                                                        "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
                                              query->from->id,
-                                             query->message->messageId);
+                                             query->message->messageId, std::string(), "HTML");
                 else
-                    getApi().editMessageText(std::string("Something went wrong while restarting \"") + input[3] + "\". Here's the raw output:\n\nstderr: " + cmd.StdErr + "\nstdout:" + cmd.StdOut + "", query->from->id, query->message->messageId);
+                    getApi().editMessageText(std::string("Something went wrong while restarting \"") + input[3] + ".\n"
+                                                         "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
+                                             query->from->id,
+                                             query->message->messageId, std::string(), "HTML");
             }
             else if(input[1] == "stop")
             {
@@ -133,12 +145,15 @@ void BotExtended::long_polling(std::stop_token tok)
                 cmd.execute();
 
                 if(!cmd.ExitStatus)
-                    getApi().editMessageText(std::string("The VPS \"") + input[3] + "\" has been stoped. Well, at least it didn't crashed me. "
-                                                                                    "Here's the raw output:\n\nstderr: " + cmd.StdErr + "\nstdout:" + cmd.StdOut + "",
+                    getApi().editMessageText(std::string("The VPS \"") + input[3] + "\" has been stoped. Well, at least it didn't crashed me.\n"
+                                             "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
                                              query->from->id,
-                                             query->message->messageId);
+                                             query->message->messageId, std::string(), "HTML");
                 else
-                    getApi().editMessageText(std::string("Something went wrong while stoping the VPS \"") + input[3] + "\". Here's the raw output:\n\nstderr: " + cmd.StdErr + "\nstdout:" + cmd.StdOut + "", query->from->id, query->message->messageId);
+                    getApi().editMessageText(std::string("Something went wrong while stoping the VPS \"") + input[3] + "\".\n"
+                                            "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
+                                             query->from->id,
+                                             query->message->messageId, std::string(), "HTML");
             }
             else if(input[1] == "start")
             {
@@ -146,15 +161,18 @@ void BotExtended::long_polling(std::stop_token tok)
                 cmd.execute();
 
                 if(!cmd.ExitStatus)
-                    getApi().editMessageText( std::string("The VPS \"") + input[3] + "\" has been started. Well, at least it didn't crashed me. "
-                                                                                     "Here's the raw output:\n\nstderr: " + cmd.StdErr + "\nstdout:" + cmd.StdOut + "",
+                    getApi().editMessageText( std::string("The VPS \"") + input[3] + "\" has been started. Well, at least it didn't crashed me.\n"
+                                                                                     "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
                                               query->from->id,
-                                              query->message->messageId);
+                                              query->message->messageId, std::string(), "HTML");
                 else
-                    getApi().editMessageText(std::string("Something went wrong while starting the VPS \"") + input[3] + "\". Here's the raw output:\n\nstderr: " + cmd.StdErr + "\nstdout:" + cmd.StdOut + "", query->from->id, query->message->messageId);
+                    getApi().editMessageText(std::string("Something went wrong while starting the VPS \"") + input[3] + "\".\n"
+                                             "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
+                                             query->from->id,
+                                             query->message->messageId, std::string(), "HTML");
             }
 
-            getApi().sendMessage(query->from->id, "Well... How can I help you?", false, 0, kb_initial);
+            getApi().sendMessage(query->from->id, "How can I help you?", false, 0, kb_initial);
         }
     });
 

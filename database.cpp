@@ -294,6 +294,7 @@ bool Userbase::update(const UserExtended::Ptr& entry) noexcept
         {
             info_updated = true;
             (*existing_user_it)->vps_names_str = entry->vps_names_str;
+            (*existing_user_it)->vps_names = entry->vps_names;
         }
 
         if(!info_updated)
@@ -322,7 +323,7 @@ void Userbase::sync() const
                     + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
                     + std::string(", tg_membersince=") + std::to_string(user->member_since)
                     + std::string("', vps_names='")+ user->vps_names_str
-                    + std::string(" WHERE tg_id=") + std::to_string(user->id)
+                    + std::string("' WHERE tg_id=") + std::to_string(user->id)
                 );
     };
     for_range(f);
@@ -354,7 +355,7 @@ void Userbase::show_table(std::ostream& os) const noexcept
            << std::setw(6) <<  entry->languageCode
            << std::setw(6) <<  (entry->isPremium ? "Yes" : "No")
            << std::setw(18) << string_shortener(entry->username, 16)
-           << std::setw(18) << string_shortener(entry->firstName, 16)
+           << std::setw(18) << string_shortener(entry->firstName, 16) << "\t"
            << std::put_time(&ms, "%d-%m-%Y %H:%M:%S")
            << std::endl;
     };

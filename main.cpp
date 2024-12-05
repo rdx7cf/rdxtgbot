@@ -119,7 +119,8 @@ int main(int argc, char** argv)
                      "\n1. Show users table;\t\t\t2. Show notifications table;\n"
                      "3. Send a message to a user;\t\t4. Send a message to all users;\n"
                      "5. Add a notification;\t\t\t6. Update a notification;\n"
-                     "7. Sync the tables with the file;\t8. Quit.\n"
+                     "7. Sync the tables with the file;\t8. Edit user's VPS string;\n"
+                     "9. Quit.\n"
                      "Enter a number: "; // Тут можно было бы и raw-формат использовать...
 
         switch(enter_number(std::cin, std::cout))
@@ -143,10 +144,16 @@ int main(int argc, char** argv)
             std::cout << "Enter user's Telegram ID: ";
             user_id = enter_number(std::cin, std::cout);
 
-            std::cout << "Enter a message for the user: ";
-            std::getline(std::cin, message);
+            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
+            if(user)
+            {
+                std::cout << "Enter a message for the user: ";
+                std::getline(std::cin, message);
 
-            bot.notify_one(user_id, message);
+                bot.notify_one(user_id, message);
+            }
+            else
+                std::cout << "There's no user with this id.";
 
             break;
         }
@@ -315,6 +322,28 @@ int main(int argc, char** argv)
             std::cout << "The adbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
             break;
         case 8:
+        {
+            std::int64_t user_id;
+            std::cout << "\n<EDITING USER'S VPS STRING>\n";
+            std::cout << "Enter user's Telegram ID: ";
+            user_id = enter_number(std::cin, std::cout);
+
+            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
+            if(user)
+            {
+                std::cout << "Current VPS string: " << user->vps_names_str << '\n';
+                std::cout << "Enter a new VPS string for the user (SPACE is a delim, empty string to clear the previous): ";
+                std::getline(std::cin, user->vps_names_str);
+
+                user->vps_names = StringTools::split(user->vps_names_str, ' ');
+                userbase_ptr->update(user);
+            }
+            else
+                std::cout << "There's no user with this id.";
+
+            break;
+        }
+        case 9:
             userbase_ptr->sync();
             notifbase_ptr->sync();
             bot.notify_all("It seems we're saying goodbye...");
