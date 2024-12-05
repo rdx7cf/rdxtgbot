@@ -15,5 +15,5 @@ void Logger::write(const std::string& message)
      "[" << std::put_time(&now, "%d-%m-%Y %H:%M:%S") << "] "
          << message << std::endl;
 
-    file.close();
+    file.close();S
 }
