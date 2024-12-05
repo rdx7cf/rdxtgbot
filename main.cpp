@@ -337,6 +337,7 @@ int main(int argc, char** argv)
 
                 user->vps_names = StringTools::split(user->vps_names_str, ' ');
                 userbase_ptr->update(user);
+                userbase_ptr->sync();
             }
             else
                 std::cout << "There's no user with this id.";
@@ -360,6 +361,7 @@ int main(int argc, char** argv)
 
                 user->activeTasks = std::stoul(temp);
                 userbase_ptr->update(user);
+                userbase_ptr->sync();
             }
             else
                 std::cout << "There's no user with this id.";
