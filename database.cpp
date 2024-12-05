@@ -4,7 +4,7 @@
 // AUX SECTION OPEN //
 /////////////////////
 
-static std::vector<std::string> split(const std::string& str, char delim) noexcept
+/*static std::vector<std::string> split(const std::string& str, char delim) noexcept
 {
     using iter = std::string::const_iterator;
 
@@ -23,7 +23,7 @@ static std::vector<std::string> split(const std::string& str, char delim) noexce
     }
 
     return ret;
-}
+}*/
 
 static std::string string_shortener(const std::string& str, std::string::size_type desired_sz) noexcept
 {
@@ -45,7 +45,7 @@ std::vector<TmExtended> extract_schedule(const std::string& raw_tpoint, const st
 
     for(std::string tpoint_str; std::getline(raw_tpoint_stream, tpoint_str, ' '); )
     {
-        auto tpoint_splitted = split(tpoint_str, ':');
+        auto tpoint_splitted = StringTools::split(tpoint_str, ':');
 
         TmExtended t {};
 
@@ -106,7 +106,7 @@ static int extract_user(void* users, int colcount, char** columns, char** colnam
     user->activeTasks = std::stoul(columns[12]);
     user->member_since = std::stol(columns[13]);
     user->vps_names_str = columns[14];
-    user->vps_names = split(user->vps_names_str, ' ');
+    user->vps_names = StringTools::split(user->vps_names_str, ' ');
 
     static_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
 
