@@ -346,7 +346,7 @@ int main(int argc, char** argv)
         case 9:
         {
             std::int64_t user_id;
-            std::cout << "\n<EDITING USER'S VPS STRING>\n";
+            std::cout << "\n<EDITING USER'S ACTIVE TASKS BITMASK>\n";
             std::cout << "Enter user's Telegram ID: ";
             user_id = enter_number(std::cin, std::cout);
 
@@ -354,7 +354,7 @@ int main(int argc, char** argv)
             if(user)
             {
                 std::string temp;
-                std::cout << "Current tasks bitmask: " << std::to_string(user->activeTasks.to_ulong()) << '\n';
+                std::cout << "Current tasks bitmask: " << user->activeTasks.to_string() << '\n';
                 std::cout << "Enter a new bitmask (0000, 0001, 0011, etc.): ";
                 std::getline(std::cin, temp);
 
