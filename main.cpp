@@ -120,7 +120,7 @@ int main(int argc, char** argv)
                      "3. Send a message to a user;\t\t4. Send a message to all users;\n"
                      "5. Add a notification;\t\t\t6. Update a notification;\n"
                      "7. Sync the tables with the file;\t8. Edit user's VPS string;\n"
-                     "9. Quit.\n"
+                     "9. Edit user's active tasks bitmask;\t10. Quit.\n"
                      "Enter a number: "; // Тут можно было бы и raw-формат использовать...
 
         switch(enter_number(std::cin, std::cout))
@@ -344,6 +344,29 @@ int main(int argc, char** argv)
             break;
         }
         case 9:
+        {
+            std::int64_t user_id;
+            std::cout << "\n<EDITING USER'S VPS STRING>\n";
+            std::cout << "Enter user's Telegram ID: ";
+            user_id = enter_number(std::cin, std::cout);
+
+            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
+            if(user)
+            {
+                std::string temp;
+                std::cout << "Current tasks bitmask: " << std::to_string(user->activeTasks.to_ulong()) << '\n';
+                std::cout << "Enter a new bitmask (0000, 0001, 0011, etc.): ";
+                std::getline(std::cin, temp);
+
+                user->activeTasks = std::stoul(temp);
+                userbase_ptr->update(user);
+            }
+            else
+                std::cout << "There's no user with this id.";
+
+            break;
+        }
+        case 10:
             userbase_ptr->sync();
             notifbase_ptr->sync();
             bot.notify_all("It seems we're saying goodbye...");
