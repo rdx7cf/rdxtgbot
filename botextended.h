@@ -10,6 +10,8 @@
 #include "database.h"
 #include "sqlfile.h"
 #include "logger.h"
+#include "bashcommand.h"
+#include "userextended.h"
 
 class BotExtended : public TgBot::Bot
 {
@@ -24,15 +26,10 @@ public:
 
     void long_polling(std::stop_token);
 
-    void notify_one(std::int64_t, const std::string&) const noexcept;
+    void notify_one(std::int64_t, const std::string&, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
 
-    void notify_all(const std::string&, Task = Task::SYSTEM) const noexcept;
+    void notify_all(const std::string&, Task = Task::SYSTEM, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
+
 
     void announcing(std::stop_token, Task);
 };
-
-// Listeners
-
-void anymsg(const TgBot::Message::Ptr&, const BotExtended&);
-void noncom(const TgBot::Message::Ptr&, const BotExtended&);
-void start(const TgBot::Message::Ptr&, const BotExtended&);

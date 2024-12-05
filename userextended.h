@@ -2,6 +2,7 @@
 
 #include <bitset>
 #include <string>
+#include <vector>
 
 #include <tgbot/tgbot.h>
 
@@ -17,4 +18,7 @@ public:
 
     std::time_t member_since;
     std::bitset<4> activeTasks; // For the future: this bitmask remembers if user had some loop task active before the bot shutdown (one bit for each task).
+    std::string vps_names_str;
+    std::vector<std::string> vps_names;
+
 };

@@ -27,6 +27,8 @@ add_executable(tgbot
     tmextended.h
     ctime++.h  ctime++.cpp
     sqlfile.h     sqlfile.cpp
+    bashcommand.h        bashcommand.cpp
+
 )
 
 target_link_libraries(tgbot libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES} ${CURL_LIBRARIES})

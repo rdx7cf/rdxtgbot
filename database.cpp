@@ -6,7 +6,7 @@
 
 static std::vector<std::string> split(const std::string& str, char delim) noexcept
 {
-    typedef std::string::const_iterator iter;
+    using iter = std::string::const_iterator;
 
     std::vector<std::string> ret;
 
@@ -105,6 +105,8 @@ static int extract_user(void* users, int colcount, char** columns, char** colnam
     user->supportsInlineQueries = std::stoi(columns[11]);
     user->activeTasks = std::stoul(columns[12]);
     user->member_since = std::stol(columns[13]);
+    user->vps_names_str = columns[14];
+    user->vps_names = split(user->vps_names_str, ' ');
 
     static_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
 
@@ -151,7 +153,7 @@ Userbase::Userbase(const Database<UserExtended>::sPtrF& file, int interval) : Da
         std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_membersince INTEGER);"
+                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_membersince INTEGER, vps_names TEXT);"
                     "SELECT * FROM users",
                     extract_user,
                     &vec_
@@ -174,16 +176,16 @@ bool Userbase::add(const UserExtended::Ptr& entry)
     }
 
     file_->send_query(
-        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks, tg_membersince) VALUES ("
+        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks, tg_membersince, vps_names) VALUES ("
         + std::to_string(entry->id)
         + std::string(", '")
-        + std::string(entry->username)
+        + entry->username
         + std::string("', '")
-        + std::string(entry->firstName)
+        + entry->firstName
         + std::string("', '")
-        + std::string(entry->lastName)
+        + entry->lastName
         + std::string("', '")
-        + std::string(entry->languageCode)
+        + entry->languageCode
         + std::string("', ")
         + std::to_string(entry->isBot)
         + std::string(", ")
@@ -200,7 +202,9 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         + std::to_string(entry->activeTasks.to_ulong())
         + std::string(", ")
         + std::to_string(entry->member_since)
-        + std::string(");"));
+        + std::string(", '")
+        + entry->vps_names_str
+        + std::string("');"));
 
 
     Logger::write(": INFO : DATABASE : New user [" + std::to_string(entry->id) + "] [" + entry->firstName + "] has been added.");
@@ -286,6 +290,12 @@ bool Userbase::update(const UserExtended::Ptr& entry) noexcept
             (*existing_user_it)->supportsInlineQueries = entry->supportsInlineQueries;
         }
 
+        if(entry->vps_names_str != (*existing_user_it)->vps_names_str)
+        {
+            info_updated = true;
+            (*existing_user_it)->vps_names_str = entry->vps_names_str;
+        }
+
         if(!info_updated)
             return false;
     }
@@ -299,10 +309,10 @@ void Userbase::sync() const
     auto f = [this](const UserExtended::Ptr& user) // Для замыканий лучше использовать auto, а не std::function. Это не одно и то же: std::function для замыканий работает медленно и занимает больше памяти.
     {
         file_->send_query(
-                    (std::string)"UPDATE users SET tg_uname='" + std::string(user->username)
-                    + std::string("', tg_fname='") + std::string(user->firstName)
-                    + std::string("', tg_lname='") + std::string(user->lastName)
-                    + std::string("', tg_langcode='")+ std::string(user->languageCode)
+                    (std::string)"UPDATE users SET tg_uname='" + user->username
+                    + std::string("', tg_fname='") + user->firstName
+                    + std::string("', tg_lname='") + user->lastName
+                    + std::string("', tg_langcode='")+ user->languageCode
                     + std::string("', tg_bot=") + std::to_string(user->isBot)
                     + std::string(", tg_prem=") + std::to_string(user->isPremium)
                     + std::string(", tg_ATAM=") + std::to_string(user->addedToAttachmentMenu)
@@ -311,6 +321,7 @@ void Userbase::sync() const
                     + std::string(", tg_SIQ=") + std::to_string(user->supportsInlineQueries)
                     + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
                     + std::string(", tg_membersince=") + std::to_string(user->member_since)
+                    + std::string("', vps_names='")+ user->vps_names_str
                     + std::string(" WHERE tg_id=") + std::to_string(user->id)
                 );
     };
