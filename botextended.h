@@ -30,6 +30,8 @@ public:
 
     void notify_all(const std::string&, Task = Task::SYSTEM, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
 
-
     void announcing(std::stop_token, Task);
+
+private:
+    void vps_handler(const TgBot::Message::Ptr&);
 };

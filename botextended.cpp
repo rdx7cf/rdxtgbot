@@ -1,17 +1,104 @@
 #include "botextended.h"
 
+static TgBot::ReplyKeyboardMarkup::Ptr create_keyboard(const std::vector<std::vector<std::string>>& layout)
+{
+
+    using vecsize = std::vector<std::vector<std::string>>::size_type;
+
+    auto result = std::make_shared<TgBot::ReplyKeyboardMarkup>();
+
+    for(vecsize i = 0; i < layout.size(); ++i)
+    {
+        std::vector<TgBot::KeyboardButton::Ptr> row;
+
+        for(vecsize j = 0; j < layout[i].size(); ++j)
+        {
+            auto button = std::make_shared<TgBot::KeyboardButton>();
+            button->text = layout[i][j];
+            row.push_back(button);
+        }
+
+        result->keyboard.push_back(row);
+    }
+
+    return result;
+}
+
+
+
+static std::string virshexecute(const std::string& virsh_command)
+{
+    std::string result;
+    BashCommand cmd;
+    cmd.Command = virsh_command;
+    cmd.execute();
+
+    if(!cmd.ExitStatus)
+    {
+        result = R"(
+*Success!*
+
+However, if you're unsure, here's the raw output:
+```stderr
+)" + cmd.StdErr + R"(
+```
+```stdout
+)" + cmd.StdOut + R"(
+```
+                    )";
+    }
+    else
+    {
+        result = R"(
+*Something went wrong while attempting to perform the requested action on the VPS*\. Here's the raw output:
+```stderr
+)" + cmd.StdErr + R"(
+```
+```stdout
+)" + cmd.StdOut + R"(
+```
+                    )";
+    }
+}
+
+void BotExtended::vps_handler(const TgBot::Message::Ptr& message, const std::string& command)
+{
+    try
+    {
+        if(getApi().blockedByUser(message->chat->id) || message->text.size() < command.size() + 1)
+            return;
+
+        auto user = userbase_->get_copy_by_id(message->from->id);
+
+        std::string vps_name(message->text, command.size() + 1);
+
+        if(std::find(user->vps_names.begin(), user->vps_names.end(), vps_name) != user->vps_names.end())
+        {
+            getApi().sendMessage(
+                        message->chat->id,
+                        virshexecute(std::string("virsh destroy ") + vps_name + " && virsh start " + vps_name),
+                        false, 0, nullptr, "MarkdownV2");
+        }
+        else
+        {
+            getApi().sendMessage(
+                        message->chat->id,
+                        R"(You can't control ")" + vps_name + R"(". Is that correct VPS name?)",
+                        false, 0, nullptr, "HTML");
+        }
+    }
+    catch (const std::exception& e)
+    {
+        Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+    }
+}
+
 void BotExtended::long_polling(std::stop_token tok)
 {
-    TgBot::InlineKeyboardMarkup::Ptr kb_initial = std::make_shared<TgBot::InlineKeyboardMarkup>();
 
-    std::vector<TgBot::InlineKeyboardButton::Ptr> row0;
-
-    TgBot::InlineKeyboardButton::Ptr list_servers = std::make_shared<TgBot::InlineKeyboardButton>();
-    list_servers->text = "List Servers";
-    list_servers->callbackData = "list_servers";
-
-    row0.push_back(list_servers);
-    kb_initial->inlineKeyboard.push_back(row0);
+    /*auto kb_initial = create_keyboard({
+                                          {"Show Info"}
+                                      });*/
 
     getEvents().onAnyMessage(
                 [this](TgBot::Message::Ptr message)
@@ -19,21 +106,21 @@ void BotExtended::long_polling(std::stop_token tok)
         UserExtended::Ptr uptr = std::make_shared<UserExtended>(message->from);
 
         if(userbase_->add(uptr))
-            userbase_->update(uptr);
+            userbase_->update(uptr);The VPS has been rebooted\. Well, at least I didn't crashed during the process\.
 
         std::string log_message = std::string(": INFO : BOT : User [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] has just sent: '" + message->text + "'.";
         Logger::write(log_message);
     });
 
     getEvents().onNonCommandMessage(
-                [this, &kb_initial](TgBot::Message::Ptr message)
+                [this](TgBot::Message::Ptr message)
     {
         try
         {
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
-            getApi().sendMessage(message->chat->id, "They haven't taught me this command yet.", false, 0, kb_initial);
+            getApi().sendMessage(message->chat->id, "They haven't taught me this command yet.", false, 0);
         }
         catch (const std::exception& e)
         {
@@ -42,14 +129,26 @@ void BotExtended::long_polling(std::stop_token tok)
     });
 
     getEvents().onCommand("start",
-                [this, &kb_initial](TgBot::Message::Ptr message)
+                [this](TgBot::Message::Ptr message)
     {
         try
         {
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
-            getApi().sendMessage(message->chat->id, "They've finally taught me something. Take a look at what I'm able to do for you now.", false, 0, kb_initial);
+            getApi().sendMessage(
+                        message->chat->id,
+                        R"(
+They've finally taught me something\. Take a look at what I'm able to do for you now\.
+
+`/vps_list` — Listing the VPS available to you\.
+`/vps_reboot $VPS` — Hard rebooting the specificed VPS\.
+`/vps_stop $VPS` — Hard stoping the specified VPS\.
+`/vps_run $VPS` — Running the specified VPS\.
+
+Got any questions? Ask them [here](tg://user?id=1373205351)\.
+                        )",
+                        false, 0, nullptr, "MarkdownV2");
         }
         catch (const std::exception& e)
         {
@@ -57,158 +156,179 @@ void BotExtended::long_polling(std::stop_token tok)
         }
     });
 
-    getEvents().onCallbackQuery(
-            [this, &kb_initial](TgBot::CallbackQuery::Ptr query)
+    getEvents().onCommand("info",
+                [this](TgBot::Message::Ptr message)
     {
         try
         {
-            auto user = userbase_->get_copy_by_id(query->from->id);
+            if(getApi().blockedByUser(message->chat->id))
+                return;
 
-            if(query->data == "back")
+            getApi().sendMessage(
+                        message->chat->id,
+                        R"(
+They've finally taught me something\. Take a look at what I'm able to do for you now\.
+
+🖥️*VPS Control Panel*
+├`/vps_list` — Listing the VPS available to you\.
+├`/vps_info $VPS` — Printing additional information about the specified VPS\ (dominfo).
+├`/vps_state $VPS` — Printing VPS' state\ (domstate).
+├`/vps_reboot $VPS` — Hard rebooting the specified VPS\.
+├`/vps_suspend $VPS` — Suspending the specified VPS\ (suspend).
+├`/vps_resume $VPS` — Resuming the specified VPS from suspension\ (resume).
+├`/vps_reset $VPS` — Resetting the current state of the specified VPS\ (reset).
+├`/vps_save $VPS` — Save the current state of the specified VPS\ (save).
+├`/vps_restore $VPS` — Restoring the saved state of the specified VPS\ (restore).
+├`/vps_stop $VPS` — Hard stoping the specified VPS\.
+└`/vps_start $VPS` — Running the specified VPS\.
+
+Got any questions? Ask them [here](tg://user?id=1373205351)\.
+                        )",
+                        false, 0, nullptr, "MarkdownV2");
+        }
+        catch (const std::exception& e)
+        {
+            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+        }
+    });
+
+    getEvents().onCommand("vps_list",
+                [this](TgBot::Message::Ptr message)
+    {
+        try
+        {
+            if(getApi().blockedByUser(message->chat->id))
+                return;
+
+            auto user = userbase_->get_copy_by_id(message->from->id);
+
+            if(user->vps_names.size() != 0)
             {
-                getApi().editMessageText("How can I help you?",
-                                         query->from->id,
-                                         query->message->messageId, "", "", false, kb_initial);
+                std::string result;
+                for(const auto& vps_name : user->vps_names)
+                {
+                    result += vps_name + '\n';
+                }
+
+                getApi().sendMessage(
+                            message->chat->id,
+                            R"(
+Here are the VPS available to you:
+
+`)" + result + "`",
+                            false, 0, nullptr, "MarkdownV2");
             }
-            else if(query->data == "list_servers")
+            else
             {
-                if(user->vps_names.size() == 0)
-                    getApi().editMessageText("You have no VPS available. Maybe I can help you another way?", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_initial);
-                else
-                {
-                    TgBot::InlineKeyboardMarkup::Ptr kb_servers = std::make_shared<TgBot::InlineKeyboardMarkup>();
-
-                    for(const auto& vps_name : user->vps_names)
-                    {
-                        std::vector<TgBot::InlineKeyboardButton::Ptr> row;
-
-                        TgBot::InlineKeyboardButton::Ptr vps_button = std::make_shared<TgBot::InlineKeyboardButton>();
-                        vps_button->text = vps_name;
-                        vps_button->callbackData = std::string("v:") + vps_name;
-
-                        row.push_back(vps_button);
-                        kb_servers->inlineKeyboard.push_back(row);
-                    }
-
-                    std::vector<TgBot::InlineKeyboardButton::Ptr> row;
-                    TgBot::InlineKeyboardButton::Ptr button = std::make_shared<TgBot::InlineKeyboardButton>();
-                    button->text = "Back";
-                    button->callbackData = "back";
-                    row.push_back(button);
-                    kb_servers->inlineKeyboard.push_back(row);
-
-                    getApi().editMessageText("Choose a VPS to operate with.", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_servers);
-                }
+                getApi().sendMessage(message->chat->id, R"(You have no VPS available.)");
             }
-            else if(StringTools::startsWith(query->data, "v:"))
+
+
+        }
+        catch (const std::exception& e)
+        {
+            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+        }
+    });
+
+
+    getEvents().onCommand("vps_reboot",
+                [this](TgBot::Message::Ptr message)
+    {
+        try
+        {
+            if(getApi().blockedByUser(message->chat->id) || message->text.size() < 12)
+                return;
+
+            auto user = userbase_->get_copy_by_id(message->from->id);
+
+            std::string vps_name(message->text, 12);
+
+            if(std::find(user->vps_names.begin(), user->vps_names.end(), vps_name) != user->vps_names.end())
             {
-                TgBot::InlineKeyboardMarkup::Ptr kb_actions = std::make_shared<TgBot::InlineKeyboardMarkup>();
-
-                std::vector<TgBot::InlineKeyboardButton::Ptr> row0;
-                TgBot::InlineKeyboardButton::Ptr button = std::make_shared<TgBot::InlineKeyboardButton>();
-
-                button->text = "Reboot";
-                button->callbackData = std::string("a:reboot:") + query->data;
-                row0.push_back(button);
-
-                button = std::make_shared<TgBot::InlineKeyboardButton>();
-                button->text = "Stop";
-                button->callbackData = std::string("a:stop:") + query->data;
-                row0.push_back(button);
-
-                button = std::make_shared<TgBot::InlineKeyboardButton>();
-                button->text = "Start";
-                button->callbackData = std::string("a:start:") + query->data;
-                row0.push_back(button);
-
-                kb_actions->inlineKeyboard.push_back(row0);
-
-                std::vector<TgBot::InlineKeyboardButton::Ptr> row1;
-
-                button->text = "Back";
-                button->callbackData = "back";
-                row1.push_back(button);
-
-                kb_actions->inlineKeyboard.push_back(row1);
-
-                getApi().editMessageText("Choose an action to perform.", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_actions);
-
+                getApi().sendMessage(
+                            message->chat->id,
+                            virshexecute(std::string("virsh destroy ") + vps_name + " && virsh start " + vps_name),
+                            false, 0, nullptr, "MarkdownV2");
             }
-            else if(StringTools::startsWith(query->data, "a:"))
+            else
             {
-                auto user = userbase_->get_copy_by_id(query->from->id);
-                std::vector<std::string> input = StringTools::split(query->data, ':');
-
-                if(std::search(user->vps_names_str.begin(), user->vps_names_str.end(), input[3].begin(), input[3].end()) == user->vps_names_str.end())
-                {
-                    getApi().editMessageText("You're not allowed to perform this action.", query->from->id, query->message->messageId);
-                    getApi().sendMessage(query->from->id, "How can I help you?", false, 0, kb_initial);
-                    return;
-                }
-
-                BashCommand cmd;
-                if(input[1] == "reboot")
-                {
-                    cmd.Command = std::string("virsh destroy ") + input[3] + " && virsh start " + input[3];
-                    cmd.execute();
-
-                    if(!cmd.ExitStatus)
-                        getApi().editMessageText(std::string("The VPS \"") + input[3] + "\" has been restarted. Well, at least it didn't crashed me.\n"
-                                                            "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
-                                                 query->from->id,
-                                                 query->message->messageId, std::string(), "HTML");
-                    else
-                        getApi().editMessageText(std::string("Something went wrong while restarting \"") + input[3] + ".\n"
-                                                             "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
-                                                 query->from->id,
-                                                 query->message->messageId, std::string(), "HTML");
-                }
-                else if(input[1] == "stop")
-                {
-                    cmd.Command = std::string("virsh destroy ") + input[3];
-                    cmd.execute();
-
-                    if(!cmd.ExitStatus)
-                        getApi().editMessageText(std::string("The VPS \"") + input[3] + "\" has been stoped. Well, at least it didn't crashed me.\n"
-                                                 "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
-                                                 query->from->id,
-                                                 query->message->messageId, std::string(), "HTML");
-                    else
-                        getApi().editMessageText(std::string("Something went wrong while stoping the VPS \"") + input[3] + "\".\n"
-                                                "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
-                                                 query->from->id,
-                                                 query->message->messageId, std::string(), "HTML");
-                }
-                else if(input[1] == "start")
-                {
-                    cmd.Command = std::string("virsh start ") + input[3];
-                    cmd.execute();
-
-                    if(!cmd.ExitStatus)
-                        getApi().editMessageText( std::string("The VPS \"") + input[3] + "\" has been started. Well, at least it didn't crashed me.\n"
-                                                                                         "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
-                                                  query->from->id,
-                                                  query->message->messageId, std::string(), "HTML");
-                    else
-                        getApi().editMessageText(std::string("Something went wrong while starting the VPS \"") + input[3] + "\".\n"
-                                                 "Here's the raw output:\n\nstderr:\n<code>" + cmd.StdErr + "</code>\n\nstdout:\n<code>" + cmd.StdOut + "</code>",
-                                                 query->from->id,
-                                                 query->message->messageId, std::string(), "HTML");
-                }
-
-                getApi().sendMessage(query->from->id, "How can I help you?", false, 0, kb_initial);
+                getApi().sendMessage(
+                            message->chat->id,
+                            R"(You can't control ")" + vps_name + R"(". Is that correct VPS name?)",
+                            false, 0, nullptr, "HTML");
             }
         }
         catch (const std::exception& e)
         {
             Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
         }
-
     });
+
+    getEvents().onCommand("vps_stop",
+                [this](TgBot::Message::Ptr message)
+    {
+        try
+        {
+            if(getApi().blockedByUser(message->chat->id) || message->text.size() < 10)
+                return;
+
+            auto user = userbase_->get_copy_by_id(message->from->id);
+
+            std::string vps_name(message->text, 10);
+
+            if(std::find(user->vps_names.begin(), user->vps_names.end(), vps_name) != user->vps_names.end())
+            {
+                getApi().sendMessage(
+                            message->chat->id,
+                            virshexecute(std::string("virsh destroy ") + vps_name),
+                            false, 0, nullptr, "MarkdownV2");
+            }
+            else
+            {
+                getApi().sendMessage(
+                            message->chat->id,
+                            R"(You can't control ")" + vps_name + R"(". Is that correct VPS name?)",
+                            false, 0, nullptr, "HTML");
+            }
+        }
+        catch (const std::exception& e)
+        {
+            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+        }
+    });
+
+    getEvents().onCommand("vps_start",
+                [this](TgBot::Message::Ptr message)
+    {
+        try
+        {
+            if(getApi().blockedByUser(message->chat->id) || message->text.size() < 11)
+                return;
+
+            auto user = userbase_->get_copy_by_id(message->from->id);
+
+            std::string vps_name(message->text, 11);
+
+            if(std::find(user->vps_names.begin(), user->vps_names.end(), vps_name) != user->vps_names.end())
+            {
+                getApi().sendMessage(
+                            message->chat->id,
+                            virshexecute(std::string("virsh start ") + vps_name),
+                            false, 0, nullptr, "MarkdownV2");
+            }
+        }
+        catch (const std::exception& e)
+        {
+            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+        }
+    });
+
+
 
     Logger::write(": INFO : BOT : Long polling has been initialized.");
 
-    notify_all("I'm alive! If you need me, poke me with one of the buttons below.", Task::SYSTEM, kb_initial);
+    notify_all("I'm alive! If you need me, poke me with one of the buttons below.", Task::SYSTEM);
 
     TgBot::TgLongPoll longPoll(*this, 100, 1);
 
