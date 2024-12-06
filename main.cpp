@@ -336,8 +336,8 @@ int main(int argc, char** argv)
                 std::getline(std::cin, user->vps_names_str);
 
                 user->vps_names = StringTools::split(user->vps_names_str, ' ');
-                userbase_ptr->update(user);
-                userbase_ptr->sync();
+                if(userbase_ptr->update(user))
+                    userbase_ptr->sync();
             }
             else
                 std::cout << "There's no user with this id.";
@@ -358,10 +358,9 @@ int main(int argc, char** argv)
                 std::cout << "Current tasks bitmask: " << user->activeTasks.to_string() << '\n';
                 std::cout << "Enter a new bitmask (0000, 0001, 0011, etc.): ";
                 std::getline(std::cin, temp);
-
-                user->activeTasks = std::stoul(temp);
-                userbase_ptr->update(user);
-                userbase_ptr->sync();
+                user->activeTasks = std::stoul(temp, 0, 2);
+                if(userbase_ptr->update(user))
+                    userbase_ptr->sync();
             }
             else
                 std::cout << "There's no user with this id.";

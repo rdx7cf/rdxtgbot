@@ -103,7 +103,7 @@ static int extract_user(void* users, int colcount, char** columns, char** colnam
     user->canJoinGroups = std::stoi(columns[9]);
     user->canReadAllGroupMessages = std::stoi(columns[10]);
     user->supportsInlineQueries = std::stoi(columns[11]);
-    user->activeTasks = std::stoul(columns[12]);
+    user->activeTasks = std::stoul(columns[12], 0, 2);
     user->member_since = std::stol(columns[13]);
     user->vps_names_str = columns[14];
     user->vps_names = StringTools::split(user->vps_names_str, ' ');
@@ -290,6 +290,12 @@ bool Userbase::update(const UserExtended::Ptr& entry) noexcept
             (*existing_user_it)->supportsInlineQueries = entry->supportsInlineQueries;
         }
 
+        if(entry->activeTasks != (*existing_user_it)->activeTasks)
+        {
+            info_updated = true;
+            (*existing_user_it)->activeTasks = entry->activeTasks.to_ulong();
+        }
+
         if(entry->vps_names_str != (*existing_user_it)->vps_names_str)
         {
             info_updated = true;
@@ -320,9 +326,9 @@ void Userbase::sync() const
                     + std::string(", tg_CJG=") + std::to_string(user->canJoinGroups)
                     + std::string(", tg_CRAGM=") + std::to_string(user->canReadAllGroupMessages)
                     + std::string(", tg_SIQ=") + std::to_string(user->supportsInlineQueries)
-                    + std::string(", tg_activetasks=") + std::to_string(user->activeTasks.to_ulong())
+                    + std::string(", tg_activetasks=") + user->activeTasks.to_string()
                     + std::string(", tg_membersince=") + std::to_string(user->member_since)
-                    + std::string("', vps_names='")+ user->vps_names_str
+                    + std::string(", vps_names='") + user->vps_names_str
                     + std::string("' WHERE tg_id=") + std::to_string(user->id)
                 );
     };
