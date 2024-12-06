@@ -64,7 +64,13 @@ void BotExtended::long_polling(std::stop_token tok)
         {
             auto user = userbase_->get_copy_by_id(query->from->id);
 
-            if(query->data == "list_servers")
+            if(query->data == "back")
+            {
+                getApi().editMessageText("How can I help you?",
+                                         query->from->id,
+                                         query->message->messageId, "", "", false, kb_initial);
+            }
+            else if(query->data == "list_servers")
             {
                 if(user->vps_names.size() == 0)
                     getApi().editMessageText("You have no VPS available. Maybe I can help you another way?", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_initial);
@@ -84,6 +90,13 @@ void BotExtended::long_polling(std::stop_token tok)
                         kb_servers->inlineKeyboard.push_back(row);
                     }
 
+                    std::vector<TgBot::InlineKeyboardButton::Ptr> row;
+                    TgBot::InlineKeyboardButton::Ptr button = std::make_shared<TgBot::InlineKeyboardButton>();
+                    button->text = "Back";
+                    button->callbackData = "back";
+                    row.push_back(button);
+                    kb_servers->inlineKeyboard.push_back(row);
+
                     getApi().editMessageText("Choose a VPS to operate with.", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_servers);
                 }
             }
@@ -96,19 +109,27 @@ void BotExtended::long_polling(std::stop_token tok)
 
                 button->text = "Reboot";
                 button->callbackData = std::string("a:reboot:") + query->data;
-                row.push_back(button);
+                row0.push_back(button);
 
                 button = std::make_shared<TgBot::InlineKeyboardButton>();
                 button->text = "Stop";
                 button->callbackData = std::string("a:stop:") + query->data;
-                row.push_back(button);
+                row0.push_back(button);
 
                 button = std::make_shared<TgBot::InlineKeyboardButton>();
                 button->text = "Start";
                 button->callbackData = std::string("a:start:") + query->data;
-                row.push_back(button);
+                row0.push_back(button);
 
-                kb_actions->inlineKeyboard.push_back(row);
+                kb_actions->inlineKeyboard.push_back(row0);
+
+                std::vector<TgBot::InlineKeyboardButton::Ptr> row1;
+
+                button->text = "Back";
+                button->callbackData = "back";
+                row1.push_back(button);
+
+                kb_actions->inlineKeyboard.push_back(row1);
 
                 getApi().editMessageText("Choose an action to perform.", query->from->id, query->message->messageId, std::string(), std::string(), false, kb_actions);
 
