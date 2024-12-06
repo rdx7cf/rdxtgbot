@@ -90,22 +90,23 @@ void BotExtended::long_polling(std::stop_token tok)
             else if(StringTools::startsWith(query->data, "v:"))
             {
                 TgBot::InlineKeyboardMarkup::Ptr kb_actions = std::make_shared<TgBot::InlineKeyboardMarkup>();
-                std::vector<TgBot::InlineKeyboardButton::Ptr> row;
 
-                TgBot::InlineKeyboardButton::Ptr reboot_button = std::make_shared<TgBot::InlineKeyboardButton>();
-                reboot_button->text = "Reboot";
-                reboot_button->callbackData = std::string("a:reboot:") + query->data;
-                row.push_back(reboot_button);
+                std::vector<TgBot::InlineKeyboardButton::Ptr> row0;
+                TgBot::InlineKeyboardButton::Ptr button = std::make_shared<TgBot::InlineKeyboardButton>();
 
-                TgBot::InlineKeyboardButton::Ptr stop_button = std::make_shared<TgBot::InlineKeyboardButton>();
-                stop_button->text = "Stop";
-                stop_button->callbackData = std::string("a:stop:") + query->data;
-                row.push_back(stop_button);
+                button->text = "Reboot";
+                button->callbackData = std::string("a:reboot:") + query->data;
+                row.push_back(button);
 
-                TgBot::InlineKeyboardButton::Ptr start_button = std::make_shared<TgBot::InlineKeyboardButton>();
-                start_button->text = "Start";
-                start_button->callbackData = std::string("a:start:") + query->data;
-                row.push_back(start_button);
+                button = std::make_shared<TgBot::InlineKeyboardButton>();
+                button->text = "Stop";
+                button->callbackData = std::string("a:stop:") + query->data;
+                row.push_back(button);
+
+                button = std::make_shared<TgBot::InlineKeyboardButton>();
+                button->text = "Start";
+                button->callbackData = std::string("a:start:") + query->data;
+                row.push_back(button);
 
                 kb_actions->inlineKeyboard.push_back(row);
 

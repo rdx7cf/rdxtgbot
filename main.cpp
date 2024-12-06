@@ -228,7 +228,7 @@ int main(int argc, char** argv)
             Notification::Ptr notif = notifbase_ptr->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
             if(!notif)
             {
-                std::cout << "There's no notification with such id.\n";
+                std::cout << "There's no notification with such id.\n\n";
                 break;
             }
             std::cout << "Choose a field to update:\n"
@@ -340,7 +340,7 @@ int main(int argc, char** argv)
                     userbase_ptr->sync();
             }
             else
-                std::cout << "There's no user with this id.";
+                std::cout << "There's no user with this id.\n\n";
 
             break;
         }
