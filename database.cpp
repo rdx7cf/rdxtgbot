@@ -153,7 +153,7 @@ Userbase::Userbase(const Database<UserExtended>::sPtrF& file, int interval) : Da
         std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, tg_activetasks INTEGER, tg_membersince INTEGER, vps_names TEXT);"
+                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, activetasks TEXT, membersince INTEGER, vps_names TEXT);"
                     "SELECT * FROM users",
                     extract_user,
                     &vec_
@@ -176,7 +176,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
     }
 
     file_->send_query(
-        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, tg_activetasks, tg_membersince, vps_names) VALUES ("
+        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, activetasks, membersince, vps_names) VALUES ("
         + std::to_string(entry->id)
         + std::string(", '")
         + entry->username
@@ -198,9 +198,9 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         + std::to_string(entry->canReadAllGroupMessages)
         + std::string(", ")
         + std::to_string(entry->supportsInlineQueries)
-        + std::string(", ")
-        + std::to_string(entry->activeTasks.to_ulong())
-        + std::string(", ")
+        + std::string(", '")
+        + entry->activeTasks.to_string()
+        + std::string("', ")
         + std::to_string(entry->member_since)
         + std::string(", '")
         + entry->vps_names_str
@@ -293,7 +293,7 @@ bool Userbase::update(const UserExtended::Ptr& entry) noexcept
         if(entry->activeTasks != (*existing_user_it)->activeTasks)
         {
             info_updated = true;
-            (*existing_user_it)->activeTasks = entry->activeTasks.to_ulong();
+            (*existing_user_it)->activeTasks = entry->activeTasks;
         }
 
         if(entry->vps_names_str != (*existing_user_it)->vps_names_str)
@@ -326,8 +326,8 @@ void Userbase::sync() const
                     + std::string(", tg_CJG=") + std::to_string(user->canJoinGroups)
                     + std::string(", tg_CRAGM=") + std::to_string(user->canReadAllGroupMessages)
                     + std::string(", tg_SIQ=") + std::to_string(user->supportsInlineQueries)
-                    + std::string(", tg_activetasks=") + user->activeTasks.to_string()
-                    + std::string(", tg_membersince=") + std::to_string(user->member_since)
+                    + std::string(", activetasks='") + user->activeTasks.to_string()
+                    + std::string("', membersince=") + std::to_string(user->member_since)
                     + std::string(", vps_names='") + user->vps_names_str
                     + std::string("' WHERE tg_id=") + std::to_string(user->id)
                 );
