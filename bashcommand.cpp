@@ -1,6 +1,6 @@
 #include "bashcommand.h"
 
-void BashCommand::execute()
+void BashCommand::execute(const std::string& Command)
 {
     const int READ_END = 0;
     const int WRITE_END = 1;

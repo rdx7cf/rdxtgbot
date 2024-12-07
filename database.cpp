@@ -90,53 +90,65 @@ std::vector<TmExtended> extract_schedule(const std::string& raw_tpoint, const st
 
 static int extract_user(void* users, int colcount, char** columns, char** colnames)
 {
-    UserExtended::Ptr user = std::make_shared<UserExtended>();
+    UserExtended::Ptr entry = std::make_shared<UserExtended>();
 
-    user->id = std::stol(columns[1]);
-    user->username = columns[2];
-    user->firstName = columns[3];
-    user->lastName = columns[4];
-    user->languageCode = columns[5];
-    user->isBot = std::stoi(columns[6]);
-    user->isPremium = std::stoi(columns[7]);
-    user->addedToAttachmentMenu = std::stoi(columns[8]);
-    user->canJoinGroups = std::stoi(columns[9]);
-    user->canReadAllGroupMessages = std::stoi(columns[10]);
-    user->supportsInlineQueries = std::stoi(columns[11]);
-    user->activeTasks = std::stoul(columns[12], 0, 2);
-    user->member_since = std::stol(columns[13]);
-    user->vps_names_str = columns[14];
-    user->vps_names = StringTools::split(user->vps_names_str, ' ');
+    entry->id = std::stol(columns[1]);
+    entry->username = columns[2];
+    entry->firstName = columns[3];
+    entry->lastName = columns[4];
+    entry->languageCode = columns[5];
+    entry->isBot = std::stoi(columns[6]);
+    entry->isPremium = std::stoi(columns[7]);
+    entry->addedToAttachmentMenu = std::stoi(columns[8]);
+    entry->canJoinGroups = std::stoi(columns[9]);
+    entry->canReadAllGroupMessages = std::stoi(columns[10]);
+    entry->supportsInlineQueries = std::stoi(columns[11]);
+    entry->activeTasks = std::stoul(columns[12], 0, 2);
+    entry->member_since = std::stol(columns[13]);
 
-    static_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(user);
+    static_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(entry);
 
     return 0;
 }
 
 static int extract_notif(void* notifs, int colcount, char** columns, char** colnames)
 {
-    Notification::Ptr notif = std::make_shared<Notification>();
+    Notification::Ptr entry = std::make_shared<Notification>();
 
-    notif->id = std::stol(columns[0]);
-    notif->owner = columns[1];
-    notif->text = columns[2];
-    notif->active = std::stoi(columns[3]);
-    notif->is_ad = std::stoi(columns[4]);
-    notif->tpoints_str = columns[5];
-    notif->wdays_str = columns[6];
-    notif->schedule = extract_schedule(notif->tpoints_str, notif->wdays_str);
-    if(notif->schedule.size() == 0)
+    entry->id = std::stol(columns[0]);
+    entry->owner = columns[1];
+    entry->text = columns[2];
+    entry->active = std::stoi(columns[3]);
+    entry->is_ad = std::stoi(columns[4]);
+    entry->tpoints_str = columns[5];
+    entry->wdays_str = columns[6];
+    entry->schedule = extract_schedule(entry->tpoints_str, entry->wdays_str);
+    if(entry->schedule.size() == 0)
     {
-        Logger::write(": WARN : DATABASE : No schedule specified for: '" + notif->owner + "'.");
-        notif->active = false;
-        notif->tpoints_str.clear();
-        notif->wdays_str.clear();
+        Logger::write(": WARN : DATABASE : No schedule specified for: '" + entry->owner + "'.");
+        entry->active = false;
+        entry->tpoints_str.clear();
+        entry->wdays_str.clear();
     }
 
-    notif->added_on = std::stol(columns[7]);
-    notif->expiring_on = std::stol(columns[8]);
+    entry->added_on = std::stol(columns[7]);
+    entry->expiring_on = std::stol(columns[8]);
 
-    static_cast<std::vector<Notification::Ptr>*>(notifs)->push_back(notif);
+    static_cast<std::vector<Notification::Ptr>*>(notifs)->push_back(entry);
+
+    return 0;
+}
+
+static int extract_vps(void* vps, int colcount, char** columns, char** colnames)
+{
+    VPS::Ptr entry = std::make_shared<VPS>();
+
+    entry->id = std::stol(columns[1]);
+    entry->owner = std::stol(columns[2]);
+    entry->uuid = columns[3];
+    entry->name = columns[4];
+
+    static_cast<std::vector<VPS::Ptr>*>(vps)->push_back(entry);
 
     return 0;
 }
@@ -153,7 +165,7 @@ Userbase::Userbase(const Database<UserExtended>::sPtrF& file, int interval) : Da
         std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, activetasks TEXT, membersince INTEGER, vps_names TEXT);"
+                    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, tg_id INTEGER UNIQUE, tg_uname TEXT, tg_fname TEXT, tg_lname TEXT, tg_langcode TEXT, tg_bot BOOLEAN, tg_prem BOOLEAN, tg_ATAM BOOLEAN, tg_CJG BOOLEAN, tg_CRAGM BOOLEAN, tg_SIQ BOOLEAN, activetasks TEXT, membersince INTEGER);"
                     "SELECT * FROM users",
                     extract_user,
                     &vec_
@@ -176,7 +188,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
     }
 
     file_->send_query(
-        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, activetasks, membersince, vps_names) VALUES ("
+        (std::string)"INSERT INTO users (tg_id, tg_uname, tg_fname, tg_lname, tg_langcode, tg_bot, tg_prem, tg_ATAM, tg_CJG, tg_CRAGM, tg_SIQ, activetasks, membersince) VALUES ("
         + std::to_string(entry->id)
         + std::string(", '")
         + entry->username
@@ -202,9 +214,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
         + entry->activeTasks.to_string()
         + std::string("', ")
         + std::to_string(entry->member_since)
-        + std::string(", '")
-        + entry->vps_names_str
-        + std::string("');"));
+        + std::string(");"));
 
 
     Logger::write(": INFO : DATABASE : New user [" + std::to_string(entry->id) + "] [" + entry->firstName + "] has been added.");
@@ -296,13 +306,6 @@ bool Userbase::update(const UserExtended::Ptr& entry) noexcept
             (*existing_user_it)->activeTasks = entry->activeTasks;
         }
 
-        if(entry->vps_names_str != (*existing_user_it)->vps_names_str)
-        {
-            info_updated = true;
-            (*existing_user_it)->vps_names_str = entry->vps_names_str;
-            (*existing_user_it)->vps_names = entry->vps_names;
-        }
-
         if(!info_updated)
             return false;
     }
@@ -328,8 +331,7 @@ void Userbase::sync() const
                     + std::string(", tg_SIQ=") + std::to_string(user->supportsInlineQueries)
                     + std::string(", activetasks='") + user->activeTasks.to_string()
                     + std::string("', membersince=") + std::to_string(user->member_since)
-                    + std::string(", vps_names='") + user->vps_names_str
-                    + std::string("' WHERE tg_id=") + std::to_string(user->id)
+                    + std::string(" WHERE tg_id=") + std::to_string(user->id)
                 );
     };
     for_range(f);
@@ -559,3 +561,152 @@ void Notifbase::show_table(std::ostream& os) const noexcept
 
     for_range(f);
 }
+
+// VPSBASE
+
+
+VPSbase::VPSbase(const Database<VPS>::sPtrF& file, int interval) : Database<VPS>(file, interval)
+{
+    {
+        std::lock_guard<std::mutex> lock(mtx_vec_);
+        file_->send_query
+                (
+                    "CREATE TABLE IF NOT EXISTS vps (id INTEGER PRIMARY KEY AUTOINCREMENT,owner INTEGER,uuid TEXT,name TEXT);"
+                    "SELECT * FROM vps",
+                    extract_vps,
+                    &vec_
+                );
+    }
+
+    Logger::write(": INFO : DATABASE : VPSbase has been initialized.");
+}
+
+bool VPSbase::add(const VPS::Ptr& entry)
+{
+    {
+        std::lock_guard<std::mutex> lock(mtx_vec_);
+
+        if(get_by_id(entry->id) != vec_.end())
+            return false;
+
+        vec_.push_back(entry);
+    }
+
+    file_->send_query(
+        (std::string)"INSERT INTO vps (owner, uuid, name) VALUES ("
+        + std::to_string(entry->owner)
+        + std::string(", '")
+        + entry->uuid
+        + std::string("', ")
+        + entry->name
+        + std::string(");"));
+
+    Logger::write(": INFO : DATABASE : New VPS [" + std::to_string(entry->id) + "] [" + std::to_string(entry->owner) + "] has been added.");
+
+    return true;
+}
+
+bool VPSbase::update(const VPS::Ptr& entry) noexcept
+{
+    // VECTOR MUTEX SCOPE LOCK
+    {
+        std::lock_guard<std::mutex> lock_vec(mtx_vec_);
+
+        // Searching for the ad in the vector.
+
+        auto existing_vps_it = get_by_id(entry->id);
+
+        if(existing_vps_it == vec_.end())
+            return false;
+
+        bool info_updated = false;
+
+        // Updating the entry in the vector.
+
+        if(entry->owner != (*existing_vps_it)->owner)
+        {
+            info_updated = true;
+            (*existing_vps_it)->owner = entry->owner;
+        }
+
+        if(entry->uuid != (*existing_vps_it)->uuid)
+        {
+            info_updated = true;
+            (*existing_vps_it)->uuid = entry->uuid;
+        }
+
+        if(entry->name != (*existing_vps_it)->name)
+        {
+            info_updated = true;
+            (*existing_vps_it)->name = entry->name;
+        }
+
+        if(!info_updated)
+            return false;
+    }
+
+    file_->send_query(
+                (std::string)"UPDATE vps SET owner=" + std::to_string(entry->owner)
+                + std::string(", uuid='") + entry->uuid
+                + std::string("', name='") + entry->name
+                + std::string("' WHERE id=") + std::to_string(entry->id)
+            );
+
+    Logger::write(": INFO : DATABASE : A VPS [" + std::to_string(entry->id) + "] [" + std::to_string(entry->owner) + "] has been updated.");
+
+    return true;
+}
+
+void VPSbase::sync() const
+{
+    auto f = [this](const VPS::Ptr& entry)
+    {
+        file_->send_query(
+                    (std::string)"UPDATE vps SET owner=" + std::to_string(entry->owner)
+                    + std::string(", uuid='") + entry->uuid
+                    + std::string("', name='") + entry->name
+                    + std::string("' WHERE id=") + std::to_string(entry->id)
+                );
+    };
+    for_range(f);
+
+    Logger::write(": INFO : DATABASE : VPS base have been synced with the SQL base.");
+}
+
+void VPSbase::show_table(std::ostream& os) const noexcept
+{
+    os << std::endl
+       << std::left << std::setw(6) << "ID"
+       << std::setw(18) << "OWNER"
+       << std::setw(18) << "UUID"
+       << std::setw(18) << "NAME"
+       << std::endl;
+
+    auto f = [&os](const VPS::Ptr& entry)
+    {
+        os << std::left
+           << std::setw(6) << std::to_string(entry->id)
+           << std::setw(18) << string_shortener(std::to_string(entry->owner), 16)
+           << std::setw(18) << string_shortener(entry->uuid, 16)
+           << std::setw(18) << string_shortener(entry->name, 16)
+           << std::endl;
+    };
+
+    for_range(f);
+}
+
+VPS::Ptr VPSbase::get_copy_by_owner_n_name(std::int64_t owner, const std::string& name)
+{
+    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
+
+    auto current_it = std::find_if(vec_.cbegin(), vec_.cend(),
+                                   [&owner, &name](const VPS::Ptr& entry) {
+        return entry->owner == owner && entry->name == name;
+    });
+
+    if(current_it == vec_.cend())
+        return nullptr;
+
+    return std::make_shared<VPS>(*(*current_it));
+}
+

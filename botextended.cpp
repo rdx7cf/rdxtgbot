@@ -25,58 +25,22 @@ static TgBot::ReplyKeyboardMarkup::Ptr create_keyboard(const std::vector<std::ve
 }
 
 
-
-static std::string virshexecute(const std::string& virsh_command)
-{
-    std::string result;
-    BashCommand cmd;
-    cmd.Command = virsh_command;
-    cmd.execute();
-
-    if(!cmd.ExitStatus)
-    {
-        result = R"(
-*Success!*
-
-However, if you're unsure, here's the raw output:
-```stderr
-)" + cmd.StdErr + R"(
-```
-```stdout
-)" + cmd.StdOut + R"(
-```
-                    )";
-    }
-    else
-    {
-        result = R"(
-*Something went wrong while attempting to perform the requested action on the VPS*\. Here's the raw output:
-```stderr
-)" + cmd.StdErr + R"(
-```
-```stdout
-)" + cmd.StdOut + R"(
-```
-                    )";
-    }
-}
-
-void BotExtended::vps_handler(const TgBot::Message::Ptr& message, const std::string& command)
+void BotExtended::vps_action_handler(const TgBot::Message::Ptr& message, VPS::ACTION action, int textsize)
 {
     try
     {
-        if(getApi().blockedByUser(message->chat->id) || message->text.size() < command.size() + 1)
+        if(getApi().blockedByUser(message->chat->id) || message->text.size() < textsize)
             return;
 
-        auto user = userbase_->get_copy_by_id(message->from->id);
+        std::string vps_name(message->text, textsize);
 
-        std::string vps_name(message->text, command.size() + 1);
+        auto vps = vpsbase_->get_copy_by_owner_n_name(message->from->id, vps_name);
 
-        if(std::find(user->vps_names.begin(), user->vps_names.end(), vps_name) != user->vps_names.end())
+        if(vps)
         {
             getApi().sendMessage(
                         message->chat->id,
-                        virshexecute(std::string("virsh destroy ") + vps_name + " && virsh start " + vps_name),
+                        vps->perform(action),
                         false, 0, nullptr, "MarkdownV2");
         }
         else
@@ -106,7 +70,7 @@ void BotExtended::long_polling(std::stop_token tok)
         UserExtended::Ptr uptr = std::make_shared<UserExtended>(message->from);
 
         if(userbase_->add(uptr))
-            userbase_->update(uptr);The VPS has been rebooted\. Well, at least I didn't crashed during the process\.
+            userbase_->update(uptr);
 
         std::string log_message = std::string(": INFO : BOT : User [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] has just sent: '" + message->text + "'.";
         Logger::write(log_message);
@@ -171,14 +135,13 @@ They've finally taught me something\. Take a look at what I'm able to do for you
 
 🖥️*VPS Control Panel*
 ├`/vps_list` — Listing the VPS available to you\.
-├`/vps_info $VPS` — Printing additional information about the specified VPS\ (dominfo).
-├`/vps_state $VPS` — Printing VPS' state\ (domstate).
+├`/vps_info $VPS` — Printing additional information about the specified VPS\.
 ├`/vps_reboot $VPS` — Hard rebooting the specified VPS\.
-├`/vps_suspend $VPS` — Suspending the specified VPS\ (suspend).
-├`/vps_resume $VPS` — Resuming the specified VPS from suspension\ (resume).
-├`/vps_reset $VPS` — Resetting the current state of the specified VPS\ (reset).
-├`/vps_save $VPS` — Save the current state of the specified VPS\ (save).
-├`/vps_restore $VPS` — Restoring the saved state of the specified VPS\ (restore).
+├`/vps_suspend $VPS` — Suspending the specified VPS\.
+├`/vps_resume $VPS` — Resuming the specified VPS from suspension\.
+├`/vps_reset $VPS` — Resetting the current state of the specified VPS\.
+├`/vps_save $VPS` — Save the current state of the specified VPS\.
+├`/vps_restore $VPS` — Restoring the saved state of the specified VPS\.
 ├`/vps_stop $VPS` — Hard stoping the specified VPS\.
 └`/vps_start $VPS` — Running the specified VPS\.
 
@@ -200,22 +163,24 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
-            auto user = userbase_->get_copy_by_id(message->from->id);
+            std::string result;
 
-            if(user->vps_names.size() != 0)
+            auto f = [&message, &result](const VPS::Ptr& entry)
             {
-                std::string result;
-                for(const auto& vps_name : user->vps_names)
-                {
-                    result += vps_name + '\n';
-                }
+                if(entry->owner == message->from->id)
+                    result += ('`' + entry->name + '`') + '\n';
+            };
 
+            vpsbase_->for_range(f);
+
+            if(result.size() != 0)
+            {
                 getApi().sendMessage(
                             message->chat->id,
                             R"(
 Here are the VPS available to you:
 
-`)" + result + "`",
+)" + result + "",
                             false, 0, nullptr, "MarkdownV2");
             }
             else
@@ -231,99 +196,60 @@ Here are the VPS available to you:
         }
     });
 
+    getEvents().onCommand("vps_info",
+                [this](TgBot::Message::Ptr message)
+    {
+        vps_action_handler(message, VPS::ACTION::INFO, 10);
+    });
 
     getEvents().onCommand("vps_reboot",
                 [this](TgBot::Message::Ptr message)
     {
-        try
-        {
-            if(getApi().blockedByUser(message->chat->id) || message->text.size() < 12)
-                return;
-
-            auto user = userbase_->get_copy_by_id(message->from->id);
-
-            std::string vps_name(message->text, 12);
-
-            if(std::find(user->vps_names.begin(), user->vps_names.end(), vps_name) != user->vps_names.end())
-            {
-                getApi().sendMessage(
-                            message->chat->id,
-                            virshexecute(std::string("virsh destroy ") + vps_name + " && virsh start " + vps_name),
-                            false, 0, nullptr, "MarkdownV2");
-            }
-            else
-            {
-                getApi().sendMessage(
-                            message->chat->id,
-                            R"(You can't control ")" + vps_name + R"(". Is that correct VPS name?)",
-                            false, 0, nullptr, "HTML");
-            }
-        }
-        catch (const std::exception& e)
-        {
-            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
-        }
+        vps_action_handler(message, VPS::ACTION::REBOOT, 12);
     });
+
+    getEvents().onCommand("vps_suspend",
+                [this](TgBot::Message::Ptr message)
+    {
+        vps_action_handler(message, VPS::ACTION::SUSPEND, 13);
+    });
+
+    getEvents().onCommand("vps_resume",
+                [this](TgBot::Message::Ptr message)
+    {
+        vps_action_handler(message, VPS::ACTION::RESUME, 12);
+    });
+
+    getEvents().onCommand("vps_reset",
+                [this](TgBot::Message::Ptr message)
+    {
+        vps_action_handler(message, VPS::ACTION::RESET, 11);
+    });
+
+    getEvents().onCommand("vps_save",
+                [this](TgBot::Message::Ptr message)
+    {
+        vps_action_handler(message, VPS::ACTION::SAVE, 10);
+    });
+
+    getEvents().onCommand("vps_restore",
+                [this](TgBot::Message::Ptr message)
+    {
+        vps_action_handler(message, VPS::ACTION::RESTORE, 13);
+    });
+
 
     getEvents().onCommand("vps_stop",
                 [this](TgBot::Message::Ptr message)
     {
-        try
-        {
-            if(getApi().blockedByUser(message->chat->id) || message->text.size() < 10)
-                return;
-
-            auto user = userbase_->get_copy_by_id(message->from->id);
-
-            std::string vps_name(message->text, 10);
-
-            if(std::find(user->vps_names.begin(), user->vps_names.end(), vps_name) != user->vps_names.end())
-            {
-                getApi().sendMessage(
-                            message->chat->id,
-                            virshexecute(std::string("virsh destroy ") + vps_name),
-                            false, 0, nullptr, "MarkdownV2");
-            }
-            else
-            {
-                getApi().sendMessage(
-                            message->chat->id,
-                            R"(You can't control ")" + vps_name + R"(". Is that correct VPS name?)",
-                            false, 0, nullptr, "HTML");
-            }
-        }
-        catch (const std::exception& e)
-        {
-            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
-        }
+        vps_action_handler(message, VPS::ACTION::STOP, 10);
     });
 
     getEvents().onCommand("vps_start",
                 [this](TgBot::Message::Ptr message)
     {
-        try
-        {
-            if(getApi().blockedByUser(message->chat->id) || message->text.size() < 11)
-                return;
-
-            auto user = userbase_->get_copy_by_id(message->from->id);
-
-            std::string vps_name(message->text, 11);
-
-            if(std::find(user->vps_names.begin(), user->vps_names.end(), vps_name) != user->vps_names.end())
-            {
-                getApi().sendMessage(
-                            message->chat->id,
-                            virshexecute(std::string("virsh start ") + vps_name),
-                            false, 0, nullptr, "MarkdownV2");
-            }
-        }
-        catch (const std::exception& e)
-        {
-            Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
-        }
+        vps_action_handler(message, VPS::ACTION::START, 11);
     });
-
 
 
     Logger::write(": INFO : BOT : Long polling has been initialized.");

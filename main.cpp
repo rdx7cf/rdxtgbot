@@ -79,7 +79,8 @@ int main(int argc, char** argv)
     std::shared_ptr<SQLFile> file = std::make_shared<SQLFile>(db_path, copies_counter, interval);
     Userbase::Ptr userbase_ptr = std::make_shared<Userbase>(file, interval);
     Notifbase::Ptr notifbase_ptr = std::make_shared<Notifbase>(file, interval);
-    BotExtended bot(bot_token, mhc, userbase_ptr, notifbase_ptr);
+    VPSbase::Ptr vpsbase_ptr = std::make_shared<VPSbase>(file, interval);
+    BotExtended bot(bot_token, mhc, userbase_ptr, notifbase_ptr, vpsbase_ptr);
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");
@@ -119,8 +120,9 @@ int main(int argc, char** argv)
                      "\n1. Show users table;\t\t\t2. Show notifications table;\n"
                      "3. Send a message to a user;\t\t4. Send a message to all users;\n"
                      "5. Add a notification;\t\t\t6. Update a notification;\n"
-                     "7. Sync the tables with the file;\t8. Edit user's VPS string;\n"
-                     "9. Edit user's active tasks bitmask;\t10. Quit.\n"
+                     "7. Edit user's active tasks bitmask;\t8. Add a VPS entry.\n"
+                     "9. Update a VPS entry;\t\t\t10. Show VPS table.\n"
+                     "11. Quit.\n"
                      "Enter a number: "; // Тут можно было бы и raw-формат использовать...
 
         switch(enter_number(std::cin, std::cout))
@@ -128,6 +130,7 @@ int main(int argc, char** argv)
         case INT_MAX:
             userbase_ptr->sync();
             notifbase_ptr->sync();
+            vpsbase_ptr->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         case 1:
@@ -228,14 +231,14 @@ int main(int argc, char** argv)
             Notification::Ptr notif = notifbase_ptr->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
             if(!notif)
             {
-                std::cout << "There's no notification with such id.\n\n";
+                std::cout << "There's no notification with this id.\n\n";
                 break;
             }
             std::cout << "Choose a field to update:\n"
                          "1. Owner name;\t\t2. Text;\n"
                          "3. On/Off;\t\t4. Switch ad. status;\n"
                          "5. Timepoints;\t6. Expiration date;\n"
-                         "7. Weekdays;\t\t8. Quit.\n"
+                         "7. Weekdays;\t\t8. Quit updating.\n"
                          "Enter a number: ";
             switch(enter_number(std::cin, std::cout))
             {
@@ -243,6 +246,7 @@ int main(int argc, char** argv)
             {
                 userbase_ptr->sync();
                 notifbase_ptr->sync();
+                vpsbase_ptr->sync();
                 bot.notify_all("It seems we're saying goodbye...");
                 return 0;
             }
@@ -316,35 +320,6 @@ int main(int argc, char** argv)
             break;
         }
         case 7:
-            userbase_ptr->sync();
-            notifbase_ptr->sync();
-            std::cout << "The userbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
-            std::cout << "The adbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
-            break;
-        case 8:
-        {
-            std::int64_t user_id;
-            std::cout << "\n<EDITING USER'S VPS STRING>\n";
-            std::cout << "Enter user's Telegram ID: ";
-            user_id = enter_number(std::cin, std::cout);
-
-            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
-            if(user)
-            {
-                std::cout << "Current VPS string: " << user->vps_names_str << '\n';
-                std::cout << "Enter a new VPS string for the user (SPACE is a delim, empty string to clear the previous): ";
-                std::getline(std::cin, user->vps_names_str);
-
-                user->vps_names = StringTools::split(user->vps_names_str, ' ');
-                if(userbase_ptr->update(user))
-                    userbase_ptr->sync();
-            }
-            else
-                std::cout << "There's no user with this id.\n\n";
-
-            break;
-        }
-        case 9:
         {
             std::int64_t user_id;
             std::cout << "\n<EDITING USER'S ACTIVE TASKS BITMASK>\n";
@@ -367,9 +342,80 @@ int main(int argc, char** argv)
 
             break;
         }
+        case 8:
+        {
+            VPS::Ptr vps = std::make_shared<VPS>();
+
+            std::cout << "\n<ADDING A VPS ENTRY>\n";
+            vps->id = vpsbase_ptr->get_last_id() + 1;
+
+            std::cout << "Enter the owner's Telegram ID: ";
+            vps->owner = enter_number(std::cin, std::cout);
+
+            std::cout << "Enter the VPS uuid: ";
+            std::getline(std::cin, vps->uuid);
+
+            std::cout << "Enter the VPS name: ";
+            std::getline(std::cin, vps->name);
+
+            vpsbase_ptr->add(vps);
+
+            break;
+        }
+        case 9:
+        {
+            std::cout << "\n<UPDATING A VPS ENTRY>\n";
+            std::cout << "Enter an id of a VPS entry to update: ";
+
+            VPS::Ptr vps = vpsbase_ptr->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
+            if(!vps)
+            {
+                std::cout << "There's no VPS entry with this id.\n\n";
+                break;
+            }
+            std::cout << "Choose a field to update:\n"
+                         "1. Owner's ID;\t2. VPS UUID;\n"
+                         "3. VPS name;\t4. Quit updating."
+                         "Enter a number: ";
+            switch(enter_number(std::cin, std::cout))
+            {
+            case INT_MAX:
+            {
+                userbase_ptr->sync();
+                notifbase_ptr->sync();
+                vpsbase_ptr->sync();
+                bot.notify_all("It seems we're saying goodbye...");
+                return 0;
+            }
+            case 1:
+            {
+                std::cout << "Enter new owner's ID: ";
+                vps->owner = enter_number(std::cin, std::cout);
+                break;
+            }
+            case 2:
+            {
+                std::cout << "Enter the VPS uuid: \n";
+                std::getline(std::cin, vps->uuid);
+                break;
+            }
+            case 3:
+            {
+                std::cout << "Enter the VPS name: \n";
+                std::getline(std::cin, vps->name);
+                break;
+            }
+            }
+            vpsbase_ptr->update(vps);
+            break;
+        }
         case 10:
+            vpsbase_ptr->show_table(std::cout);
+            break;
+        case 11:
             userbase_ptr->sync();
             notifbase_ptr->sync();
+            vpsbase_ptr->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }
