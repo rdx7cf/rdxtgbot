@@ -41,7 +41,7 @@ std::string VPS::perform(ACTION a)
     {
         result =
 R"(
-*Success!*
+*Success*\!
 ```stdout
 )" + cmd.StdOut + R"(
 ```
