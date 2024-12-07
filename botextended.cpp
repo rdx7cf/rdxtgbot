@@ -25,12 +25,20 @@ static TgBot::ReplyKeyboardMarkup::Ptr create_keyboard(const std::vector<std::ve
 }
 
 
-void BotExtended::vps_action_handler(const TgBot::Message::Ptr& message, VPS::ACTION action, int textsize)
+void BotExtended::vps_action_handler(const TgBot::Message::Ptr& message, VPS::ACTION action, std::string::size_type textsize)
 {
     try
     {
-        if(getApi().blockedByUser(message->chat->id) || message->text.size() < textsize)
+        if(getApi().blockedByUser(message->chat->id))
             return;
+
+        if(message->text.size() <= textsize)
+        {
+            getApi().sendMessage(
+                        message->chat->id,
+                        "You didn't specify the VPS name.");
+            return;
+        }
 
         std::string vps_name(message->text, textsize);
 
@@ -100,17 +108,29 @@ void BotExtended::long_polling(std::stop_token tok)
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
+            auto uptr = userbase_->get_copy_by_id(message->from->id);
+            std::int64_t vps_counter = 0;
+
+
+            vpsbase_->for_range([&uptr, &vps_counter](const VPS::Ptr& entry)
+            {
+                if(entry->owner == uptr->id)
+                    ++vps_counter;
+            });
+
+            std::tm ms = localtime_ts(uptr->member_since);
+            std::ostringstream oss;
+            oss << std::put_time(&ms, "%d/%m/%Y %H:%M:%S");
+
             getApi().sendMessage(
                         message->chat->id,
-                        R"(
-They've finally taught me something\. Take a look at what I'm able to do for you now\.
+                        std::string(R"(
+*Your account details*
+├Member Since: ||__)") + oss.str() + R"(__||
+├Telegram ID: `)" + std::to_string(uptr->id) + R"(`
+└Available VPS: *)" + std::to_string(vps_counter) + R"(*
 
-`/vps_list` — Listing the VPS available to you\.
-`/vps_reboot $VPS` — Hard rebooting the specificed VPS\.
-`/vps_stop $VPS` — Hard stoping the specified VPS\.
-`/vps_run $VPS` — Running the specified VPS\.
-
-Got any questions? Ask them [here](tg://user?id=1373205351)\.
+Type `/info` for help\.
                         )",
                         false, 0, nullptr, "MarkdownV2");
         }
@@ -133,17 +153,17 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
                         R"(
 They've finally taught me something\. Take a look at what I'm able to do for you now\.
 
-🖥️*VPS Control Panel*
-├`/vps_list` — Listing the VPS available to you\.
-├`/vps_info $VPS` — Printing additional information about the specified VPS\.
-├`/vps_reboot $VPS` — Hard rebooting the specified VPS\.
-├`/vps_suspend $VPS` — Suspending the specified VPS\.
-├`/vps_resume $VPS` — Resuming the specified VPS from suspension\.
-├`/vps_reset $VPS` — Resetting the current state of the specified VPS\.
-├`/vps_save $VPS` — Save the current state of the specified VPS\.
-├`/vps_restore $VPS` — Restoring the saved state of the specified VPS\.
-├`/vps_stop $VPS` — Hard stoping the specified VPS\.
-└`/vps_start $VPS` — Running the specified VPS\.
+🖥️ *VPS Control Panel*
+├`/vps_list` — List the VPS available to you\.
+├`/vps_info $VPS` — Print information about the VPS\.
+├`/vps_reboot $VPS` — Hard reboot the VPS\.
+├`/vps_suspend $VPS` — Suspend the VPS\.
+├`/vps_resume $VPS` — Resume the VPS from suspension\.
+├`/vps_reset $VPS` — Reset the current state of the VPS\.
+├`/vps_save $VPS` — Save the current state of the VPS\.
+├`/vps_restore $VPS` — Restore the saved state of the VPS\.
+├`/vps_stop $VPS` — Hard stop the VPS\.
+└`/vps_start $VPS` — Start the VPS\.
 
 Got any questions? Ask them [here](tg://user?id=1373205351)\.
                         )",
@@ -254,7 +274,7 @@ Here are the VPS available to you:
 
     Logger::write(": INFO : BOT : Long polling has been initialized.");
 
-    notify_all("I'm alive! If you need me, poke me with one of the buttons below.", Task::SYSTEM);
+    notify_all("I'm alive!", Task::SYSTEM);
 
     TgBot::TgLongPoll longPoll(*this, 100, 1);
 

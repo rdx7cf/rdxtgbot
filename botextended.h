@@ -34,5 +34,5 @@ public:
     void announcing(std::stop_token, Task);
 
 private:
-    void vps_action_handler(const TgBot::Message::Ptr&, VPS::ACTION, int);
+    void vps_action_handler(const TgBot::Message::Ptr&, VPS::ACTION, std::string::size_type);
 };

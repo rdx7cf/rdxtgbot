@@ -143,10 +143,10 @@ static int extract_vps(void* vps, int colcount, char** columns, char** colnames)
 {
     VPS::Ptr entry = std::make_shared<VPS>();
 
-    entry->id = std::stol(columns[1]);
-    entry->owner = std::stol(columns[2]);
-    entry->uuid = columns[3];
-    entry->name = columns[4];
+    entry->id = std::stol(columns[0]);
+    entry->owner = std::stol(columns[1]);
+    entry->uuid = columns[2];
+    entry->name = columns[3];
 
     static_cast<std::vector<VPS::Ptr>*>(vps)->push_back(entry);
 
@@ -181,7 +181,7 @@ bool Userbase::add(const UserExtended::Ptr& entry)
     {
         std::lock_guard<std::mutex> lock(mtx_vec_);
 
-        if(get_by_id(entry->id) != vec_.end())
+        if(find_if([&entry](const UserExtended::Ptr& user) { return user->id == entry->id; }) != vec_.end())
             return false;
 
         vec_.push_back(entry);
@@ -231,7 +231,7 @@ bool Userbase::update(const UserExtended::Ptr& entry) noexcept
 
         // Searching for the user in the vector.
 
-        auto existing_user_it = get_by_id(entry->id);
+        auto existing_user_it = find_if([&entry](const UserExtended::Ptr& user) { return user->id == entry->id; });
 
         if(existing_user_it == vec_.end())
             return false;
@@ -394,7 +394,7 @@ bool Notifbase::add(const Notification::Ptr& entry)
     {
         std::lock_guard<std::mutex> lock(mtx_vec_);
 
-        if(get_by_id(entry->id) != vec_.end())
+        if(find_if([&entry](const Notification::Ptr& notif) { return notif->id == entry->id; }) != vec_.end())
             return false;
 
         vec_.push_back(entry);
@@ -432,7 +432,7 @@ bool Notifbase::update(const Notification::Ptr& entry) noexcept
 
         // Searching for the ad in the vector.
 
-        auto existing_notif_it = get_by_id(entry->id);
+        auto existing_notif_it = find_if([&entry](const Notification::Ptr& notif) { return notif->id == entry->id; });
 
         if(existing_notif_it == vec_.end())
             return false;
@@ -586,7 +586,7 @@ bool VPSbase::add(const VPS::Ptr& entry)
     {
         std::lock_guard<std::mutex> lock(mtx_vec_);
 
-        if(get_by_id(entry->id) != vec_.end())
+        if(find_if([&entry](const VPS::Ptr& vps) { return vps->id == entry->id; }) != vec_.end())
             return false;
 
         vec_.push_back(entry);
@@ -597,9 +597,9 @@ bool VPSbase::add(const VPS::Ptr& entry)
         + std::to_string(entry->owner)
         + std::string(", '")
         + entry->uuid
-        + std::string("', ")
+        + std::string("', '")
         + entry->name
-        + std::string(");"));
+        + std::string("');"));
 
     Logger::write(": INFO : DATABASE : New VPS [" + std::to_string(entry->id) + "] [" + std::to_string(entry->owner) + "] has been added.");
 
@@ -614,7 +614,7 @@ bool VPSbase::update(const VPS::Ptr& entry) noexcept
 
         // Searching for the ad in the vector.
 
-        auto existing_vps_it = get_by_id(entry->id);
+        auto existing_vps_it = find_if([&entry](const VPS::Ptr& vps) { return vps->id == entry->id; });
 
         if(existing_vps_it == vec_.end())
             return false;
@@ -699,8 +699,7 @@ VPS::Ptr VPSbase::get_copy_by_owner_n_name(std::int64_t owner, const std::string
 {
     std::lock_guard<std::mutex> lock_vec(mtx_vec_);
 
-    auto current_it = std::find_if(vec_.cbegin(), vec_.cend(),
-                                   [&owner, &name](const VPS::Ptr& entry) {
+    auto current_it = find_if([&owner, &name](const VPS::Ptr& entry) {
         return entry->owner == owner && entry->name == name;
     });
 
