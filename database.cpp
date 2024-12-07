@@ -407,9 +407,9 @@ bool Notifbase::add(const Notification::Ptr& entry)
         + std::string(entry->text)
         + std::string("', ")
         + std::to_string(entry->active)
-        + std::string(", ")
-        + std::to_string(static_cast<int>(entry->type))
         + std::string(", '")
+        + std::to_string(static_cast<int>(entry->type))
+        + std::string("', '")
         + entry->tpoints_str
         + std::string("', '")
         + entry->wdays_str
@@ -500,7 +500,7 @@ bool Notifbase::update(const Notification::Ptr& entry) noexcept
                 (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                 + std::string("', text='") + std::string(entry->text)
                 + std::string("', active=") + std::to_string(entry->active)
-                + std::string("', type=") + std::to_string(static_cast<int>(entry->type))
+                + std::string(", type=") + std::to_string(static_cast<int>(entry->type))
                 + std::string(", tpoints='") + entry->tpoints_str
                 + std::string("', wdays='") + entry->wdays_str
                 + std::string("', added_on=") + std::to_string(entry->added_on)
@@ -521,7 +521,7 @@ void Notifbase::sync() const
                     (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                     + std::string("', text='") + std::string(entry->text)
                     + std::string("', active=") + std::to_string(entry->active)
-                    + std::string("', type=") + std::to_string(static_cast<int>(entry->type))
+                    + std::string(", type=") + std::to_string(static_cast<int>(entry->type))
                     + std::string(", tpoints='") + entry->tpoints_str
                     + std::string("', wdays='") + entry->wdays_str
                     + std::string("', added_on=") + std::to_string(entry->added_on)
