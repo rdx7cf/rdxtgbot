@@ -101,7 +101,7 @@ int main(int argc, char** argv)
     std::jthread auto_syncing_notif(std::bind(&Database<Notification>::auto_sync, notifbase_ptr, std::placeholders::_1));
 
     std::jthread auto_backuping(std::bind(&SQLFile::auto_backup, file, std::placeholders::_1));
-    std::jthread announcing(std::bind(&BotExtended::announcing, &bot, std::placeholders::_1, BotExtended::Task::ADS));
+    std::jthread announcing(std::bind(&BotExtended::announcing, &bot, std::placeholders::_1));
 
 
     signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
@@ -192,8 +192,8 @@ int main(int argc, char** argv)
             std::cout << "ON / OFF (1 / 0): ";
             notif->active = enter_number(std::cin, std::cout);
 
-            std::cout << "AD / NOT AD (1 / 0): ";
-            notif->is_ad = enter_number(std::cin, std::cout);
+            std::cout << "TYPE: (-1, 0, 1) : SYSTEM, COMMERCIAL, CURRENCY :";
+            notif->type = static_cast<Notification::TYPE>(enter_number(std::cin, std::cout));
 
             std::cout << "Enter the expiration date (D-M-Y H:M:S): ";
             std::cin >> std::get_time(&t, "%d-%m-%Y %H:%M:%S");
@@ -274,8 +274,8 @@ int main(int argc, char** argv)
             }
             case 4:
             {
-                std::cout << "AD / NOT AD (1 / 0): ";
-                notif->is_ad = enter_number(std::cin, std::cout);
+                std::cout << "TYPE: (-1, 0, 1) : SYSTEM, COMMERCIAL, CURRENCY :";
+                notif->type = static_cast<Notification::TYPE>(enter_number(std::cin, std::cout));
                 break;
             }
             case 5:

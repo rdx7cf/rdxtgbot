@@ -274,7 +274,7 @@ Here are the VPS available to you:
 
     Logger::write(": INFO : BOT : Long polling has been initialized.");
 
-    notify_all("I'm alive!", Task::SYSTEM);
+    notify_all("I'm alive!");
 
     TgBot::TgLongPoll longPoll(*this, 100, 1);
 
@@ -306,7 +306,7 @@ void BotExtended::notify_one(std::int64_t user_id, const std::string& message, c
     }
 }
 
-void BotExtended::notify_all(const std::string& message, Task flag, const TgBot::GenericReply::Ptr& keyboard) const noexcept
+void BotExtended::notify_all(const std::string& message, Notification::TYPE flag, const TgBot::GenericReply::Ptr& keyboard) const noexcept
 {
     Logger::write(": INFO : BOT : Notifying all users...");
 
@@ -316,7 +316,7 @@ void BotExtended::notify_all(const std::string& message, Task flag, const TgBot:
         {
             if(!getApi().blockedByUser(user->id))
             {
-                if(flag == Task::SYSTEM || user->activeTasks[static_cast<int>(flag)])
+                if(flag == Notification::TYPE::SYSTEM || user->activeTasks[static_cast<int>(flag)])
                         notify_one(user->id, message, keyboard);
             }
             else
@@ -332,14 +332,14 @@ void BotExtended::notify_all(const std::string& message, Task flag, const TgBot:
     Logger::write(": INFO : BOT : Users has been notified.");
 }
 
-void BotExtended::announcing(std::stop_token tok, Task t)
+void BotExtended::announcing(std::stop_token tok)
 {
     std::time_t current_timestamp;
     std::tm current;
 
-    auto f = [this, &current, &current_timestamp, &t](Notification::Ptr& notif)
+    auto f = [this, &current, &current_timestamp](Notification::Ptr& notif)
     {
-        std::for_each(notif->schedule.begin(), notif->schedule.end(), [this, &current, &current_timestamp, &notif, &t](TmExtended& time_point)
+        std::for_each(notif->schedule.begin(), notif->schedule.end(), [this, &current, &current_timestamp, &notif](TmExtended& time_point)
         {
             if(current.tm_wday == time_point.tm_wday && notif->active)
             {
@@ -350,7 +350,7 @@ void BotExtended::announcing(std::stop_token tok, Task t)
                 }
                 if (((current.tm_hour == time_point.tm_hour && current.tm_min >= time_point.tm_min) || current.tm_hour > time_point.tm_hour) && !time_point.executed) // Такое монструозное условие нужно для того, чтобы учитывалась разница и между часами, и между часами:минутами (то есть чтобы временная точка типа 15:30 также была допустима)
                 {
-                    notify_all(notif->text, t);
+                    notify_all(notif->text, notif->type);
                     time_point.executed = true;
                 }
                 else if((current.tm_hour < time_point.tm_hour || (current.tm_hour == time_point.tm_hour && current.tm_min < time_point.tm_min)) && time_point.executed)

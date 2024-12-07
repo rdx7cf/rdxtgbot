@@ -119,7 +119,7 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
     entry->owner = columns[1];
     entry->text = columns[2];
     entry->active = std::stoi(columns[3]);
-    entry->is_ad = std::stoi(columns[4]);
+    entry->type = static_cast<Notification::TYPE>(std::stoi(columns[4]));
     entry->tpoints_str = columns[5];
     entry->wdays_str = columns[6];
     entry->schedule = extract_schedule(entry->tpoints_str, entry->wdays_str);
@@ -348,7 +348,7 @@ void Userbase::show_table(std::ostream& os) const noexcept
        << std::setw(6) << "LANG"
        << std::setw(6) << "PREM"
        << std::setw(18) << "USERNAME"
-       << std::setw(18) << "FIRSTNAME"
+       << std::setw(18) << "FIRSTNAME" << "\t"
        << "MEMBER SINCE"
        << std::endl;
 
@@ -379,7 +379,7 @@ Notifbase::Notifbase(const Database<Notification>::sPtrF& file, int interval) : 
         std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->send_query
                 (
-                    "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN, is_ad BOOLEAN,tpoints TEXT,wdays TEXT,added_on INTEGER,expiring_on INTEGER);"
+                    "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN, type INTEGER,tpoints TEXT,wdays TEXT,added_on INTEGER,expiring_on INTEGER);"
                     "SELECT * FROM notifications",
                     extract_notif,
                     &vec_
@@ -401,14 +401,14 @@ bool Notifbase::add(const Notification::Ptr& entry)
     }
 
     file_->send_query(
-        (std::string)"INSERT INTO notifications (owner, text, active, is_ad, tpoints, wdays, added_on, expiring_on) VALUES ('"
+        (std::string)"INSERT INTO notifications (owner, text, active, type, tpoints, wdays, added_on, expiring_on) VALUES ('"
         + std::string(entry->owner)
         + std::string("', '")
         + std::string(entry->text)
         + std::string("', ")
         + std::to_string(entry->active)
         + std::string(", ")
-        + std::to_string(entry->is_ad)
+        + std::to_string(static_cast<int>(entry->type))
         + std::string(", '")
         + entry->tpoints_str
         + std::string("', '")
@@ -459,10 +459,10 @@ bool Notifbase::update(const Notification::Ptr& entry) noexcept
             (*existing_notif_it)->active = entry->active;
         }
 
-        if(entry->is_ad != (*existing_notif_it)->is_ad)
+        if(entry->type != (*existing_notif_it)->type)
         {
             info_updated = true;
-            (*existing_notif_it)->is_ad = entry->is_ad;
+            (*existing_notif_it)->type = entry->type;
         }
 
         if(entry->tpoints_str != (*existing_notif_it)->tpoints_str)
@@ -500,6 +500,7 @@ bool Notifbase::update(const Notification::Ptr& entry) noexcept
                 (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                 + std::string("', text='") + std::string(entry->text)
                 + std::string("', active=") + std::to_string(entry->active)
+                + std::string("', type=") + std::to_string(static_cast<int>(entry->type))
                 + std::string(", tpoints='") + entry->tpoints_str
                 + std::string("', wdays='") + entry->wdays_str
                 + std::string("', added_on=") + std::to_string(entry->added_on)
@@ -520,6 +521,7 @@ void Notifbase::sync() const
                     (std::string)"UPDATE notifications SET owner='" + std::string(entry->owner)
                     + std::string("', text='") + std::string(entry->text)
                     + std::string("', active=") + std::to_string(entry->active)
+                    + std::string("', type=") + std::to_string(static_cast<int>(entry->type))
                     + std::string(", tpoints='") + entry->tpoints_str
                     + std::string("', wdays='") + entry->wdays_str
                     + std::string("', added_on=") + std::to_string(entry->added_on)
@@ -537,6 +539,7 @@ void Notifbase::show_table(std::ostream& os) const noexcept
     os << std::endl
        << std::left << std::setw(6) << "ID"
        << std::setw(8) << "ACTIVE"
+       << std::setw(8) << "TYPE"
        << std::setw(18) << "OWNER"
        << std::setw(18) << "TEXT"
        << std::setw(18) << "SCHEDULE"
@@ -551,6 +554,7 @@ void Notifbase::show_table(std::ostream& os) const noexcept
         os << std::left
            << std::setw(6) << std::to_string(entry->id)
            << std::setw(8) << (entry->active ? "Yes" : "No")
+           << std::setw(8) << std::to_string(static_cast<int>(entry->type))
            << std::setw(18) << string_shortener(entry->owner, 16)
            << std::setw(18) << string_shortener(entry->text, 16)
            << std::setw(18) << string_shortener(entry->tpoints_str, 16)

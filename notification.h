@@ -9,12 +9,13 @@ class Notification
 {
 public:
     using Ptr = std::shared_ptr<Notification>;
+    enum class TYPE {SYSTEM = -1, COMMERCIAL, CURRENCY};
 
     std::int64_t id;
     std::string owner;
     std::string text;
     bool active;
-    bool is_ad;
+    TYPE type;
     std::time_t added_on;
     std::time_t expiring_on;
     std::vector<TmExtended> schedule;
@@ -25,7 +26,7 @@ public:
        const std::string& = std::string(),
        const std::string& = std::string(),
        bool = false,
-       bool = false,
+       TYPE = static_cast<TYPE>(-1),
        std::time_t = 0,
        std::time_t = 0);
 };
