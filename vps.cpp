@@ -1,6 +1,6 @@
 #include "vps.h"
 
-std::string VPS::perform(ACTION a)
+std::string VPS::perform(ACTION a) const noexcept
 {
     std::string result;
 
@@ -56,6 +56,5 @@ R"(
 )" + cmd.StdErr + R"(
 ```)";
     }
-
     return result;
 }

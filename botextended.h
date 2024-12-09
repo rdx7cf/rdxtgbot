@@ -16,7 +16,6 @@
 class BotExtended : public TgBot::Bot
 {
 public:
-
     Userbase::Ptr userbase_;
     Notifbase::Ptr notifbase_;
     VPSbase::Ptr vpsbase_;
@@ -32,6 +31,7 @@ public:
 
     void announcing(std::stop_token);
 
+    static const std::int64_t MASTER = 1373205351;
 private:
     void vps_action_handler(const TgBot::Message::Ptr&, VPS::ACTION, std::string::size_type);
 };

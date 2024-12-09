@@ -42,7 +42,9 @@ void BotExtended::vps_action_handler(const TgBot::Message::Ptr& message, VPS::AC
 
         std::string vps_name(message->text, textsize);
 
-        auto vps = vpsbase_->get_copy_by_owner_n_name(message->from->id, vps_name);
+        auto vps = vpsbase_->get_copy_by([&message, &vps_name](const VPS::Ptr& entry) {
+            return (entry->owner == message->from->id || message->from->id == MASTER) && entry->name == vps_name;
+        });
 
         if(vps)
         {
@@ -108,7 +110,7 @@ void BotExtended::long_polling(std::stop_token tok)
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
-            auto uptr = userbase_->get_copy_by_id(message->from->id);
+            auto uptr = userbase_->get_copy_by([&message](const UserExtended::Ptr& entry) { return entry->id == message->from->id; });
             std::int64_t vps_counter = 0;
 
 
@@ -187,7 +189,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
 
             auto f = [&message, &result](const VPS::Ptr& entry)
             {
-                if(entry->owner == message->from->id)
+                if(message->from->id == MASTER || (entry->owner == message->from->id))
                     result += ('`' + entry->name + '`') + '\n';
             };
 

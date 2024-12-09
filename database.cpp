@@ -698,18 +698,3 @@ void VPSbase::show_table(std::ostream& os) const noexcept
 
     for_range(f);
 }
-
-VPS::Ptr VPSbase::get_copy_by_owner_n_name(std::int64_t owner, const std::string& name)
-{
-    std::lock_guard<std::mutex> lock_vec(mtx_vec_);
-
-    auto current_it = find_if([&owner, &name](const VPS::Ptr& entry) {
-        return entry->owner == owner && entry->name == name;
-    });
-
-    if(current_it == vec_.cend())
-        return nullptr;
-
-    return std::make_shared<VPS>(*(*current_it));
-}
-

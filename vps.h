@@ -19,11 +19,6 @@ public:
     std::string uuid;
     std::string name;
 
-
-    std::string last_action;
-
-
-
     VPS(
             std::int64_t o = 0,
             std::int64_t i = 0,
@@ -32,5 +27,5 @@ public:
         : owner(o), id(i), uuid(u), name(n) {}
 
 
-    std::string perform(ACTION); // ?
+    std::string perform(ACTION) const noexcept; // ?
 };

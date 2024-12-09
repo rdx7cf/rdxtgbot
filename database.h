@@ -47,7 +47,8 @@ public:
     void auto_sync(std::stop_token) const;
     void for_range(const std::function<void(sPtrT&)>&);
     void for_range(const std::function<void(const sPtrT&)>&) const;
-    sPtrT get_copy_by_id(std::int64_t) const noexcept;
+
+    sPtrT get_copy_by(const std::function<bool(const sPtrT&)>&) const noexcept;
 
     std::int64_t get_last_id() const noexcept { return vec_.size(); }
 
@@ -101,8 +102,6 @@ public:
 
     void sync() const override;
     void show_table(std::ostream&) const noexcept override;
-
-    VPS::Ptr get_copy_by_owner_n_name(std::int64_t, const std::string&);
 };
 
 template<typename T>
@@ -150,12 +149,11 @@ void Database<T>::for_range(const std::function<void(const sPtrT&)>& f) const
     std::for_each(vec_.cbegin(), vec_.cend(), f);
 }
 
+// auto f = [&id](const sPtrT& entry) { return entry->id == id; };
 template<typename T>
-Database<T>::sPtrT Database<T>::get_copy_by_id(std::int64_t id) const noexcept
+Database<T>::sPtrT Database<T>::get_copy_by(const std::function<bool(const sPtrT&)>& f) const noexcept
 {
     std::lock_guard<std::mutex> lock_vec(mtx_vec_);
-
-    auto f = [&id](const sPtrT& entry) { return entry->id == id; };
 
     auto current_it = find_if(f);
 

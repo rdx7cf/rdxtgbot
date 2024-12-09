@@ -147,7 +147,7 @@ int main(int argc, char** argv)
             std::cout << "Enter user's Telegram ID: ";
             user_id = enter_number(std::cin, std::cout);
 
-            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
+            auto user = userbase_ptr->get_copy_by([&user_id](const Database<UserExtended>::sPtrT& entry) { return entry->id == user_id; });
             if(user)
             {
                 std::cout << "Enter a message for the user: ";
@@ -227,8 +227,9 @@ int main(int argc, char** argv)
         {
             std::cout << "\n<UPDATING A NOTIFICATION>\n";
             std::cout << "Enter an id of a notification to update: ";
+            std::int64_t notif_id = enter_number(std::cin, std::cout);
 
-            Notification::Ptr notif = notifbase_ptr->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
+            auto notif = notifbase_ptr->get_copy_by([&notif_id](const Notification::Ptr& entry) { return entry->id == notif_id; }); // Какой же здесь ад происходит...
             if(!notif)
             {
                 std::cout << "There's no notification with this id.\n\n";
@@ -321,12 +322,10 @@ int main(int argc, char** argv)
         }
         case 7:
         {
-            std::int64_t user_id;
             std::cout << "\n<EDITING USER'S ACTIVE TASKS BITMASK>\n";
             std::cout << "Enter user's Telegram ID: ";
-            user_id = enter_number(std::cin, std::cout);
-
-            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
+            std::int64_t user_id = enter_number(std::cin, std::cout);
+            auto user = userbase_ptr->get_copy_by([&user_id](const UserExtended::Ptr& entry) { return entry->id == user_id; });
             if(user)
             {
                 std::string temp;
@@ -366,8 +365,9 @@ int main(int argc, char** argv)
         {
             std::cout << "\n<UPDATING A VPS ENTRY>\n";
             std::cout << "Enter an id of a VPS entry to update: ";
+            std::int64_t vps_id = enter_number(std::cin, std::cout);
 
-            VPS::Ptr vps = vpsbase_ptr->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
+            auto vps = vpsbase_ptr->get_copy_by([&vps_id](const VPS::Ptr& entry) { return entry->id == vps_id; }); // Какой же здесь ад происходит...
             if(!vps)
             {
                 std::cout << "There's no VPS entry with this id.\n\n";
