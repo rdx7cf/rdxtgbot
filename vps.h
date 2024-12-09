@@ -29,7 +29,7 @@ public:
             std::int64_t i = 0,
             std::int64_t o = 0,
             const std::string& n = std::string(),
-            const std::string& l_o = ">Nuff said"
+            const std::string& l_o = std::string()
             );
 
 

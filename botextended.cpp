@@ -158,8 +158,8 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
         else if(query->message->text == "Here are the VPS available to you:")
         {
             auto vps = vpsbase_->get_copy_by([&query](const VPS::Ptr& entry) { return entry->name == query->data; });
-            getApi().editMessageText(
-                        R"(
+
+            std::string response =R"(
 *VPS Information*
 ├*Name*: `)" + vps->name + R"(`
 ├*UUID*: `)" + vps->uuid + R"(`
@@ -168,7 +168,9 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
 └*RAM*: )" + vps->ram + R"(
 
 *Last output:*
-)" + vps->last_output,
+)" + vps->last_output;
+            getApi().editMessageText(
+                        response,
                         query->message->chat->id,
                         query->message->messageId,
                         "",
@@ -244,6 +246,7 @@ void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
     try
     {
         auto vps_task = StringTools::split(query->data, ':');
+        query->data = vps->name;
 
         auto vps = vpsbase_->get_copy_by([&vps_task](const VPS::Ptr& entry) {
             return entry->name == vps_task[0];
@@ -254,8 +257,7 @@ void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
             vps->last_output = vps->perform(static_cast<VPS::ACTION>(std::stoi(vps_task[1])));
 
             getApi().editMessageText(
-                        R"(
-*VPS Information*
+ R"(*VPS Information*
 ├*Name*: `)" + vps->name + R"(`
 ├*UUID*: `)" + vps->uuid + R"(`
 ├*State*: )" + vps->state + R"(
@@ -285,8 +287,6 @@ void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
                         query->message->chat->id,
                         query->message->messageId);
         }
-
-
     }
     catch (const std::exception& e)
     {

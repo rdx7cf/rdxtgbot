@@ -21,34 +21,34 @@ BashCommand VPS::virsh_exec(ACTION a) noexcept
     switch(a)
     {
     case ACTION::INFO:
-        cmd.execute(std::string("virsh dominfo ") + name);
+        cmd.execute(std::string("virsh dominfo ") + uuid);
         break;
     case ACTION::REBOOT:
-        cmd.execute(std::string("virsh destroy ") + name + " && virsh start " + name);
+        cmd.execute(std::string("virsh destroy ") + uuid + " && virsh start " + uuid);
         break;
     case ACTION::SUSPEND:
-        cmd.execute(std::string("virsh suspend ") + name);
+        cmd.execute(std::string("virsh suspend ") + uuid);
         break;
     case ACTION::RESUME:
-        cmd.execute(std::string("virsh resume ") + name);
+        cmd.execute(std::string("virsh resume ") + uuid);
         break;
     case ACTION::RESET:
-        cmd.execute(std::string("virsh reset ") + name);
+        cmd.execute(std::string("virsh reset ") + uuid);
         break;
     case ACTION::SAVE:
-        cmd.execute(std::string("virsh save ") + name);
+        cmd.execute(std::string("virsh save ") + uuid);
         break;
     case ACTION::RESTORE:
-        cmd.execute(std::string("virsh restore ") + name);
+        cmd.execute(std::string("virsh restore ") + uuid);
         break;
     case ACTION::STOP:
-        cmd.execute(std::string("virsh stop ") + name);
+        cmd.execute(std::string("virsh destroy ") + uuid);
         break;
     case ACTION::START:
-        cmd.execute(std::string("virsh start ") + name);
+        cmd.execute(std::string("virsh start ") + uuid);
         break;
     case ACTION::NAME:
-        cmd.execute(std::string("virsh domname ") + name);
+        cmd.execute(std::string("virsh domname ") + uuid);
         break;
     }
 
@@ -72,31 +72,25 @@ std::string VPS::perform(ACTION a) noexcept
         if(!cmd.ExitStatus)
         {
             last_output =
-    R"(
-    >*Success*\!
-    ```stdout
-    )" + cmd.StdOut + R"(
-    ```
-    )";
+    R"(*Success*\!
+```stdout)" + cmd.StdOut + R"(
+```)";
         }
         else
         {
             last_output =
-    R"(
-    >*Something went wrong while attempting to perform the requested action on the VPS*\.
-    ```stderr
-    )" + cmd.StdErr + R"(
-    ```
-    )";
+R"(*Something went wrong while attempting to perform the requested action on the VPS*\.
+```stderr
+)" + cmd.StdErr + R"(
+```)";
         }
     }
     catch(const std::exception& exc)
     {
         last_output = R"(```
-Internal error occured: the VPS doesn't exist\. Contact the hoster\.```
-)";
+Internal error occured: the VPS doesn't exist\. Contact the hoster\.
+```)";
     }
-
 
     return last_output;
 }
