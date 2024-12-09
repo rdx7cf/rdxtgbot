@@ -109,8 +109,6 @@ void VPS::fetch_info()
     if(!cmd.ExitStatus)
     {
         reg = R"(Имя:\s+\K\w+(?=\n))";
-        /*std::string temp_name = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
-        name = temp_name.size() == 0 ? name : temp_name;*/
         name = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
 
         reg = R"(Состояние:\s*\K\D+(?=\n))";
@@ -119,7 +117,7 @@ void VPS::fetch_info()
         reg = R"(CPU:\s+\K\d+)";
         cpu_count = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
 
-        reg = R"(Макс.память:\s+\K\d+)";
+        reg = R"(Макс\.память:\s+\K\d+)";
         ram = std::to_string(std::stod((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1.049e+6) + " GiB";
     }
     else
