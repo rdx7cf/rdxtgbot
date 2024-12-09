@@ -1,79 +1,8 @@
 #include "botextended.h"
 
-/*static TgBot::ReplyKeyboardMarkup::Ptr create_keyboard(const std::vector<std::vector<std::string>>& layout)
+BotExtended::BotExtended(std::string token, const TgBot::HttpClient& httpClient, const Userbase::Ptr& userbase, const Notifbase::Ptr& notifbase, const VPSbase::Ptr& vpsbase, const std::string& url)
+    : TgBot::Bot(token, httpClient, url), userbase_(userbase), notifbase_(notifbase), vpsbase_(vpsbase)
 {
-
-    using vecsize = std::vector<std::vector<std::string>>::size_type;
-
-    auto result = std::make_shared<TgBot::ReplyKeyboardMarkup>();
-
-    for(vecsize i = 0; i < layout.size(); ++i)
-    {
-        std::vector<TgBot::KeyboardButton::Ptr> row;
-
-        for(vecsize j = 0; j < layout[i].size(); ++j)
-        {
-            auto button = std::make_shared<TgBot::KeyboardButton>();
-            button->text = layout[i][j];
-            row.push_back(button);
-        }
-
-        result->keyboard.push_back(row);
-    }
-
-    return result;
-}*/
-
-
-void BotExtended::vps_action_handler(const TgBot::Message::Ptr& message, VPS::ACTION action, std::string::size_type textsize)
-{
-    try
-    {
-        if(getApi().blockedByUser(message->chat->id))
-            return;
-
-        if(message->text.size() <= textsize)
-        {
-            getApi().sendMessage(
-                        message->chat->id,
-                        "You didn't specify the VPS name (UUID).");
-            return;
-        }
-
-        std::string vps_name(message->text, textsize);
-
-        auto vps = vpsbase_->get_copy_by([&message, &vps_name](const VPS::Ptr& entry) {
-            return (entry->owner == message->from->id || message->from->id == MASTER) && (entry->name == vps_name || entry->uuid == vps_name);
-        });
-
-        if(vps)
-        {
-            getApi().sendMessage(
-                        message->chat->id,
-                        vps->perform(action),
-                        false, 0, nullptr, "MarkdownV2");
-        }
-        else
-        {
-            getApi().sendMessage(
-                        message->chat->id,
-                        R"(You can't control ")" + vps_name + R"(". Is that correct VPS name (UUID)?)",
-                        false, 0, nullptr, "HTML");
-        }
-    }
-    catch (const std::exception& e)
-    {
-        Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
-    }
-}
-
-void BotExtended::long_polling(std::stop_token tok)
-{
-
-    /*auto kb_initial = create_keyboard({
-                                          {"Show Info"}
-                                      });*/
-
     getEvents().onAnyMessage(
                 [this](TgBot::Message::Ptr message)
     {
@@ -185,28 +114,26 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
-            std::string result;
+            std::vector<std::vector<std::pair<std::string, std::string>>> buttons;
 
-            auto f = [&message, &result](const VPS::Ptr& entry)
+            auto f = [&buttons, &message](const VPS::Ptr& entry)
             {
                 if(message->from->id == MASTER || (entry->owner == message->from->id))
                 {
-                    result  += ("▸ *Name:* `" + entry->name + '`') + "\n"
-                            + ("▸ *UUID:* `" + entry->uuid + '`') + "\n\n";
+                    buttons.push_back({std::pair<std::string, std::string>(entry->name, entry->name)});
                 }
             };
 
             vpsbase_->for_range(f);
 
-            if(result.size() != 0)
+            if(buttons.size() != 0)
             {
                 getApi().sendMessage(
                             message->chat->id,
                             R"(
 *Here are the VPS available to you:*
-
-)" + result + "",
-                            false, 0, nullptr, "MarkdownV2");
+)",
+                            false, 0, create_inline(buttons), "MarkdownV2");
             }
             else
             {
@@ -221,60 +148,159 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
         }
     });
 
-    getEvents().onCommand("vps_info",
-                [this](TgBot::Message::Ptr message)
+    getEvents().onCallbackQuery(
+                [this](TgBot::CallbackQuery::Ptr query)
     {
-        vps_action_handler(message, VPS::ACTION::INFO, 10);
-    });
+        if(query->data == "close")
+        {
+            getApi().deleteMessage(query->message->chat->id, query->message->messageId);
+        }
+        else if(query->message->text == "Here are the VPS available to you:")
+        {
+            auto vps = vpsbase_->get_copy_by([&query](const VPS::Ptr& entry) { return entry->name == query->data; });
+            getApi().editMessageText(
+                        R"(
+*VPS Information*
+├*Name*: `)" + vps->name + R"(`
+├*UUID*: `)" + vps->uuid + R"(`
+├*State*: )" + vps->state + R"(
+├*CPU Count*: )" + vps->cpu_count + R"(
+└*RAM*: )" + vps->ram + R"(
 
-    getEvents().onCommand("vps_reboot",
-                [this](TgBot::Message::Ptr message)
+*Last output:*
+)" + vps->last_output,
+                        query->message->chat->id,
+                        query->message->messageId,
+                        "",
+                        "MarkdownV2",
+                        false,
+                        create_inline({
+                                          {{"Stop", query->data + ":1"}, {"Start", query->data + ":2"}, {"Reboot", query->data + ":3"}},
+                                          {{"Save", query->data + ":4"}, {"Restore", query->data + ":5"}, {"Reset", query->data + ":6"}},
+                                          {{"Resume", query->data + ":7"}, {"Suspend", query->data + ":8"}},
+                                          {{"Close", "close"}}
+                                      })
+                        );
+        }
+        else if(StringTools::startsWith(query->message->text, "VPS Information"))
+        {
+            vps_action_handler(query);
+        }
+
+    });
+}
+
+TgBot::ReplyKeyboardMarkup::Ptr BotExtended::create_reply(const std::vector<std::vector<std::string>>& layout)
+{
+
+    using vecsize = std::vector<std::vector<std::string>>::size_type;
+
+    auto result = std::make_shared<TgBot::ReplyKeyboardMarkup>();
+
+    for(vecsize i = 0; i < layout.size(); ++i)
     {
-        vps_action_handler(message, VPS::ACTION::REBOOT, 12);
-    });
+        std::vector<TgBot::KeyboardButton::Ptr> row;
 
-    getEvents().onCommand("vps_suspend",
-                [this](TgBot::Message::Ptr message)
+        for(vecsize j = 0; j < layout[i].size(); ++j)
+        {
+            auto button = std::make_shared<TgBot::KeyboardButton>();
+            button->text = layout[i][j];
+            row.push_back(button);
+        }
+
+        result->keyboard.push_back(row);
+    }
+
+    return result;
+}
+
+TgBot::InlineKeyboardMarkup::Ptr BotExtended::create_inline(const std::vector<std::vector<std::pair<std::string, std::string>>>& layout)
+{
+
+    using vecsize = std::vector<std::vector<std::pair<std::string, std::string>>>::size_type;
+
+    auto result = std::make_shared<TgBot::InlineKeyboardMarkup>();
+
+    for(vecsize i = 0; i < layout.size(); ++i)
     {
-        vps_action_handler(message, VPS::ACTION::SUSPEND, 13);
-    });
+        std::vector<TgBot::InlineKeyboardButton::Ptr> row;
 
-    getEvents().onCommand("vps_resume",
-                [this](TgBot::Message::Ptr message)
+        for(vecsize j = 0; j < layout[i].size(); ++j)
+        {
+            auto button = std::make_shared<TgBot::InlineKeyboardButton>();
+            button->text = layout[i][j].first;
+            button->callbackData = layout[i][j].second;
+            row.push_back(button);
+        }
+
+        result->inlineKeyboard.push_back(row);
+    }
+
+    return result;
+}
+
+void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
+{
+    try
     {
-        vps_action_handler(message, VPS::ACTION::RESUME, 12);
-    });
+        auto vps_task = StringTools::split(query->data, ':');
 
-    getEvents().onCommand("vps_reset",
-                [this](TgBot::Message::Ptr message)
+        auto vps = vpsbase_->get_copy_by([&vps_task](const VPS::Ptr& entry) {
+            return entry->name == vps_task[0];
+        });
+
+        if(vps)
+        {
+            vps->last_output = vps->perform(static_cast<VPS::ACTION>(std::stoi(vps_task[1])));
+
+            getApi().editMessageText(
+                        R"(
+*VPS Information*
+├*Name*: `)" + vps->name + R"(`
+├*UUID*: `)" + vps->uuid + R"(`
+├*State*: )" + vps->state + R"(
+├*CPU Count*: )" + vps->cpu_count + R"(
+└*RAM*: )" + vps->ram + R"(
+
+*Last output:*
+)" + vps->last_output,
+                        query->message->chat->id,
+                        query->message->messageId,
+                        "",
+                        "MarkdownV2",
+                        false,
+                        create_inline({
+                                          {{"Stop", query->data + ":1"}, {"Start", query->data + ":2"}, {"Reboot", query->data + ":3"}},
+                                          {{"Save", query->data + ":4"}, {"Restore", query->data + ":5"}, {"Reset", query->data + ":6"}},
+                                          {{"Resume", query->data + ":7"}, {"Suspend", query->data + ":8"}},
+                                          {{"Close", "close"}}
+                                      })
+                        );
+        }
+        else
+        {
+            vps->last_output = R"(You can't control ")" + vps->name + R"(". Is that correct VPS name?)";
+            getApi().editMessageText(
+                        R"(You can't control ")" + vps->name + R"(".)",
+                        query->message->chat->id,
+                        query->message->messageId);
+        }
+
+
+    }
+    catch (const std::exception& e)
     {
-        vps_action_handler(message, VPS::ACTION::RESET, 11);
-    });
+        Logger::write(std::string(": ERROR : BOT : ") + e.what() + ".");
+    }
+}
 
-    getEvents().onCommand("vps_save",
-                [this](TgBot::Message::Ptr message)
-    {
-        vps_action_handler(message, VPS::ACTION::SAVE, 10);
-    });
+void BotExtended::long_polling(std::stop_token tok)
+{
 
-    getEvents().onCommand("vps_restore",
-                [this](TgBot::Message::Ptr message)
-    {
-        vps_action_handler(message, VPS::ACTION::RESTORE, 13);
-    });
+    /*auto kb_initial = create_keyboard({
+                                          {"Show Info"}
+                                      });*/
 
-
-    getEvents().onCommand("vps_stop",
-                [this](TgBot::Message::Ptr message)
-    {
-        vps_action_handler(message, VPS::ACTION::STOP, 10);
-    });
-
-    getEvents().onCommand("vps_start",
-                [this](TgBot::Message::Ptr message)
-    {
-        vps_action_handler(message, VPS::ACTION::START, 11);
-    });
 
 
     Logger::write(": INFO : BOT : Long polling has been initialized.");
