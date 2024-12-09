@@ -246,7 +246,7 @@ void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
     try
     {
         auto vps_task = StringTools::split(query->data, ':');
-        query->data = vps->name;
+        query->data = vps_task[0];
 
         auto vps = vpsbase_->get_copy_by([&vps_task](const VPS::Ptr& entry) {
             return entry->name == vps_task[0];
