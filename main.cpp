@@ -26,12 +26,35 @@ int main(int argc, char** argv)
 {
     if(argc < 3)
     {
-        std::cout << "TEST\nUSAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_DATABASE]' -L '[LOG_PATH]'\n\n"
-                     "-T '[API_TOKEN]'\n\n\tAn API token for your bot.\n\n\n "
-                     "-D '[PATH_TO_DATABASE]'\n\n\tA path to a SQLite3 database file which contains user and ad tables.\n\tThe program will create one (but not the directories) if the specified doesn't exist.\n\n"
-                     "-L '[LOG_PATH]'\n\n\tA path to a log file.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\tMight be omitted.\n\n"
-                     "-S [SECONDS]\n\n\tEnables auto-sync of internal and external storages.\n\tThe program uses a vector for fast access and a SQLite3 database for long-term storage.\n\tMight be omitted.\n\n"
-                     "-C [COPY_COUNT]\n\n\tSet count of SQL file backup copies.\n\tDefault is 5.\n\tMight be omitted.\n\n";
+        std::cout << R"(USAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_DATABASE]' -L '[LOG_PATH]'
+
+-T '[API_TOKEN]'
+
+    An API token for your bot.
+
+-D '[PATH_TO_DATABASE]'
+
+    A path to a SQLite3 database file which contains user and ad tables.
+    The program will create one (but not the directories) if the specified doesn't exist.
+
+-L '[LOG_PATH]'
+
+    A path to a log file.
+    The program will create one (but not directories) if the specified doesn't exist.
+    Might be omitted.
+
+-S [SECONDS]
+
+    Enables auto-sync of internal and external storages.
+    The program uses a vector for fast access and a SQLite3 database for long-term storage.
+    Might be omitted.
+
+-C [COPY_COUNT]
+
+    Set count of SQL file backup copies.
+    Default is 5.
+    Might be omitted.
+)";
         return 1;
     }
 
@@ -79,7 +102,8 @@ int main(int argc, char** argv)
     std::shared_ptr<SQLFile> file = std::make_shared<SQLFile>(db_path, copies_counter, interval);
     Userbase::Ptr userbase_ptr = std::make_shared<Userbase>(file, interval);
     Notifbase::Ptr notifbase_ptr = std::make_shared<Notifbase>(file, interval);
-    BotExtended bot(bot_token, mhc, userbase_ptr, notifbase_ptr);
+    VPSbase::Ptr vpsbase_ptr = std::make_shared<VPSbase>(file, interval);
+    BotExtended bot(bot_token, mhc, userbase_ptr, notifbase_ptr, vpsbase_ptr);
 
     // SET LOG_FILE
     it = std::find(params.begin(), params.end(), "-L");
@@ -94,13 +118,14 @@ int main(int argc, char** argv)
     Logger::write("-------------------");
 
     // Using std::bind is a workaround for GCC10.
-    std::jthread long_polling(std::bind(&BotExtended::long_polling, &bot, std::placeholders::_1));
+    std::jthread long_polling(&BotExtended::long_polling, &bot);
 
-    std::jthread auto_syncing_users(std::bind(&Database<UserExtended>::auto_sync, userbase_ptr, std::placeholders::_1));
-    std::jthread auto_syncing_notif(std::bind(&Database<Notification>::auto_sync, notifbase_ptr, std::placeholders::_1));
+    std::jthread auto_syncing_users(&Database<UserExtended>::auto_sync, userbase_ptr);
+    std::jthread auto_syncing_notif(&Database<Notification>::auto_sync, notifbase_ptr);
+    std::jthread auto_syncing_vps(&Database<VPS>::auto_sync, vpsbase_ptr);
 
-    std::jthread auto_backuping(std::bind(&SQLFile::auto_backup, file, std::placeholders::_1));
-    std::jthread announcing(std::bind(&BotExtended::announcing, &bot, std::placeholders::_1, BotExtended::Task::ADS));
+    std::jthread auto_backuping(&SQLFile::auto_backup, file);
+    std::jthread announcing(&BotExtended::announcing, &bot);
 
 
     signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
@@ -115,19 +140,22 @@ int main(int argc, char** argv)
 
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:"
-                     "\n1. Show users table;\t\t\t2. Show notifications table;\n"
-                     "3. Send a message to a user;\t\t4. Send a message to all users;\n"
-                     "5. Add a notification;\t\t\t6. Update a notification;\n"
-                     "7. Sync the tables with the file;\t8. Edit user's VPS string;\n"
-                     "9. Edit user's active tasks bitmask;\t10. Quit.\n"
-                     "Enter a number: "; // Тут можно было бы и raw-формат использовать...
+        std::cout << R"(
+AVAILABLE COMMANDS:
+1. Show users table;                    2. Show notifications table;
+3. Send a message to a user;            4. Send a message to all users;
+5. Add a notification;                  6. Update a notification;
+7. Edit user's active tasks bitmask;    8. Add a VPS entry;
+9. Update a VPS entry;                  10. Show VPS table.
+11. Quit.
+Enter a number: )";
 
         switch(enter_number(std::cin, std::cout))
         {
         case INT_MAX:
             userbase_ptr->sync();
             notifbase_ptr->sync();
+            vpsbase_ptr->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         case 1:
@@ -144,7 +172,7 @@ int main(int argc, char** argv)
             std::cout << "Enter user's Telegram ID: ";
             user_id = enter_number(std::cin, std::cout);
 
-            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
+            auto user = userbase_ptr->get_copy_by([&user_id](const Database<UserExtended>::sPtrT& entry) { return entry->id == user_id; });
             if(user)
             {
                 std::cout << "Enter a message for the user: ";
@@ -170,11 +198,11 @@ int main(int argc, char** argv)
         }
         case 5:
         {
-            Notification::Ptr notif = std::make_shared<Notification>();
+            Notification::Ptr notif = std::make_shared<Notification>(notifbase_ptr->get_last_id() + 1);
             std::tm t;
 
             std::cout << "\n<ADDING A NOTIFICATION>\n";
-            notif->id = notifbase_ptr->get_last_id() + 1;
+
             std::cout << "Enter the owner's name: ";
             std::getline(std::cin, notif->owner);
 
@@ -189,8 +217,8 @@ int main(int argc, char** argv)
             std::cout << "ON / OFF (1 / 0): ";
             notif->active = enter_number(std::cin, std::cout);
 
-            std::cout << "AD / NOT AD (1 / 0): ";
-            notif->is_ad = enter_number(std::cin, std::cout);
+            std::cout << "TYPE: (-1, 0, 1) : SYSTEM, COMMERCIAL, CURRENCY :";
+            notif->type = static_cast<Notification::TYPE>(enter_number(std::cin, std::cout));
 
             std::cout << "Enter the expiration date (D-M-Y H:M:S): ";
             std::cin >> std::get_time(&t, "%d-%m-%Y %H:%M:%S");
@@ -225,17 +253,17 @@ int main(int argc, char** argv)
             std::cout << "\n<UPDATING A NOTIFICATION>\n";
             std::cout << "Enter an id of a notification to update: ";
 
-            Notification::Ptr notif = notifbase_ptr->get_copy_by_id(enter_number(std::cin, std::cout)); // Какой же здесь ад происходит...
+            auto notif = notifbase_ptr->get_copy_by([](const Notification::Ptr& entry) { return entry->id == enter_number(std::cin, std::cout); }); // Какой же здесь ад происходит...
             if(!notif)
             {
-                std::cout << "There's no notification with such id.\n\n";
+                std::cout << "There's no notification with this id.\n\n";
                 break;
             }
             std::cout << "Choose a field to update:\n"
                          "1. Owner name;\t\t2. Text;\n"
                          "3. On/Off;\t\t4. Switch ad. status;\n"
                          "5. Timepoints;\t6. Expiration date;\n"
-                         "7. Weekdays;\t\t8. Quit.\n"
+                         "7. Weekdays;\t\t8. Quit updating.\n"
                          "Enter a number: ";
             switch(enter_number(std::cin, std::cout))
             {
@@ -243,12 +271,13 @@ int main(int argc, char** argv)
             {
                 userbase_ptr->sync();
                 notifbase_ptr->sync();
+                vpsbase_ptr->sync();
                 bot.notify_all("It seems we're saying goodbye...");
                 return 0;
             }
             case 1:
             {
-                std::cout << "Enter a new name: ";
+                std::cout << "Enter a new name (previous: " + notif->owner + "): ";
                 std::getline(std::cin, notif->owner);
                 break;
             }
@@ -264,14 +293,14 @@ int main(int argc, char** argv)
             }
             case 3:
             {
-                std::cout << "ON / OFF (1 / 0): ";
+                std::cout << "ON / OFF (1 / 0) (previous: " + std::to_string(notif->active) + ": ";
                 notif->active = enter_number(std::cin, std::cout);
                 break;
             }
             case 4:
             {
-                std::cout << "AD / NOT AD (1 / 0): ";
-                notif->is_ad = enter_number(std::cin, std::cout);
+                std::cout << "TYPE: (-1, 0, 1) : SYSTEM, COMMERCIAL, CURRENCY :";
+                notif->type = static_cast<Notification::TYPE>(enter_number(std::cin, std::cout));
                 break;
             }
             case 5:
@@ -316,42 +345,11 @@ int main(int argc, char** argv)
             break;
         }
         case 7:
-            userbase_ptr->sync();
-            notifbase_ptr->sync();
-            std::cout << "The userbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
-            std::cout << "The adbase is saved to '" << db_path << "'; the backup is '" << db_path << ".bak'.\n";
-            break;
-        case 8:
         {
-            std::int64_t user_id;
-            std::cout << "\n<EDITING USER'S VPS STRING>\n";
-            std::cout << "Enter user's Telegram ID: ";
-            user_id = enter_number(std::cin, std::cout);
-
-            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
-            if(user)
-            {
-                std::cout << "Current VPS string: " << user->vps_names_str << '\n';
-                std::cout << "Enter a new VPS string for the user (SPACE is a delim, empty string to clear the previous): ";
-                std::getline(std::cin, user->vps_names_str);
-
-                user->vps_names = StringTools::split(user->vps_names_str, ' ');
-                if(userbase_ptr->update(user))
-                    userbase_ptr->sync();
-            }
-            else
-                std::cout << "There's no user with this id.\n\n";
-
-            break;
-        }
-        case 9:
-        {
-            std::int64_t user_id;
             std::cout << "\n<EDITING USER'S ACTIVE TASKS BITMASK>\n";
             std::cout << "Enter user's Telegram ID: ";
-            user_id = enter_number(std::cin, std::cout);
-
-            UserExtended::Ptr user = userbase_ptr->get_copy_by_id(user_id);
+            std::int64_t user_id = enter_number(std::cin, std::cout);
+            auto user = userbase_ptr->get_copy_by([&user_id](const UserExtended::Ptr& entry) { return entry->id == user_id; });
             if(user)
             {
                 std::string temp;
@@ -367,9 +365,79 @@ int main(int argc, char** argv)
 
             break;
         }
+        case 8:
+        {
+            std::cout << "\n<ADDING A VPS ENTRY>\n";
+            std::cout << "Enter the VPS uuid: ";
+            std::string uuid;
+            std::getline(std::cin, uuid);
+
+            if(uuid.size() != 36)
+                std::cout << "The UUID length isn't correct.\n";
+            else
+            {
+                std::cout << "Enter the owner's Telegram ID: ";
+                VPS::Ptr vps = std::make_shared<VPS>(uuid, vpsbase_ptr->get_last_id() + 1, enter_number(std::cin, std::cout));
+
+                vpsbase_ptr->add(vps);
+            }
+
+            break;
+        }
+        case 9:
+        {
+            std::cout << "\n<UPDATING A VPS ENTRY>\n";
+            std::cout << "Enter an id of a VPS entry to update: ";
+
+            auto vps = vpsbase_ptr->get_copy_by([](const VPS::Ptr& entry) { return entry->id == enter_number(std::cin, std::cout); });
+            if(!vps)
+            {
+                std::cout << "There's no VPS entry with this id.\n\n";
+                break;
+            }
+            std::cout << "Choose a field to update:\n"
+                         "1. Owner's ID;\t2. VPS UUID;\n"
+                         "3. VPS name;\t4. Quit updating."
+                         "Enter a number: ";
+            switch(enter_number(std::cin, std::cout))
+            {
+            case INT_MAX:
+            {
+                userbase_ptr->sync();
+                notifbase_ptr->sync();
+                vpsbase_ptr->sync();
+                bot.notify_all("It seems we're saying goodbye...");
+                return 0;
+            }
+            case 1:
+            {
+                std::cout << "Enter new owner's ID: ";
+                vps->owner = enter_number(std::cin, std::cout);
+                break;
+            }
+            case 2:
+            {
+                std::cout << "Enter the VPS uuid: \n";
+                std::getline(std::cin, vps->uuid);
+                break;
+            }
+            case 3:
+            {
+                std::cout << "Enter the VPS name: \n";
+                std::getline(std::cin, vps->name);
+                break;
+            }
+            }
+            vpsbase_ptr->update(vps);
+            break;
+        }
         case 10:
+            vpsbase_ptr->show_table(std::cout);
+            break;
+        case 11:
             userbase_ptr->sync();
             notifbase_ptr->sync();
+            vpsbase_ptr->sync();
             bot.notify_all("It seems we're saying goodbye...");
             return 0;
         }

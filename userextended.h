@@ -13,12 +13,41 @@ class UserExtended : public TgBot::User
 public:
     using Ptr = std::shared_ptr<UserExtended>;
 
-    UserExtended(std::int64_t ms = std::time(nullptr), unsigned long bset = 0b0000) : member_since(ms), activeTasks(bset) {}
-    UserExtended(const TgBot::User::Ptr& tgu, std::time_t ms = std::time(nullptr), unsigned long bset = 0b0000) : TgBot::User(*tgu), member_since(ms), activeTasks(bset) {}
-
+    std::bitset<4> activeTasks; // This bitmask remembers if user have some loop task active before the bot shutdown (one bit for each task).
     std::time_t member_since;
-    std::bitset<4> activeTasks; // For the future: this bitmask remembers if user had some loop task active before the bot shutdown (one bit for each task).
-    std::string vps_names_str;
-    std::vector<std::string> vps_names;
+
+    UserExtended(
+            std::int64_t i,
+            const std::string& uname,
+            const std::string& fname,
+            const std::string& lname,
+            const std::string& lcode,
+            bool ibot,
+            bool iprem,
+            bool atam,
+            bool cjg,
+            bool cragm,
+            bool siq,
+            unsigned long bset = 0b0000,
+            std::int64_t ms = std::time(nullptr))
+        :
+        activeTasks(bset),
+        member_since(ms)
+    {
+        id = i; username = uname;
+        firstName = fname; lastName = lname;
+        languageCode = lcode; isBot = ibot;
+        isPremium = iprem; addedToAttachmentMenu = atam;
+        canJoinGroups = cjg, canReadAllGroupMessages = cragm;
+        supportsInlineQueries = siq;
+    }
+
+
+    UserExtended(const TgBot::User::Ptr& tgu,
+                 unsigned long bset = 0b0000,
+                 std::time_t ms = std::time(nullptr)
+                 )
+        : TgBot::User(*tgu), activeTasks(bset), member_since(ms) {}
+
 
 };

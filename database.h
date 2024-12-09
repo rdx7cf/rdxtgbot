@@ -18,6 +18,7 @@
 #include "notification.h"
 #include "ctime++.h"
 #include "sqlfile.h"
+#include "vps.h"
 
 template<typename T>
 class Database
@@ -46,7 +47,9 @@ public:
     void auto_sync(std::stop_token) const;
     void for_range(const std::function<void(sPtrT&)>&);
     void for_range(const std::function<void(const sPtrT&)>&) const;
-    uPtrT get_copy_by_id(std::int64_t) const noexcept;
+
+    sPtrT get_copy_by(const std::function<bool(const sPtrT&)>&) const noexcept;
+
     std::int64_t get_last_id() const noexcept { return vec_.size(); }
 
 protected:
@@ -55,8 +58,8 @@ protected:
     std::vector<sPtrT> vec_;
     int interval_;
 
-    iterator get_by_id(std::int64_t) noexcept;
-    const_iterator get_by_id(std::int64_t) const noexcept;
+    iterator find_if(const std::function<bool(sPtrT&)>&);
+    const_iterator find_if(const std::function<bool(const sPtrT&)>&) const;
 };
 
 class Userbase : public Database<UserExtended>
@@ -87,6 +90,20 @@ public:
     void show_table(std::ostream&) const noexcept override;
 };
 
+class VPSbase : public Database<VPS>
+{
+public:
+    using Ptr = std::shared_ptr<VPSbase>;
+
+    VPSbase(const Database<VPS>::sPtrF&, int = -1);
+
+    bool add(const VPS::Ptr&) override;
+    bool update(const VPS::Ptr&) noexcept override;
+
+    void sync() const override;
+    void show_table(std::ostream&) const noexcept override;
+};
+
 template<typename T>
 void Database<T>::auto_sync(std::stop_token tok) const
 {
@@ -107,15 +124,15 @@ void Database<T>::auto_sync(std::stop_token tok) const
 }
 
 template<typename T>
-Database<T>::iterator Database<T>::get_by_id(std::int64_t id) noexcept
+Database<T>::iterator Database<T>::find_if(const std::function<bool(sPtrT&)>& f)
 {
-    return std::find_if(vec_.begin(), vec_.end(), [&id](const sPtrT& x) { return x->id == id; });
+    return std::find_if(vec_.begin(), vec_.end(), f);
 }
 
 template<typename T>
-Database<T>::const_iterator Database<T>::get_by_id(std::int64_t id) const noexcept
+Database<T>::const_iterator Database<T>::find_if(const std::function<bool(const sPtrT&)>& f) const
 {
-    return std::find_if(vec_.cbegin(), vec_.cend(), [&id](const sPtrT& x) { return x->id == id; });
+    return std::find_if(vec_.begin(), vec_.end(), f);
 }
 
 template<typename T>
@@ -132,14 +149,18 @@ void Database<T>::for_range(const std::function<void(const sPtrT&)>& f) const
     std::for_each(vec_.cbegin(), vec_.cend(), f);
 }
 
+// auto f = [&id](const sPtrT& entry) { return entry->id == id; };
 template<typename T>
-Database<T>::uPtrT Database<T>::get_copy_by_id(std::int64_t id) const noexcept
+Database<T>::sPtrT Database<T>::get_copy_by(const std::function<bool(const sPtrT&)>& f) const noexcept
 {
     std::lock_guard<std::mutex> lock_vec(mtx_vec_);
-    auto current_it = get_by_id(id);
+
+    auto current_it = find_if(f);
+
     if(current_it == vec_.cend())
         return nullptr;
-    return std::make_unique<T>(*(*current_it));
+
+    return std::make_shared<T>(*(*current_it));
 }
 
 std::vector<TmExtended> extract_schedule(const std::string&, const std::string&) noexcept;

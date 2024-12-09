@@ -16,20 +16,22 @@
 class BotExtended : public TgBot::Bot
 {
 public:
-    enum class Task{SYSTEM = -1, ADS, CURRENCY};
+    static const std::int64_t MASTER = 1373205351;
 
     Userbase::Ptr userbase_;
     Notifbase::Ptr notifbase_;
+    VPSbase::Ptr vpsbase_;
 
-    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const Userbase::Ptr& users, const Notifbase::Ptr& notif , const std::string& url = "https://api.telegram.org")
-        : TgBot::Bot(token, httpClient, url), userbase_(users), notifbase_(notif) {}
+    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const Userbase::Ptr& userbase, const Notifbase::Ptr& notifbase, const VPSbase::Ptr& vpsbase, const std::string& url = "https://api.telegram.org")
+        : TgBot::Bot(token, httpClient, url), userbase_(userbase), notifbase_(notifbase), vpsbase_(vpsbase) {}
 
     void long_polling(std::stop_token);
 
     void notify_one(std::int64_t, const std::string&, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
 
-    void notify_all(const std::string&, Task = Task::SYSTEM, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
+    void notify_all(const std::string&, Notification::TYPE = Notification::TYPE::SYSTEM, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
 
-
-    void announcing(std::stop_token, Task);
+    void announcing(std::stop_token);
+private:
+    void vps_action_handler(const TgBot::Message::Ptr&, VPS::ACTION, std::string::size_type);
 };
