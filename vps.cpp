@@ -49,40 +49,6 @@ std::string VPS::perform(ACTION a) const noexcept
 
     auto cmd = virsh_exec(a);
 
-    switch(a)
-    {
-    case ACTION::INFO:
-        cmd.execute(std::string("virsh dominfo ") + uuid);
-        break;
-    case ACTION::REBOOT:
-        cmd.execute(std::string("virsh destroy ") + uuid + " && virsh start " + uuid);
-        break;
-    case ACTION::SUSPEND:
-        cmd.execute(std::string("virsh suspend ") + uuid);
-        break;
-    case ACTION::RESUME:
-        cmd.execute(std::string("virsh resume ") + uuid);
-        break;
-    case ACTION::RESET:
-        cmd.execute(std::string("virsh reset ") + uuid);
-        break;
-    case ACTION::SAVE:
-        cmd.execute(std::string("virsh save ") + uuid);
-        break;
-    case ACTION::RESTORE:
-        cmd.execute(std::string("virsh restore ") + uuid);
-        break;
-    case ACTION::STOP:
-        cmd.execute(std::string("virsh stop ") + uuid);
-        break;
-    case ACTION::START:
-        cmd.execute(std::string("virsh start ") + uuid);
-        break;
-    case ACTION::NAME:
-        cmd.execute(std::string("virsh domname ") + uuid);
-        break;
-    }
-
     if(!cmd.ExitStatus)
     {
         result =

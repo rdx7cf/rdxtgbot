@@ -26,12 +26,35 @@ int main(int argc, char** argv)
 {
     if(argc < 3)
     {
-        std::cout << "TEST\nUSAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_DATABASE]' -L '[LOG_PATH]'\n\n"
-                     "-T '[API_TOKEN]'\n\n\tAn API token for your bot.\n\n\n "
-                     "-D '[PATH_TO_DATABASE]'\n\n\tA path to a SQLite3 database file which contains user and ad tables.\n\tThe program will create one (but not the directories) if the specified doesn't exist.\n\n"
-                     "-L '[LOG_PATH]'\n\n\tA path to a log file.\n\tThe program will create one (but not directories) if the specified doesn't exist.\n\tMight be omitted.\n\n"
-                     "-S [SECONDS]\n\n\tEnables auto-sync of internal and external storages.\n\tThe program uses a vector for fast access and a SQLite3 database for long-term storage.\n\tMight be omitted.\n\n"
-                     "-C [COPY_COUNT]\n\n\tSet count of SQL file backup copies.\n\tDefault is 5.\n\tMight be omitted.\n\n";
+        std::cout << R"(USAGE: tgbot -T '[API_TOKEN]' -D '[PATH_TO_DATABASE]' -L '[LOG_PATH]'
+
+-T '[API_TOKEN]'
+
+    An API token for your bot.
+
+-D '[PATH_TO_DATABASE]'
+
+    A path to a SQLite3 database file which contains user and ad tables.
+    The program will create one (but not the directories) if the specified doesn't exist.
+
+-L '[LOG_PATH]'
+
+    A path to a log file.
+    The program will create one (but not directories) if the specified doesn't exist.
+    Might be omitted.
+
+-S [SECONDS]
+
+    Enables auto-sync of internal and external storages.
+    The program uses a vector for fast access and a SQLite3 database for long-term storage.
+    Might be omitted.
+
+-C [COPY_COUNT]
+
+    Set count of SQL file backup copies.
+    Default is 5.
+    Might be omitted.
+)";
         return 1;
     }
 
@@ -95,13 +118,14 @@ int main(int argc, char** argv)
     Logger::write("-------------------");
 
     // Using std::bind is a workaround for GCC10.
-    std::jthread long_polling(std::bind(&BotExtended::long_polling, &bot, std::placeholders::_1));
+    std::jthread long_polling(&BotExtended::long_polling, &bot);
 
-    std::jthread auto_syncing_users(std::bind(&Database<UserExtended>::auto_sync, userbase_ptr, std::placeholders::_1));
-    std::jthread auto_syncing_notif(std::bind(&Database<Notification>::auto_sync, notifbase_ptr, std::placeholders::_1));
+    std::jthread auto_syncing_users(&Database<UserExtended>::auto_sync, userbase_ptr);
+    std::jthread auto_syncing_notif(&Database<Notification>::auto_sync, notifbase_ptr);
+    std::jthread auto_syncing_vps(&Database<VPS>::auto_sync, vpsbase_ptr);
 
-    std::jthread auto_backuping(std::bind(&SQLFile::auto_backup, file, std::placeholders::_1));
-    std::jthread announcing(std::bind(&BotExtended::announcing, &bot, std::placeholders::_1));
+    std::jthread auto_backuping(&SQLFile::auto_backup, file);
+    std::jthread announcing(&BotExtended::announcing, &bot);
 
 
     signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
@@ -116,14 +140,15 @@ int main(int argc, char** argv)
 
     while(true)
     {
-        std::cout << "\nAVAILABLE COMMANDS:"
-                     "\n1. Show users table;\t\t\t2. Show notifications table;\n"
-                     "3. Send a message to a user;\t\t4. Send a message to all users;\n"
-                     "5. Add a notification;\t\t\t6. Update a notification;\n"
-                     "7. Edit user's active tasks bitmask;\t8. Add a VPS entry.\n"
-                     "9. Update a VPS entry;\t\t\t10. Show VPS table.\n"
-                     "11. Quit.\n"
-                     "Enter a number: "; // Тут можно было бы и raw-формат использовать...
+        std::cout << R"(
+AVAILABLE COMMANDS:
+1. Show users table;                    2. Show notifications table;
+3. Send a message to a user;            4. Send a message to all users;
+5. Add a notification;                  6. Update a notification;
+7. Edit user's active tasks bitmask;    8. Add a VPS entry;
+9. Update a VPS entry;                  10. Show VPS table.
+11. Quit.
+Enter a number: )";
 
         switch(enter_number(std::cin, std::cout))
         {
