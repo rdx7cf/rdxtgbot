@@ -118,7 +118,7 @@ void VPS::fetch_info()
         cpu_count = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
 
         reg = R"(Макс\.память:\s+\K\d+)";
-        ram = std::to_string(std::stod((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1.049e+6) + " GiB";
+        ram = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str() + " KiB"; //std::to_string(std::stod((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1.049e+6) + " GiB";
     }
     else
         throw std::exception();
