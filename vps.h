@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <boost/regex.hpp>
 
 #include "bashcommand.h"
 
@@ -11,21 +12,24 @@ public:
 
     using Ptr = std::shared_ptr<VPS>;
 
-    enum class ACTION {INFO, REBOOT, SUSPEND, RESUME, RESET, SAVE, RESTORE, STOP, START};
+    enum class ACTION {INFO, REBOOT, SUSPEND, RESUME, RESET, SAVE, RESTORE, STOP, START, NAME};
 
-    std::int64_t owner; // UserExtended::Ptr?
-
-    std::int64_t id;
     std::string uuid;
+    std::int64_t id;
+    std::int64_t owner;
     std::string name;
+    std::string state;
 
     VPS(
-            std::int64_t o = 0,
+            const std::string& u,
             std::int64_t i = 0,
-            const std::string& u = std::string(),
-            const std::string& n = std::string())
-        : owner(o), id(i), uuid(u), name(n) {}
+            std::int64_t o = 0,
+            const std::string& n = std::string()
+            );
 
 
-    std::string perform(ACTION) const noexcept; // ?
+    std::string perform(ACTION) const noexcept;
+
+private:
+    BashCommand virsh_exec(ACTION) const noexcept;
 };

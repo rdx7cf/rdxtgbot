@@ -1,6 +1,6 @@
 #include "botextended.h"
 
-static TgBot::ReplyKeyboardMarkup::Ptr create_keyboard(const std::vector<std::vector<std::string>>& layout)
+/*static TgBot::ReplyKeyboardMarkup::Ptr create_keyboard(const std::vector<std::vector<std::string>>& layout)
 {
 
     using vecsize = std::vector<std::vector<std::string>>::size_type;
@@ -22,7 +22,7 @@ static TgBot::ReplyKeyboardMarkup::Ptr create_keyboard(const std::vector<std::ve
     }
 
     return result;
-}
+}*/
 
 
 void BotExtended::vps_action_handler(const TgBot::Message::Ptr& message, VPS::ACTION action, std::string::size_type textsize)
@@ -36,14 +36,14 @@ void BotExtended::vps_action_handler(const TgBot::Message::Ptr& message, VPS::AC
         {
             getApi().sendMessage(
                         message->chat->id,
-                        "You didn't specify the VPS name.");
+                        "You didn't specify the VPS name (UUID).");
             return;
         }
 
         std::string vps_name(message->text, textsize);
 
         auto vps = vpsbase_->get_copy_by([&message, &vps_name](const VPS::Ptr& entry) {
-            return (entry->owner == message->from->id || message->from->id == MASTER) && entry->name == vps_name;
+            return (entry->owner == message->from->id || message->from->id == MASTER) && (entry->name == vps_name || entry->uuid == vps_name);
         });
 
         if(vps)
@@ -57,7 +57,7 @@ void BotExtended::vps_action_handler(const TgBot::Message::Ptr& message, VPS::AC
         {
             getApi().sendMessage(
                         message->chat->id,
-                        R"(You can't control ")" + vps_name + R"(". Is that correct VPS name?)",
+                        R"(You can't control ")" + vps_name + R"(". Is that correct VPS name (UUID)?)",
                         false, 0, nullptr, "HTML");
         }
     }
@@ -116,7 +116,7 @@ void BotExtended::long_polling(std::stop_token tok)
 
             vpsbase_->for_range([&uptr, &vps_counter](const VPS::Ptr& entry)
             {
-                if(entry->owner == uptr->id)
+                if(uptr->id == MASTER || entry->owner == uptr->id)
                     ++vps_counter;
             });
 
@@ -157,15 +157,15 @@ They've finally taught me something\. Take a look at what I'm able to do for you
 
 🖥️ *VPS Control Panel*
 ├`/vps_list` — List the VPS available to you\.
-├`/vps_info $VPS` — Print information about the VPS\.
-├`/vps_reboot $VPS` — Hard reboot the VPS\.
-├`/vps_suspend $VPS` — Suspend the VPS\.
-├`/vps_resume $VPS` — Resume the VPS from suspension\.
-├`/vps_reset $VPS` — Reset the current state of the VPS\.
-├`/vps_save $VPS` — Save the current state of the VPS\.
-├`/vps_restore $VPS` — Restore the saved state of the VPS\.
-├`/vps_stop $VPS` — Hard stop the VPS\.
-└`/vps_start $VPS` — Start the VPS\.
+├`/vps_info NAME/UUID` — Print information about the VPS\.
+├`/vps_reboot NAME/UUID` — Hard reboot the VPS\.
+├`/vps_suspend NAME/UUID` — Suspend the VPS\.
+├`/vps_resume NAME/UUID` — Resume the VPS from suspension\.
+├`/vps_reset NAME/UUID` — Reset the current state of the VPS\.
+├`/vps_save NAME/UUID` — Save the current state of the VPS\.
+├`/vps_restore NAME/UUID` — Restore the saved state of the VPS\.
+├`/vps_stop NAME/UUID` — Hard stop the VPS\.
+└`/vps_start NAME/UUID` — Start the VPS\.
 
 Got any questions? Ask them [here](tg://user?id=1373205351)\.
                         )",
@@ -190,7 +190,10 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
             auto f = [&message, &result](const VPS::Ptr& entry)
             {
                 if(message->from->id == MASTER || (entry->owner == message->from->id))
-                    result += ('`' + entry->name + '`') + '\n';
+                {
+                    result  += ("▸ *Name:* `" + entry->name + '`') + "\n"
+                            + ("▸ *UUID:* `" + entry->uuid + '`') + "\n\n";
+                }
             };
 
             vpsbase_->for_range(f);
@@ -200,7 +203,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
                 getApi().sendMessage(
                             message->chat->id,
                             R"(
-Here are the VPS available to you:
+*Here are the VPS available to you:*
 
 )" + result + "",
                             false, 0, nullptr, "MarkdownV2");

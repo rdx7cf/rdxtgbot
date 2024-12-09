@@ -16,17 +16,21 @@ public:
     std::string text;
     bool active;
     TYPE type;
-    std::time_t added_on;
-    std::time_t expiring_on;
-    std::vector<TmExtended> schedule;
     std::string tpoints_str;
     std::string wdays_str;
+    std::vector<TmExtended> schedule;
+    std::time_t added_on;
+    std::time_t expiring_on;
 
-    Notification(std::int64_t = 0,
-       const std::string& = std::string(),
-       const std::string& = std::string(),
-       bool = false,
-       TYPE = static_cast<TYPE>(-1),
-       std::time_t = 0,
-       std::time_t = 0);
+    Notification(
+        std::int64_t = 0,
+        const std::string& = std::string(),
+        const std::string& = std::string(),
+        bool = false,
+        TYPE = static_cast<TYPE>(-1),
+        const std::string& = std::string(),
+        const std::string& = std::string(),
+        const std::vector<TmExtended>& = std::vector<TmExtended>(),
+        std::time_t = 0,
+        std::time_t = 0);
 };

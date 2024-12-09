@@ -90,21 +90,21 @@ std::vector<TmExtended> extract_schedule(const std::string& raw_tpoint, const st
 
 static int extract_user(void* users, int colcount, char** columns, char** colnames)
 {
-    UserExtended::Ptr entry = std::make_shared<UserExtended>();
-
-    entry->id = std::stol(columns[1]);
-    entry->username = columns[2];
-    entry->firstName = columns[3];
-    entry->lastName = columns[4];
-    entry->languageCode = columns[5];
-    entry->isBot = std::stoi(columns[6]);
-    entry->isPremium = std::stoi(columns[7]);
-    entry->addedToAttachmentMenu = std::stoi(columns[8]);
-    entry->canJoinGroups = std::stoi(columns[9]);
-    entry->canReadAllGroupMessages = std::stoi(columns[10]);
-    entry->supportsInlineQueries = std::stoi(columns[11]);
-    entry->activeTasks = std::stoul(columns[12], 0, 2);
-    entry->member_since = std::stol(columns[13]);
+    UserExtended::Ptr entry = std::make_shared<UserExtended>(
+                std::stol(columns[1]),
+                columns[2],
+                columns[3],
+                columns[4],
+                columns[5],
+                std::stoi(columns[6]),
+                std::stoi(columns[7]),
+                std::stoi(columns[8]),
+                std::stoi(columns[9]),
+                std::stoi(columns[10]),
+                std::stoi(columns[11]),
+                std::stoul(columns[12], 0, 2),
+                std::stol(columns[13])
+                );
 
     static_cast<std::vector<UserExtended::Ptr>*>(users)->push_back(entry);
 
@@ -113,16 +113,18 @@ static int extract_user(void* users, int colcount, char** columns, char** colnam
 
 static int extract_notif(void* notifs, int colcount, char** columns, char** colnames)
 {
-    Notification::Ptr entry = std::make_shared<Notification>();
+    Notification::Ptr entry = std::make_shared<Notification>(
+                std::stol(columns[0]),
+                columns[1],
+                columns[2],
+                std::stoi(columns[3]),
+                static_cast<Notification::TYPE>(std::stoi(columns[4])),
+                columns[5],
+                columns[6],
+                extract_schedule(columns[5], columns[6]),
+                std::stol(columns[7]),
+                std::stol(columns[8]));
 
-    entry->id = std::stol(columns[0]);
-    entry->owner = columns[1];
-    entry->text = columns[2];
-    entry->active = std::stoi(columns[3]);
-    entry->type = static_cast<Notification::TYPE>(std::stoi(columns[4]));
-    entry->tpoints_str = columns[5];
-    entry->wdays_str = columns[6];
-    entry->schedule = extract_schedule(entry->tpoints_str, entry->wdays_str);
     if(entry->schedule.size() == 0)
     {
         Logger::write(": WARN : DATABASE : No schedule specified for: '" + entry->owner + "'.");
@@ -131,9 +133,6 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
         entry->wdays_str.clear();
     }
 
-    entry->added_on = std::stol(columns[7]);
-    entry->expiring_on = std::stol(columns[8]);
-
     static_cast<std::vector<Notification::Ptr>*>(notifs)->push_back(entry);
 
     return 0;
@@ -141,12 +140,11 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
 
 static int extract_vps(void* vps, int colcount, char** columns, char** colnames)
 {
-    VPS::Ptr entry = std::make_shared<VPS>();
-
-    entry->id = std::stol(columns[0]);
-    entry->owner = std::stol(columns[1]);
-    entry->uuid = columns[2];
-    entry->name = columns[3];
+    VPS::Ptr entry = std::make_shared<VPS>(
+                columns[2],
+                std::stol(columns[0]),
+                std::stol(columns[1]),
+                columns[3]);
 
     static_cast<std::vector<VPS::Ptr>*>(vps)->push_back(entry);
 

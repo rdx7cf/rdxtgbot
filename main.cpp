@@ -173,11 +173,11 @@ int main(int argc, char** argv)
         }
         case 5:
         {
-            Notification::Ptr notif = std::make_shared<Notification>();
+            Notification::Ptr notif = std::make_shared<Notification>(notifbase_ptr->get_last_id() + 1);
             std::tm t;
 
             std::cout << "\n<ADDING A NOTIFICATION>\n";
-            notif->id = notifbase_ptr->get_last_id() + 1;
+
             std::cout << "Enter the owner's name: ";
             std::getline(std::cin, notif->owner);
 
@@ -227,9 +227,8 @@ int main(int argc, char** argv)
         {
             std::cout << "\n<UPDATING A NOTIFICATION>\n";
             std::cout << "Enter an id of a notification to update: ";
-            std::int64_t notif_id = enter_number(std::cin, std::cout);
 
-            auto notif = notifbase_ptr->get_copy_by([&notif_id](const Notification::Ptr& entry) { return entry->id == notif_id; }); // Какой же здесь ад происходит...
+            auto notif = notifbase_ptr->get_copy_by([](const Notification::Ptr& entry) { return entry->id == enter_number(std::cin, std::cout); }); // Какой же здесь ад происходит...
             if(!notif)
             {
                 std::cout << "There's no notification with this id.\n\n";
@@ -253,7 +252,7 @@ int main(int argc, char** argv)
             }
             case 1:
             {
-                std::cout << "Enter a new name: ";
+                std::cout << "Enter a new name (previous: " + notif->owner + "): ";
                 std::getline(std::cin, notif->owner);
                 break;
             }
@@ -269,7 +268,7 @@ int main(int argc, char** argv)
             }
             case 3:
             {
-                std::cout << "ON / OFF (1 / 0): ";
+                std::cout << "ON / OFF (1 / 0) (previous: " + std::to_string(notif->active) + ": ";
                 notif->active = enter_number(std::cin, std::cout);
                 break;
             }
@@ -343,21 +342,20 @@ int main(int argc, char** argv)
         }
         case 8:
         {
-            VPS::Ptr vps = std::make_shared<VPS>();
-
             std::cout << "\n<ADDING A VPS ENTRY>\n";
-            vps->id = vpsbase_ptr->get_last_id() + 1;
-
-            std::cout << "Enter the owner's Telegram ID: ";
-            vps->owner = enter_number(std::cin, std::cout);
-
             std::cout << "Enter the VPS uuid: ";
-            std::getline(std::cin, vps->uuid);
+            std::string uuid;
+            std::getline(std::cin, uuid);
 
-            std::cout << "Enter the VPS name: ";
-            std::getline(std::cin, vps->name);
+            if(uuid.size() != 36)
+                std::cout << "The UUID length isn't correct.\n";
+            else
+            {
+                std::cout << "Enter the owner's Telegram ID: ";
+                VPS::Ptr vps = std::make_shared<VPS>(uuid, vpsbase_ptr->get_last_id() + 1, enter_number(std::cin, std::cout));
 
-            vpsbase_ptr->add(vps);
+                vpsbase_ptr->add(vps);
+            }
 
             break;
         }
@@ -365,9 +363,8 @@ int main(int argc, char** argv)
         {
             std::cout << "\n<UPDATING A VPS ENTRY>\n";
             std::cout << "Enter an id of a VPS entry to update: ";
-            std::int64_t vps_id = enter_number(std::cin, std::cout);
 
-            auto vps = vpsbase_ptr->get_copy_by([&vps_id](const VPS::Ptr& entry) { return entry->id == vps_id; }); // Какой же здесь ад происходит...
+            auto vps = vpsbase_ptr->get_copy_by([](const VPS::Ptr& entry) { return entry->id == enter_number(std::cin, std::cout); });
             if(!vps)
             {
                 std::cout << "There's no VPS entry with this id.\n\n";
