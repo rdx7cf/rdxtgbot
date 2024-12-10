@@ -58,7 +58,7 @@ BashCommand VPS::virsh_exec(ACTION a) noexcept
 BashCommand VPS::virsh_exec(const std::string& command) noexcept
 {
     BashCommand cmd;
-    cmd.execute(std::string("virsh ") + command + ' ' + uuid);
+    cmd.execute(std::string("virsh ") + command);
     return cmd;
 }
 
@@ -72,16 +72,16 @@ std::string VPS::perform(ACTION a) noexcept
             if(!cmd.ExitStatus)
             {
                 last_output =
-R"(> *Success*\!
-```Standard output
+R"(>*Success*\!
+```Output
 )" + cmd.StdOut + R"(
 ```)";
             }
             else
             {
                 last_output =
-R"(> *Something went wrong while attempting to perform the requested action on the VPS*\.
-```Standard error
+R"(>*Something went wrong while attempting to perform the requested action on the VPS*\.
+```Error
 )" + cmd.StdErr + R"(
 ```)";
             }
@@ -113,6 +113,11 @@ void VPS::fetch_info()
 
         reg = R"(Состояние:\s*\K\D+(?=\n))";
         state = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
+
+        if(state == "работает")
+        {
+            virsh_exec("screenshot " + name + " vps_sshots/" + name + ".jpeg");
+        }
 
         reg = R"(CPU:\s+\K\d+)";
         cpu_count = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();

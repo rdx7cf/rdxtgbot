@@ -87,14 +87,14 @@ They've finally taught me something\. Take a look at what I'm able to do for you
 🖥️ *VPS Control Panel*
 └`/vps_list` — List the VPS available to you\.
     ├*Update Information* — Update the VPS information\.
+    ├*Stop* — Hard stop the VPS\.
+    ├*Start* — Start the VPS\.
     ├*Reboot* — Hard reboot the VPS\.
-    ├*Suspend* — Suspend the VPS\.
-    ├*Resume* — Resume the VPS from suspension\.
-    ├*Reset* — Reset the current state of the VPS\.
     ├*Save* — Save the current state of the VPS\.
     ├*Restore* — Restore the saved state of the VPS\.
-    ├*Stop* — Hard stop the VPS\.
-    └*Start* — Start the VPS\.
+    ├*Reset* — Reset the current state of the VPS\.
+    ├*Resume* — Resume the VPS from suspension\.
+    └*Suspend* — Suspend the VPS\.
 
 Got any questions? Ask them [here](tg://user?id=1373205351)\.
                         )",
@@ -184,6 +184,21 @@ R"(*VPS Information*
                                           {{"Close", "close"}}
                                       })
                         );
+
+           /*if(vps->state == "работает")
+            {
+                m->media = R"(attach://<alt101.jpeg>)";
+                m->type = TgBot::InputMediaPhoto::TYPE;
+            }
+
+            auto m = TgBot::InputFile::fromFile("alt101.jpeg", "image/png");
+
+            std::vector<TgBot::HttpReqArg> args;
+            args.emplace_back("chat_id", query->message->chat->id);
+            args.emplace_back("media", m->data, true, m->mimeType, m->fileName);
+            args.emplace_back("message_id", query->message->messageId);
+            getApi().sendRequest("editMessageMedia", args);*/
+
         }
         else if(StringTools::startsWith(query->message->text, "VPS Information"))
         {
@@ -280,6 +295,18 @@ void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
                                           {{"Close", "close"}}
                                       })
                         );
+
+            /*auto m = std::make_shared<TgBot::InputMedia>();
+
+            if(vps->state == "работает")
+            {
+                m->media = "attach://</home/ruslan/alt10_1.png>";
+                m->type = TgBot::InputMediaPhoto::TYPE;
+            }
+
+            getApi().editMessageMedia(m,
+                                      query->message->chat->id,
+                                      query->message->messageId);*/
         }
         else
         {
@@ -298,13 +325,6 @@ void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
 
 void BotExtended::long_polling(std::stop_token tok)
 {
-
-    /*auto kb_initial = create_keyboard({
-                                          {"Show Info"}
-                                      });*/
-
-
-
     Logger::write(": INFO : BOT : Long polling has been initialized.");
 
     notify_all("I'm alive!");
