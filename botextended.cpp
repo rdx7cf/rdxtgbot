@@ -85,16 +85,16 @@ Type `/info` for help\.
 They've finally taught me something\. Take a look at what I'm able to do for you now\.
 
 🖥️ *VPS Control Panel*
-├`/vps_list` — List the VPS available to you\.
-├`/vps_info NAME/UUID` — Print information about the VPS\.
-├`/vps_reboot NAME/UUID` — Hard reboot the VPS\.
-├`/vps_suspend NAME/UUID` — Suspend the VPS\.
-├`/vps_resume NAME/UUID` — Resume the VPS from suspension\.
-├`/vps_reset NAME/UUID` — Reset the current state of the VPS\.
-├`/vps_save NAME/UUID` — Save the current state of the VPS\.
-├`/vps_restore NAME/UUID` — Restore the saved state of the VPS\.
-├`/vps_stop NAME/UUID` — Hard stop the VPS\.
-└`/vps_start NAME/UUID` — Start the VPS\.
+└`/vps_list` — List the VPS available to you\.
+    ├*Update Information* — Update the VPS information\.
+    ├*Reboot* — Hard reboot the VPS\.
+    ├*Suspend* — Suspend the VPS\.
+    ├*Resume* — Resume the VPS from suspension\.
+    ├*Reset* — Reset the current state of the VPS\.
+    ├*Save* — Save the current state of the VPS\.
+    ├*Restore* — Restore the saved state of the VPS\.
+    ├*Stop* — Hard stop the VPS\.
+    └*Start* — Start the VPS\.
 
 Got any questions? Ask them [here](tg://user?id=1373205351)\.
                         )",
@@ -125,6 +125,8 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
             };
 
             vpsbase_->for_range(f);
+
+            buttons.push_back({{"Close", "close"}});
 
             if(buttons.size() != 0)
             {
@@ -159,24 +161,23 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
         {
             auto vps = vpsbase_->get_copy_by([&query](const VPS::Ptr& entry) { return entry->name == query->data; });
 
-            std::string response =R"(
-*VPS Information*
+            getApi().editMessageText(
+R"(*VPS Information*
 ├*Name*: `)" + vps->name + R"(`
 ├*UUID*: `)" + vps->uuid + R"(`
-├*State*: )" + vps->state + R"(
-├*CPU Count*: )" + vps->cpu_count + R"(
+├*State*: __)" + vps->state + R"(__
+├*Threads*: )" + vps->cpu_count + R"(
 └*RAM*: )" + vps->ram + R"(
 
 *Last output:*
-)" + vps->last_output;
-            getApi().editMessageText(
-                        response,
+)" + vps->last_output,
                         query->message->chat->id,
                         query->message->messageId,
                         "",
                         "MarkdownV2",
                         false,
                         create_inline({
+                                          {{"Update Information", query->data + ":0"}},
                                           {{"Stop", query->data + ":1"}, {"Start", query->data + ":2"}, {"Reboot", query->data + ":3"}},
                                           {{"Save", query->data + ":4"}, {"Restore", query->data + ":5"}, {"Reset", query->data + ":6"}},
                                           {{"Resume", query->data + ":7"}, {"Suspend", query->data + ":8"}},
@@ -260,8 +261,8 @@ void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
  R"(*VPS Information*
 ├*Name*: `)" + vps->name + R"(`
 ├*UUID*: `)" + vps->uuid + R"(`
-├*State*: )" + vps->state + R"(
-├*CPU Count*: )" + vps->cpu_count + R"(
+├*State*: __)" + vps->state + R"(__
+├*Threads*: )" + vps->cpu_count + R"(
 └*RAM*: )" + vps->ram + R"(
 
 *Last output:*
@@ -272,6 +273,7 @@ void BotExtended::vps_action_handler(const TgBot::CallbackQuery::Ptr& query)
                         "MarkdownV2",
                         false,
                         create_inline({
+                                          {{"Update Information", query->data + ":0"}},
                                           {{"Stop", query->data + ":1"}, {"Start", query->data + ":2"}, {"Reboot", query->data + ":3"}},
                                           {{"Save", query->data + ":4"}, {"Restore", query->data + ":5"}, {"Reset", query->data + ":6"}},
                                           {{"Resume", query->data + ":7"}, {"Suspend", query->data + ":8"}},

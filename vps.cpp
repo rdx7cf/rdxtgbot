@@ -36,10 +36,10 @@ BashCommand VPS::virsh_exec(ACTION a) noexcept
         cmd.execute(std::string("virsh reset ") + uuid);
         break;
     case ACTION::SAVE:
-        cmd.execute(std::string("virsh save ") + uuid);
+        cmd.execute(std::string("virsh save ") + uuid + " hibernate --running");
         break;
     case ACTION::RESTORE:
-        cmd.execute(std::string("virsh restore ") + uuid);
+        cmd.execute(std::string("virsh restore hibernate --running"));
         break;
     case ACTION::STOP:
         cmd.execute(std::string("virsh destroy ") + uuid);
@@ -66,24 +66,28 @@ std::string VPS::perform(ACTION a) noexcept
 {
     try
     {
-        fetch_info();
-
-        auto cmd = virsh_exec(a);
-        if(!cmd.ExitStatus)
+        if(a != ACTION::INFO)
         {
-            last_output =
-    R"(*Success*\!
-```stdout)" + cmd.StdOut + R"(
+            auto cmd = virsh_exec(a);
+            if(!cmd.ExitStatus)
+            {
+                last_output =
+R"(> *Success*\!
+```Standard output
+)" + cmd.StdOut + R"(
 ```)";
-        }
-        else
-        {
-            last_output =
-R"(*Something went wrong while attempting to perform the requested action on the VPS*\.
-```stderr
+            }
+            else
+            {
+                last_output =
+R"(> *Something went wrong while attempting to perform the requested action on the VPS*\.
+```Standard error
 )" + cmd.StdErr + R"(
 ```)";
+            }
         }
+
+        fetch_info();
     }
     catch(const std::exception& exc)
     {
@@ -91,6 +95,8 @@ R"(*Something went wrong while attempting to perform the requested action on the
 Internal error occured: the VPS doesn't exist\. Contact the hoster\.
 ```)";
     }
+
+
 
     return last_output;
 }
@@ -112,7 +118,8 @@ void VPS::fetch_info()
         cpu_count = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
 
         reg = R"(Макс\.память:\s+\K\d+)";
-        ram = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str() + " KiB"; //std::to_string(std::stod((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1.049e+6) + " GiB";
+        ram = std::to_string(std::stol((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1048576) + " GiB"; //std::to_string(std::stod((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1048576) + " GiB";
+        //(*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str() + " KiB"
     }
     else
         throw std::exception();
