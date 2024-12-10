@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <thread>
 #include <functional>
+#include <map>
 
 #include <tgbot/tgbot.h>
 
@@ -22,8 +23,12 @@ public:
     Notifbase::Ptr notifbase_;
     VPSbase::Ptr vpsbase_;
 
-    BotExtended(std::string token, const TgBot::HttpClient& httpClient, const Userbase::Ptr& userbase, const Notifbase::Ptr& notifbase, const VPSbase::Ptr& vpsbase, const std::string& url = "https://api.telegram.org")
-        : TgBot::Bot(token, httpClient, url), userbase_(userbase), notifbase_(notifbase), vpsbase_(vpsbase) {}
+    BotExtended(std::string token,
+                const TgBot::HttpClient& httpClient,
+                const Userbase::Ptr& userbase,
+                const Notifbase::Ptr& notifbase,
+                const VPSbase::Ptr& vpsbase,
+                const std::string& url = "https://api.telegram.org");
 
     void long_polling(std::stop_token);
 
@@ -33,5 +38,7 @@ public:
 
     void announcing(std::stop_token);
 private:
-    void vps_action_handler(const TgBot::Message::Ptr&, VPS::ACTION, std::string::size_type);
+    void vps_action_handler(const TgBot::CallbackQuery::Ptr&);
+    TgBot::ReplyKeyboardMarkup::Ptr create_reply(const std::vector<std::vector<std::string>>&);
+    TgBot::InlineKeyboardMarkup::Ptr create_inline(const std::vector<std::vector<std::pair<std::string, std::string>>>&);
 };
