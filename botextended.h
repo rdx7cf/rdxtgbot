@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <thread>
 #include <functional>
-#include <map>
+#include <iostream>
+#include <type_traits>
 
 #include <tgbot/tgbot.h>
 
@@ -13,11 +14,14 @@
 #include "logger.h"
 #include "bashcommand.h"
 #include "userextended.h"
+#include "auxiliary.h"
 
 class BotExtended : public TgBot::Bot
 {
 public:
     static const std::int64_t MASTER = 1373205351;
+
+    enum class PAGE {MAIN = -1, MANAGE, POWER, BACKUP};
 
     Userbase::Ptr userbase_;
     Notifbase::Ptr notifbase_;
@@ -37,8 +41,17 @@ public:
     void notify_all(const std::string&, Notification::TYPE = Notification::TYPE::SYSTEM, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
 
     void announcing(std::stop_token);
+
+    static TgBot::ReplyKeyboardMarkup::Ptr create_reply(const std::vector<std::vector<std::string>>&);
+    static TgBot::InlineKeyboardMarkup::Ptr create_inline(const std::vector<std::vector<std::pair<std::string, std::string>>>&);
+
 private:
-    void vps_action_handler(const TgBot::CallbackQuery::Ptr&);
-    TgBot::ReplyKeyboardMarkup::Ptr create_reply(const std::vector<std::vector<std::string>>&);
-    TgBot::InlineKeyboardMarkup::Ptr create_inline(const std::vector<std::vector<std::pair<std::string, std::string>>>&);
+
+    void vps_handler(const TgBot::CallbackQuery::Ptr&);
+    void vps_main(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps);
+    void vps_manage(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&);
+    void vps_manage(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS::ACTION);
+    void vps_power(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&);
+    void vps_power(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS::ACTION);
+    void vps_backup(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS::ACTION);
 };

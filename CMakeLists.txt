@@ -29,6 +29,8 @@ add_executable(tgbot
     sqlfile.h     sqlfile.cpp
     bashcommand.h        bashcommand.cpp
     vps.h vps.cpp
+    auxiliary.h
+
 
 )
 

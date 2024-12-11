@@ -643,6 +643,9 @@ bool VPSbase::update(const VPS::Ptr& entry) noexcept
             (*existing_vps_it)->name = entry->name;
         }
 
+        if(entry->last_output != (*existing_vps_it)->last_output)
+            (*existing_vps_it)->last_output = entry->last_output;
+
         if(!info_updated)
             return false;
     }

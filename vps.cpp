@@ -6,7 +6,7 @@ VPS::VPS(const std::string &u, std::int64_t i, std::int64_t o, const std::string
     {
         fetch_info();
     }
-    catch(const std::exception& exc)
+    catch(...)
     {
         last_output = R"(```
 Internal error occured: the VPS doesn't exist\. Contact the hoster\.
@@ -21,7 +21,9 @@ BashCommand VPS::virsh_exec(ACTION a) noexcept
     switch(a)
     {
     case ACTION::INFO:
-        cmd.execute(std::string("virsh dominfo ") + uuid);
+        cmd.execute(std::string("virsh domstats ") + uuid);
+        break;
+    case ACTION::RENAME:
         break;
     case ACTION::REBOOT:
         cmd.execute(std::string("virsh destroy ") + uuid + " && virsh start " + uuid);
@@ -47,8 +49,7 @@ BashCommand VPS::virsh_exec(ACTION a) noexcept
     case ACTION::START:
         cmd.execute(std::string("virsh start ") + uuid);
         break;
-    case ACTION::NAME:
-        cmd.execute(std::string("virsh domname ") + uuid);
+    case ACTION::SHOW:
         break;
     }
 
@@ -62,17 +63,18 @@ BashCommand VPS::virsh_exec(const std::string& command) noexcept
     return cmd;
 }
 
-std::string VPS::perform(ACTION a) noexcept
+void VPS::perform(ACTION a) noexcept
 {
     try
     {
+
         if(a != ACTION::INFO)
         {
             auto cmd = virsh_exec(a);
             if(!cmd.ExitStatus)
             {
                 last_output =
-R"(>*Success*\!
+R"(✅
 ```Output
 )" + cmd.StdOut + R"(
 ```)";
@@ -80,25 +82,52 @@ R"(>*Success*\!
             else
             {
                 last_output =
-R"(>*Something went wrong while attempting to perform the requested action on the VPS*\.
+R"(⚠️
 ```Error
 )" + cmd.StdErr + R"(
 ```)";
             }
         }
+        else
+        {
+            last_output = R"(✅ _Information has been updated\!_)";
+        }
 
         fetch_info();
     }
-    catch(const std::exception& exc)
+
+    catch(...)
     {
         last_output = R"(```
 Internal error occured: the VPS doesn't exist\. Contact the hoster\.
 ```)";
     }
+}
 
+std::string VPS::string_state(STATE s) noexcept
+{
+    switch(s)
+    {
+    case STATE::RUNNING:
+        return "Running";
 
+    case STATE::BLOCKED:
+        return "Blocked";
 
-    return last_output;
+    case STATE::PAUSED:
+        return "Paused";
+
+    case STATE::SHUTDOWN:
+        return "Shutdown";
+
+    case STATE::CRASHED:
+        return "Crashed";
+
+    case STATE::DYING:
+        return "Dying";
+    }
+
+    return "Undefined";
 }
 
 void VPS::fetch_info()
@@ -108,23 +137,24 @@ void VPS::fetch_info()
 
     if(!cmd.ExitStatus)
     {
-        reg = R"(Имя:\s+\K\w+(?=\n))";
+        reg = R"((?<=Domain: ').*(?='))";
         name = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
 
-        reg = R"(Состояние:\s*\K\D+(?=\n))";
-        state = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
+        reg = R"((?<=state=)\d+)";
+        state = static_cast<STATE>(std::stoi((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()));
 
-        if(state == "работает")
+        /*if(state == "работает")
         {
             virsh_exec("screenshot " + name + " vps_sshots/" + name + ".jpeg");
-        }
+        }*/
 
-        reg = R"(CPU:\s+\K\d+)";
+        reg = R"((?<=vcpu.maximum=)\d+)";
         cpu_count = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
 
-        reg = R"(Макс\.память:\s+\K\d+)";
-        ram = std::to_string(std::stol((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1048576) + " GiB"; //std::to_string(std::stod((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1048576) + " GiB";
-        //(*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str() + " KiB"
+        reg = R"((?<=balloon.maximum=)\d+)";
+        ram = std::to_string(std::stol((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1048576) + " GiB";
+
+        //reg = R"(CPU:\s+\K\d+)";
     }
     else
         throw std::exception();
