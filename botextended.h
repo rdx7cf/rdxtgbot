@@ -48,10 +48,8 @@ public:
 private:
 
     void vps_handler(const TgBot::CallbackQuery::Ptr&);
-    void vps_main(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps);
-    void vps_manage(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&);
-    void vps_manage(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS::ACTION);
-    void vps_power(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&);
-    void vps_power(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS::ACTION);
-    void vps_backup(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS::ACTION);
+
+    void vps_main_editmessage(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps);
+    void vps_manage_editmessage(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&);
+    void vps_power_editmessage(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&);
 };

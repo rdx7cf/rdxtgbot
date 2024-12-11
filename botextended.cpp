@@ -118,7 +118,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
 
             auto f = [&buttons, &message](const VPS::Ptr& entry)
             {
-                if(message->from->id == MASTER || (entry->owner == message->from->id))
+                if(entry->owner == 0 || message->from->id == MASTER || entry->owner == message->from->id)
                 {
                     buttons.push_back({ std::pair<std::string, std::string>(entry->name, std::to_string(entry->id)) });
                 }
@@ -126,7 +126,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
 
             vpsbase_->for_range(f);
 
-            buttons.push_back({{"Close", "close"}});
+            buttons.push_back({{"✕ Close", "close"}});
 
             if(buttons.size() != 0)
             {
@@ -162,7 +162,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
             auto vps = vpsbase_->get_copy_by([&query](const VPS::Ptr& entry) { return std::to_string(entry->id) == query->data; });
 
             if(vps)
-                vps_main(query, vps);
+                vps_main_editmessage(query, vps);
             else
             {
                 getApi().editMessageText(
@@ -233,6 +233,12 @@ void BotExtended::vps_handler(const TgBot::CallbackQuery::Ptr& query)
     {
         auto query_splitted = StringTools::split(query->data, ':');
 
+        if(query_splitted.size() != 3)
+        {
+            getApi().deleteMessage(query->message->chat->id, query->message->messageId);
+            return;
+        }
+
         query->data = query_splitted[0];
 
         auto id = std::stoi(query_splitted[0]);
@@ -252,13 +258,14 @@ void BotExtended::vps_handler(const TgBot::CallbackQuery::Ptr& query)
                 switch(static_cast<PAGE>(action))
                 {
                 case PAGE::MAIN:
-                    vps_main(query, vps);
+                    vps_main_editmessage(query, vps);
                     break;
                 case PAGE::MANAGE:
-                    vps_manage(query, vps, VPS::ACTION::INFO); // Temporary, gonna change this to not passing VPS::ACTION parameter once Manage keyboard is done.
+                    vps->perform(VPS::ACTION::INFO);
+                    vps_manage_editmessage(query, vps); // Temporary, gonna change this to not passing vps_power_action once Manage keyboard is done.
                     break;
                 case PAGE::POWER:
-                    vps_power(query, vps);
+                    vps_power_editmessage(query, vps);
                     break;
                 case PAGE::BACKUP:
                     break;
@@ -266,10 +273,12 @@ void BotExtended::vps_handler(const TgBot::CallbackQuery::Ptr& query)
                 break;
             }
             case PAGE::MANAGE:
-                vps_manage(query, vps, static_cast<VPS::ACTION>(action));
+                vps->perform(static_cast<VPS::ACTION>(action));
+                vps_manage_editmessage(query, vps);
                 break;
             case PAGE::POWER:
-                vps_power(query, vps, static_cast<VPS::ACTION>(action));
+                vps->perform(static_cast<VPS::ACTION>(action));
+                vps_power_editmessage(query, vps);
                 break;
             case PAGE::BACKUP:
                 break;
@@ -292,7 +301,7 @@ void BotExtended::vps_handler(const TgBot::CallbackQuery::Ptr& query)
     }
 }
 
-void BotExtended::vps_main(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps)
+void BotExtended::vps_main_editmessage(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps)
 {
     getApi().editMessageText(
 R"(*VPS Information*
@@ -309,14 +318,14 @@ R"(*VPS Information*
                 "MarkdownV2",
                 false,
                 BotExtended::create_inline({
-                                  {{"Update Information", query->data + ":-1:0"}},
-                                  {{"Power Management", query->data + ":-1:1"}, {"Backup", query->data + ":-1:2"}},
-                                  {{"Close", "close"}}
+                                  {{"⟳ Update Information", query->data + ":-1:0"}},
+                                  {{"⭘ Power Management", query->data + ":-1:1"}, {"♺ Backup (Unavailable)", query->data + ":-1:2"}},
+                                  {{"✕ Close", "close"}}
                               })
                 );
 }
 
-void BotExtended::vps_manage(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps)
+void BotExtended::vps_manage_editmessage(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps)
 {
     getApi().editMessageText(
 R"(*VPS Information*
@@ -333,14 +342,14 @@ R"(*VPS Information*
                 "MarkdownV2",
                 false,
                 BotExtended::create_inline({
-                                  {{"Update Information", query->data + ":-1:0"}},
-                                  {{"Power Management", query->data + ":-1:1"}, {"Backup", query->data + ":-1:2"}},
-                                  {{"Close", "close"}}
+                                        {{"⟳ Update Information", query->data + ":-1:0"}},
+                                        {{"⭘ Power Management", query->data + ":-1:1"}, {"♺ Backup (Unavailable)", query->data + ":-1:2"}},
+                                        {{"✕ Close", "close"}}
                               })
                 );
 }
 
-void BotExtended::vps_power(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps)
+void BotExtended::vps_power_editmessage(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps)
 {
     getApi().editMessageText(
 R"(*VPS Information*
@@ -360,22 +369,9 @@ R"(*VPS Information*
                                   {{"Stop", query->data + ":1:10"}, {"Start", query->data + ":1:11"}, {"Reboot", query->data + ":1:12"}},
                                   {{"Save", query->data + ":1:13"}, {"Restore", query->data + ":1:14"}, {"Reset", query->data + ":1:15"}},
                                   {{"Resume", query->data + ":1:16"}, {"Suspend", query->data + ":1:17"}},
-                                  {{"Back", query->data + ":-1:-1"}}
+                                  {{"« Back", query->data + ":-1:-1"}}
                               })
                 );
-}
-
-void BotExtended::vps_manage(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps, VPS::ACTION a)
-{
-    vps->perform(a);
-    vps_manage(query, vps);
-
-}
-
-void BotExtended::vps_power(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps, VPS::ACTION a)
-{
-    vps->perform(a);
-    vps_power(query, vps);
 }
 
 void BotExtended::long_polling(std::stop_token tok)
