@@ -184,12 +184,14 @@ TgBot::ReplyKeyboardMarkup::Ptr BotExtended::create_reply(const std::vector<std:
     using vecsize = std::vector<std::vector<std::string>>::size_type;
 
     auto result = std::make_shared<TgBot::ReplyKeyboardMarkup>();
+    auto rows = layout.size();
+    auto cols = layout[0].size();
 
-    for(vecsize i = 0; i < layout.size(); ++i)
+    for(vecsize i = 0; i < rows; ++i)
     {
         std::vector<TgBot::KeyboardButton::Ptr> row;
 
-        for(vecsize j = 0; j < layout[i].size(); ++j)
+        for(vecsize j = 0; j < cols; ++j)
         {
             auto button = std::make_shared<TgBot::KeyboardButton>();
             button->text = layout[i][j];
@@ -208,12 +210,14 @@ TgBot::InlineKeyboardMarkup::Ptr BotExtended::create_inline(const std::vector<st
     using vecsize = std::vector<std::vector<std::pair<std::string, std::string>>>::size_type;
 
     auto result = std::make_shared<TgBot::InlineKeyboardMarkup>();
+    auto rows = layout.size();
+    auto cols = layout[0].size();
 
-    for(vecsize i = 0; i < layout.size(); ++i)
+    for(vecsize i = 0; i < rows; ++i)
     {
         std::vector<TgBot::InlineKeyboardButton::Ptr> row;
 
-        for(vecsize j = 0; j < layout[i].size(); ++j)
+        for(vecsize j = 0; j < cols; ++j)
         {
             auto button = std::make_shared<TgBot::InlineKeyboardButton>();
             button->text = layout[i][j].first;
