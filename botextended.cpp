@@ -319,7 +319,7 @@ R"(*VPS Information*
                 false,
                 BotExtended::create_inline({
                                   {{"⟳ Update Information", query->data + ":-1:0"}},
-                                  {{"⭘ Power Management", query->data + ":-1:1"}, {"♺ Backup (Unavailable)", query->data + ":-1:2"}},
+                                  {{"⏻  Power Management", query->data + ":-1:1"}, {"♺ Backup (Unavailable)", query->data + ":-1:2"}},
                                   {{"✕ Close", "close"}}
                               })
                 );
@@ -343,7 +343,7 @@ R"(*VPS Information*
                 false,
                 BotExtended::create_inline({
                                         {{"⟳ Update Information", query->data + ":-1:0"}},
-                                        {{"⭘ Power Management", query->data + ":-1:1"}, {"♺ Backup (Unavailable)", query->data + ":-1:2"}},
+                                        {{"⏻  Power Management", query->data + ":-1:1"}, {"♺ Backup (Unavailable)", query->data + ":-1:2"}},
                                         {{"✕ Close", "close"}}
                               })
                 );
@@ -369,7 +369,7 @@ R"(*VPS Information*
                                   {{"Stop", query->data + ":1:10"}, {"Start", query->data + ":1:11"}, {"Reboot", query->data + ":1:12"}},
                                   {{"Save", query->data + ":1:13"}, {"Restore", query->data + ":1:14"}, {"Reset", query->data + ":1:15"}},
                                   {{"Resume", query->data + ":1:16"}, {"Suspend", query->data + ":1:17"}},
-                                  {{"« Back", query->data + ":-1:-1"}}
+                                  {{"⇦ Back", query->data + ":-1:-1"}}
                               })
                 );
 }
