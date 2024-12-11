@@ -38,10 +38,10 @@ BashCommand VPS::virsh_exec(ACTION a) noexcept
         cmd.execute(std::string("virsh reset ") + uuid);
         break;
     case ACTION::SAVE:
-        cmd.execute(std::string("virsh save ") + uuid + " hibernate --running");
+        cmd.execute(std::string("virsh save ") + uuid + ' ' + std::to_string(id) + ".hib --running");
         break;
     case ACTION::RESTORE:
-        cmd.execute(std::string("virsh restore hibernate --running"));
+        cmd.execute(std::string("virsh restore " + std::to_string(id) + ".hib --running"));
         break;
     case ACTION::STOP:
         cmd.execute(std::string("virsh destroy ") + uuid);

@@ -45,7 +45,7 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& httpClient,
 
             vpsbase_->for_range([&uptr, &vps_counter](const VPS::Ptr& entry)
             {
-                if(uptr->id == MASTER || entry->owner == uptr->id)
+                if(entry->owner == 0 || uptr->id == MASTER || entry->owner == uptr->id)
                     ++vps_counter;
             });
 
