@@ -11,6 +11,7 @@ class VPS
 public:
 
     using Ptr = std::shared_ptr<VPS>;
+    using blockvec = std::vector<std::pair<std::string, std::string>>;
 
     enum class ACTION {
         INFO = 0, RENAME,                                                   // 0-9: Information management.
@@ -27,6 +28,7 @@ public:
     STATE state;
     std::string cpu_count;
     std::string ram;
+    blockvec blocks;
 
     mutable std::string last_output;
 

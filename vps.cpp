@@ -138,10 +138,10 @@ void VPS::fetch_info()
     if(!cmd.ExitStatus)
     {
         reg = R"((?<=Domain: ').*(?='))";
-        name = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
+        name = boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)->str();
 
         reg = R"((?<=state=)\d+)";
-        state = static_cast<STATE>(std::stoi((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()));
+        state = static_cast<STATE>(std::stoi(boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)->str()));
 
         /*if(state == "работает")
         {
@@ -149,10 +149,42 @@ void VPS::fetch_info()
         }*/
 
         reg = R"((?<=vcpu.maximum=)\d+)";
-        cpu_count = (*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str();
+        cpu_count = boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)->str();
 
         reg = R"((?<=balloon.maximum=)\d+)";
-        ram = std::to_string(std::stol((*boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)).str()) / 1048576) + " GiB";
+        ram = std::to_string(std::stol(boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg)->str()) / 1048576) + " GiB";
+
+        reg = R"(block.\d+.name=\K\w+)";
+        auto block_names_it = boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg);
+
+        reg = R"(block.\d+.capacity=\K\w+)";
+        auto block_capacities_it = boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg);
+
+        reg = R"(block.\d+.allocation=\K\w+)";
+        auto block_allocations_it = boost::sregex_iterator(cmd.StdOut.begin(), cmd.StdOut.end(), reg);
+
+        boost::sregex_iterator end_it;
+
+        while(block_capacities_it != end_it)
+        {
+            std::string capacity = std::to_string(std::stol(block_capacities_it->str()) / 1073741824);
+            std::string allocation = std::to_string(std::stol(block_allocations_it->str()) / 1073741824);
+
+            if((std::find_if(blocks.begin(),
+                             blocks.end(),
+            [&block_names_it](const std::pair<std::string, std::string>& pair)
+            {
+                return block_names_it->str() == pair.first;
+            })
+                    == blocks.end()))
+                blocks.push_back(
+                        {block_names_it->str(), allocation  + " GiB / " + capacity + " GiB"}
+                        );
+
+            ++block_names_it;
+            ++block_capacities_it;
+            ++block_allocations_it;
+        }
 
         //reg = R"(CPU:\s+\K\d+)";
     }
