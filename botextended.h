@@ -46,9 +46,7 @@ public:
     static TgBot::InlineKeyboardMarkup::Ptr create_inline(const std::vector<std::vector<std::pair<std::string, std::string>>>&);
 
 private:
-
     void vps_handler(const TgBot::CallbackQuery::Ptr&);
-
     void vps_info_editmessage(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, PAGE, std::string = std::string());
 
 };

@@ -185,13 +185,12 @@ TgBot::ReplyKeyboardMarkup::Ptr BotExtended::create_reply(const std::vector<std:
 
     auto result = std::make_shared<TgBot::ReplyKeyboardMarkup>();
     auto rows = layout.size();
-    auto cols = layout[0].size();
 
     for(vecsize i = 0; i < rows; ++i)
     {
         std::vector<TgBot::KeyboardButton::Ptr> row;
 
-        for(vecsize j = 0; j < cols; ++j)
+        for(vecsize j = 0; j < layout[i].size(); ++j)
         {
             auto button = std::make_shared<TgBot::KeyboardButton>();
             button->text = layout[i][j];
@@ -211,13 +210,12 @@ TgBot::InlineKeyboardMarkup::Ptr BotExtended::create_inline(const std::vector<st
 
     auto result = std::make_shared<TgBot::InlineKeyboardMarkup>();
     auto rows = layout.size();
-    auto cols = layout[0].size();
 
     for(vecsize i = 0; i < rows; ++i)
     {
         std::vector<TgBot::InlineKeyboardButton::Ptr> row;
 
-        for(vecsize j = 0; j < cols; ++j)
+        for(vecsize j = 0; j < layout[i].size(); ++j)
         {
             auto button = std::make_shared<TgBot::InlineKeyboardButton>();
             button->text = layout[i][j].first;
@@ -286,32 +284,71 @@ void BotExtended::vps_handler(const TgBot::CallbackQuery::Ptr& query)
 
 void BotExtended::vps_info_editmessage(const TgBot::CallbackQuery::Ptr& query, const VPS::Ptr& vps, PAGE page, std::string message)
 {
-    if(!message.size())
+    std::vector<std::pair<std::string, std::string>> params =
     {
-        message =
-R"(*VPS Information*
-├*Name*: `)" + vps->name + R"(`
-├*UUID*: `)" + vps->uuid + R"(`
-├*State*: __)" + VPS::string_state(vps->state) + R"(__
-├*Threads*: )" + vps->cpu_count + R"(
-├*RAM*: )" + vps->ram + R"(
-└*Storages*:)";
+        {"Name", vps->name},
+        {"UUID", vps->uuid},
+        {"State", VPS::string_state(vps->state)},
+        {"Threads", vps->cpu_count},
+        {"RAM", vps->ram},
 
-        auto border = vps->blocks.size() - 1;
+    };
 
-        for(VPS::blockvec::size_type i = 0; i < border; ++i)
+    auto begin_it = vps->blocks.begin();
+    auto end_it = vps->blocks.end();
+
+    if(begin_it != end_it)
+    {
+        params.push_back({"Storages", "\n"});
+
+        std::for_each(begin_it, end_it,
+                 [&params](const std::pair<std::string, std::string>& pair)
         {
-            message +=
-R"(
-    ├*)" + vps->blocks[i].first + "*: " + vps->blocks[i].second + ";";
-        }
+            params.push_back({std::string("\t\t") + pair.first, pair.second});
+        });
 
-        message +=
-R"(
-    └*)" + vps->blocks[border].first + "*: " + vps->blocks[border].second + "\\.\n";
+        (*params.rbegin()).second += "\n";
     }
 
+    begin_it = vps->netifstat.begin();
+    end_it = vps->netifstat.end();
 
+    if(begin_it != end_it)
+    {
+        params.push_back({"Network", "\n"});
+
+        std::for_each(begin_it, end_it,
+                 [&params](std::pair<std::string, std::string> pair)
+        {
+            params.push_back({std::string("\t\t") + pair.first, pair.second});
+        });
+
+        (*params.rbegin()).second += "\n";
+    }
+
+    message += "*VPS Information*\n";
+
+    std::for_each(params.begin(), params.end(),
+                  [&message](std::pair<std::string, std::string> row)
+    {
+        bool isLast = StringTools::endsWith(row.second, "\n");
+        bool isSub = StringTools::startsWith(row.first, "\t");
+
+        std::string frame_piece = isLast ? "└" : "├";
+
+        if(isSub)
+        {
+            row.first.insert(row.first.find_first_not_of("\t"), frame_piece + '*');
+            row.first.push_back('*');
+        }
+
+        std::string first_format = isSub ? std::string() : "*";
+        std::string second_format = row.first == "UUID" || row.first == "Name" ? "`" : row.first == "State" ? "__" : std::string();
+
+        message +=
+                (isSub ? std::string() : frame_piece) + first_format + row.first + first_format + ": " + second_format + row.second + second_format + (isLast ? std::string() : "\n");
+
+    });
     TgBot::InlineKeyboardMarkup::Ptr buttons;
 
     switch(page)
@@ -409,7 +446,7 @@ void BotExtended::notify_all(const std::string& message, Notification::TYPE flag
     };
     userbase_->for_range(f);
 
-    Logger::write(": INFO : BOT : Users has been notified.");
+    Logger::write(": INFO : BOT : Users have been notified.");
 }
 
 void BotExtended::announcing(std::stop_token tok)
