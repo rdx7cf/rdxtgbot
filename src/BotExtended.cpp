@@ -42,7 +42,7 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
         if(usertable_->add(uptr))
             usertable_->update(uptr);
 
-        std::string log_message = std::string(": INFO : BOT : User [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] has just sent: '" + message->text + "'.";
+        std::string log_message = std::string(": INFO : BOT : User [") + std::to_string(message->from->id) + "] [" + message->from->firstName + "] has just sent: '" + (message->text.size() > 32 ? "$something_really_big$" : message->text) + "'.";
         Logger::write(log_message);
     });
 
@@ -69,7 +69,7 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
 
                 if(message->text.size() >= 32)
                 {
-                    getApi().sendMessage(message->chat->id, R"(*The name should be less than 32 characters\!*\.)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    getApi().sendMessage(message->chat->id, R"(*The name should be less than 32 characters\!*\)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
                 else
