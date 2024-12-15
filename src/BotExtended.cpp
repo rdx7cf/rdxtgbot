@@ -329,7 +329,7 @@ void BotExtended::vpsHandler(const TgBot::CallbackQuery::Ptr& query)
         auto page = static_cast<VPS_PAGE>(std::stoi(query_splitted[1]));
         auto action = std::stoi(query_splitted[2]);
 
-        auto vps = vpstable_->getCopyBy([&id](const VPS::Ptr& entry) {
+        auto vps = vpstable_->getCopyBy([&id, &query](const VPS::Ptr& entry) {
             return entry->id_ == id;
         });
 
@@ -351,7 +351,7 @@ void BotExtended::vpsHandler(const TgBot::CallbackQuery::Ptr& query)
         else
         {
             getApi().editMessageText(
-                        R"(You can't control ")" + vps->name_ + R"(".)",
+                        R"(You can't control the VPS.)",
                         query->message->chat->id,
                         query->message->messageId);
         }

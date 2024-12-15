@@ -175,8 +175,11 @@ Enter a number: )";
             auto user = usertable_ptr->getCopyBy([&user_id](const Table<UserExtended>::SptrT& entry) { return entry->id == user_id; });
             if(user)
             {
-                std::cout << "Enter a message for the user: ";
-                std::getline(std::cin, message);
+                std::cout << "Enter a message for the user (CTRL+D to send): ";
+                for(std::string temp; std::getline(std::cin, temp); )
+                    message += temp + '\n';
+                clearerr(stdin);
+                std::cin.clear();
 
                 bot->notifyOne(user_id, message);
             }
@@ -189,8 +192,11 @@ Enter a number: )";
         {
             std::string message;
             std::cout << "\n<SENDING A MESSAGE TO ALL USERS>\n";
-            std::cout << "Enter a message for all users: ";
-            std::getline(std::cin, message);
+            std::cout << "Enter a message for all users (CTRL+D to send): ";
+            for(std::string temp; std::getline(std::cin, temp); )
+                message += temp + '\n';
+            clearerr(stdin);
+            std::cin.clear();
 
             bot->notifyAll(message);
 

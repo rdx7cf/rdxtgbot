@@ -527,7 +527,7 @@ VPSTable::VPSTable(const Table<VPS>::SptrF& file, int interval) : Table<VPS>(fil
         std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->sendQuery
                 (
-                    "CREATE TABLE IF NOT EXISTS vps (id INTEGER PRIMARY KEY AUTOINCREMENT,owner INTEGER,uuid TEXT,name TEXT);"
+                    "CREATE TABLE IF NOT EXISTS vps (id INTEGER PRIMARY KEY AUTOINCREMENT,owner INTEGER,uuid TEXT UNIQUE,name BLOB);"
                     "SELECT * FROM vps",
                     extract_vps,
                     &vec_

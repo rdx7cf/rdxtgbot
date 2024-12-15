@@ -93,7 +93,7 @@ BashCommand VPS::virsh_exec(ACTION a, const std::string& input) noexcept
         break;
     }
     case ACTION::RENAME:
-        name_ = AUX::shortenString(input, 32, false);
+        name_ = std::string(input, 0, 32);
         cmd.execute(std::string("virsh domrename ") + uuid_ + ' ' + '"' + name_ + '"');
         break;
     case ACTION::REBOOT:
