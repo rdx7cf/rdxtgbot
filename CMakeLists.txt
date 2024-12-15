@@ -30,8 +30,8 @@ add_executable(tgbot
     include/UserExtended.h          src/UserExtended.cpp
     include/VPS.h                   src/VPS.cpp
     include/Table.h                 src/Table.cpp
-    include/NetInterface.h
-    src/NetInterface.cpp
+
+
 
 
 

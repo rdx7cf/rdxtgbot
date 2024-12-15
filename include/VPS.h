@@ -11,32 +11,12 @@
 #include "BashCommand.h"
 #include "Auxiliary.h"
 
-#include "NetInterface.h"
 
 
 
 class VPS
 {
 public:
-    class Block
-    {
-    public:
-        std::string name_;
-        std::string path_;
-
-
-        std::int64_t allocation_bytes_;
-        std::int64_t allocation_mibytes_;
-        std::int64_t allocation_gibytes_;
-
-        std::int64_t capacity_;
-        std::int64_t capacity_mibytes_;
-        std::int64_t capacity_gibytes_;
-    };
-
-
-
-
     using Ptr = std::shared_ptr<VPS>;
 
     enum class ACTION {

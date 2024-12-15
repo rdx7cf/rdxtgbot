@@ -87,11 +87,13 @@ private:
         void perform() override;
     };
 
+    std::mutex mtx_actions_;
+
     UserTable::Ptr usertable_;
     NotificationTable::Ptr notificationtable_;
     VPSTable::Ptr vpstable_;
 
-    std::vector<BotAction::Ptr> pending_actions_;
+    std::list<BotAction::Ptr> pending_actions_;
 
     void vpsHandler(const TgBot::CallbackQuery::Ptr&);
     void vpsProcedure(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS::ACTION);

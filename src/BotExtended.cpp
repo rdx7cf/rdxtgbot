@@ -49,6 +49,9 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
+            std::lock_guard<std::mutex> lock_actions(mtx_actions_);
+
+
             auto botaction_it = std::find_if(pending_actions_.begin(), pending_actions_.end(),
                                           [&message](const BotAction::Ptr& entry) {
                 return entry->owner_->id == message->from->id;
@@ -205,13 +208,30 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
         }
         else if(query->data == "cancel")
         {
-            /*auto vps = vpstable_->getCopyBy([&query](const VPS::Ptr& entry) { return std::to_string(entry->id_) == query->data; });
+            std::lock_guard<std::mutex> lock_actions(mtx_actions_);
 
-            if(vps)
+            auto botaction_it = std::find_if(pending_actions_.begin(), pending_actions_.end(),
+                                          [&query](const BotAction::Ptr& entry)
             {
-                vps->pending_action = VPS::ACTION::NO_ACTION;
-                vpstable_->update(vps);
-            }*/
+                if(entry->owner_->id == query->message->from->id)
+                {
+                    auto message_to_delete = std::find_if(entry->inprogress_messages_.begin(), entry->inprogress_messages_.end(), [&query](const TgBot::Message::Ptr& msg)
+                    {
+                       return query->message->messageId == msg->messageId;
+                    });
+
+                    if(message_to_delete != entry->inprogress_messages_.end())
+                        return true;
+                }
+
+                return false;
+            });
+
+            if(botaction_it != pending_actions_.end())
+            {
+                pending_actions_.erase(botaction_it);
+            }
+
             getApi().deleteMessage(query->message->chat->id, query->message->messageId);
         }
         else if(query->message->text == "Here are the VPS available to you:")
@@ -423,7 +443,7 @@ void BotExtended::vpsInfoEditMessage(const TgBot::CallbackQuery::Ptr& query, con
     case VPS_PAGE::MANAGE:
         buttons = BotExtended::createInline({
                     {{"⟳ Update Information", query->data + ":0:0"}},
-                    {{"⎙  Screenshot", query->data + ":0:1"}, {"✎ Rename (Unavailable)", query->data + ":0:2"}},
+                    {{"⎙  Screenshot", query->data + ":0:1"}, {"✎ Rename", query->data + ":0:2"}},
                     {{"⇦ Back", query->data + ":-1:-1"}}
                     });
         break;
@@ -469,42 +489,6 @@ void BotExtended::vpsInfoEditMessage(const TgBot::Message::Ptr& message, const V
 {
     if(text.size() == 0)
     {
-        /*std::vector<
-                std::pair<std::pair<std::string, std::string>, std::vector<
-                std::pair<std::pair<std::string, std::string>,std::vector<
-                std::pair<std::string, std::string>>>>>> vec =
-
-        {     // vector< pair<string,string> , ... >
-            { // pair<string, string> // vector<pair<string, string>, vector...>
-                {"*VPS Information*", {}},
-                {
-                    {//pair<string, string>//vector<pair<string, string>>//
-                        {"■ *Name*", std::string("`") + vps->name_ + "`"}, {}
-                    },
-                    {
-                        {"■ *UUID*", std::string("`") + vps->uuid_ + "`"}, {}
-                    },
-                    {
-                        {"■ *State*", std::string("__") + VPS::string_state(vps->state_) + "__"}, {}
-                    },
-                    {
-                        {"■ *Threads*", vps->cpu_count_}, {}
-                    },
-                    {
-                        {"■ *RAM*", vps->ram_}, {}
-                    },
-                    {
-                        {"■ *Storages*", {}},
-                        vps->blocks_
-                    },
-                    {
-                        {"■ *Network*", {}},
-                        vps->netifstat_
-                    }
-                }
-            }
-        };*/
-
         std::vector<
                 std::pair<std::pair<std::string, std::string>, std::vector<
                 std::pair<std::string, std::string>>>> vec =

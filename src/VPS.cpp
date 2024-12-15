@@ -243,7 +243,7 @@ void VPS::fetch_info()
 
 
                 blocks_.push_back(
-                            {names_it->str(), allocation  + " GiB / " + capacity + " GiB"}
+                            {std::string("▸ *") + names_it->str() + "*", allocation  + " GiB / " + capacity + " GiB"}
                             );
             }
 
@@ -267,7 +267,7 @@ void VPS::fetch_info()
 
 
                     netifstat_.push_back(
-                                {names_it->str(), "Upload: " + upload  + " MiB / Download: " + download + " MiB"}
+                                {std::string("▸ *") + names_it->str() + "*", "Upload: " + upload  + " MiB / Download: " + download + " MiB"}
                                 );
                 }
             }

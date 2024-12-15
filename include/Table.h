@@ -25,8 +25,7 @@ public:
     Table(const SptrF& file, int interval = -1) : file_(file), interval_(interval) {}
     virtual ~Table() {}
 
-    virtual bool add(const SptrT&);
-    virtual bool update(const SptrT&) noexcept = 0;
+    void autoSync(std::stop_token) const;
 
     void forRange(const std::function<void(SptrT&)>&);
     void forRange(const std::function<void(const SptrT&)>&) const;
@@ -35,9 +34,11 @@ public:
 
     std::int64_t getLastId() const noexcept { return vec_.size(); }
 
+    virtual bool add(const SptrT&);
+    virtual bool update(const SptrT&) noexcept = 0;
     virtual void sync() const = 0;
     virtual void showTable(std::ostream&) const noexcept = 0;
-    void autoSync(std::stop_token) const;
+
 
 protected:
     SptrF file_;
@@ -45,6 +46,7 @@ protected:
     mutable std::mutex mtx_vec_;
     std::vector<SptrT> vec_;
 
+    bool updateNeeded(const SptrT&, const SptrT&);
     SptrT getBy(const std::function<bool(SptrT&)>& f);
     SptrT getBy(const std::function<bool(const SptrT&)>& f) const;
 };
