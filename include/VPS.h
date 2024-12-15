@@ -1,0 +1,88 @@
+#ifndef VPS_H
+#define VPS_H
+
+#include <memory>
+#include <string>
+#include <boost/regex.hpp>
+
+#include <tgbot/tgbot.h>
+
+
+#include "BashCommand.h"
+#include "Auxiliary.h"
+
+#include "NetInterface.h"
+
+
+
+class VPS
+{
+public:
+    class Block
+    {
+    public:
+        std::string name_;
+        std::string path_;
+
+
+        std::int64_t allocation_bytes_;
+        std::int64_t allocation_mibytes_;
+        std::int64_t allocation_gibytes_;
+
+        std::int64_t capacity_;
+        std::int64_t capacity_mibytes_;
+        std::int64_t capacity_gibytes_;
+    };
+
+
+
+
+    using Ptr = std::shared_ptr<VPS>;
+
+    enum class ACTION {
+        INFO = 0, SCREENSHOT, RENAME,                                                   // 0-9: Information management.
+        STOP = 10, START, REBOOT, SAVE, RESTORE, RESET, RESUME, SUSPEND,    // 10-19: Power management.
+        SHOW = 20                                                           // 20-: Backup management.
+                      };
+
+    enum class STATE  {RUNNING = 1, BLOCKED, PAUSED, SHUTDOWN, CRASHED, DYING};
+
+    std::string uuid_;
+    std::int64_t id_;
+    std::int64_t owner_;
+    std::string name_;
+    STATE state_;
+    std::string cpu_count_;
+    std::string ram_;
+    std::vector<std::pair<std::string, std::string>> blocks_;
+    std::vector<std::pair<std::string, std::string>> netifstat_;
+    std::string screenshot_;
+
+
+    mutable std::string last_output_;
+
+    VPS(
+            const std::string& u,
+            std::int64_t i = 0,
+            std::int64_t o = 0,
+            const std::string& n = std::string(),
+            const std::string& l_o = R"(👁‍ _Awaiting new actions\.\.\._)"
+            );
+
+
+    void perform(ACTION, const std::string& = std::string()) noexcept;
+    static std::string string_state(STATE) noexcept;
+
+    bool operator==(const VPS&) const;
+    /*bool updateNeeded(const VPS&) const;
+    VPS& operator=(const VPS&);*/
+
+private:
+    BashCommand virsh_exec(ACTION, const std::string& = std::string()) noexcept;
+    BashCommand virsh_exec(const std::string&) noexcept;
+
+
+    void fetch_info();
+};
+
+#endif

@@ -11,25 +11,28 @@ find_package(OpenSSL REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 find_package(CURL)
-include_directories(/usr/local/include ${OPENSSL_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${SQLite3_INCLUDE_DIR})
+include_directories(/usr/local/include ./include ${OPENSSL_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${SQLite3_INCLUDE_DIR})
 if (CURL_FOUND)
     include_directories(${CURL_INCLUDE_DIRS})
     add_definitions(-DHAVE_CURL)
 endif()
 add_executable(tgbot
-    main.cpp
-    database.h      database.cpp
-    myhttpclient.h
-    logger.h        logger.cpp
-    userextended.h
-    botextended.h   botextended.cpp
-    notification.h  notification.cpp
-    tmextended.h
-    ctime++.h  ctime++.cpp
-    sqlfile.h     sqlfile.cpp
-    bashcommand.h        bashcommand.cpp
-    vps.h vps.cpp
-    auxiliary.h
+                                    src/main.cpp
+    include/Auxiliary.h             src/Auxiliary.cpp
+    include/BashCommand.h           src/BashCommand.cpp
+    include/BotExtended.h           src/BotExtended.cpp
+    include/Ctime++.h               src/Ctime++.cpp
+
+    include/Logger.h                src/Logger.cpp
+    include/MyHTTPclient.h
+    include/Notification.h          src/Notification.cpp
+    include/SQLFile.h               src/SQLFile.cpp
+    include/UserExtended.h          src/UserExtended.cpp
+    include/VPS.h                   src/VPS.cpp
+    include/Table.h                 src/Table.cpp
+    include/NetInterface.h
+    src/NetInterface.cpp
+
 
 
 )
