@@ -4,14 +4,13 @@
 #include <memory>
 #include <string>
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 
 #include <tgbot/tgbot.h>
 
 
 #include "BashCommand.h"
 #include "Auxiliary.h"
-
-
 
 
 class VPS
@@ -36,8 +35,8 @@ public:
     std::string ram_;
     std::vector<std::pair<std::string, std::string>> blocks_;
     std::vector<std::pair<std::string, std::string>> netifstat_;
-    std::string screenshot_;
 
+    std::string screenshot_;
 
     mutable std::string last_output_;
 

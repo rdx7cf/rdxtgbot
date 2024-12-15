@@ -130,17 +130,22 @@ Type `/info` for help\.
                         R"(
 They've finally taught me something\. Take a look at what I'm able to do for you now\.
 
-🖥️ *VPS Control Panel*
+__*VPS Control Panel*__
 └`/vps_list` — List the VPS available to you\.
-    ├*Update Information* — Update the VPS information\.
-    ├*Stop* — Hard stop the VPS\.
-    ├*Start* — Start the VPS\.
-    ├*Reboot* — Hard reboot the VPS\.
-    ├*Save* — Save the current state of the VPS\.
-    ├*Restore* — Restore the saved state of the VPS\.
-    ├*Reset* — Reset the current state of the VPS\.
-    ├*Resume* — Resume the VPS from suspension\.
-    └*Suspend* — Suspend the VPS\.
+    └__*Settings*__
+        ├`Update Information` — Update the VPS information\.
+        ├`Screenshot` — Take a screenshot of the VPS desktop\.
+        └`Rename` — Rename the VPS\.
+    └__*Power Management*__
+        ├`Stop` — Hard stop the VPS\.
+        ├`Start` — Start the VPS\.
+        ├`Reboot` — Hard reboot the VPS\.
+        ├`Save` — Save the current state of the VPS\.
+        ├`Restore` — Restore the saved state of the VPS\.
+        ├`Reset` — Reset the current state of the VPS\.
+        ├`Resume` — Resume the VPS from suspension\.
+        └`Suspend` — Suspend the VPS\.
+    └__*Backup*\.\.\.__
 
 Got any questions? Ask them [here](tg://user?id=1373205351)\.
                         )",
@@ -377,8 +382,16 @@ Send me a new name for the specified VPS\. The name should be less than 32 chara
 
     if(a == VPS::ACTION::SCREENSHOT)
     {
-        if(vps->screenshot_.size() != 0)
-            getApi().sendPhoto(query->message->chat->id, TgBot::InputFile::fromFile(vps->screenshot_, "image/png"), "", 0, BotExtended::createInline({{{"✕ Close", "close"}}}));
+        if(boost::filesystem::exists(vps->screenshot_))
+        {
+            std::tm ms = localtimeTs(boost::filesystem::last_write_time(vps->screenshot_));
+            std::ostringstream date;
+            date << std::put_time(&ms, "%d/%m/%Y %H:%M:%S");
+            getApi().sendPhoto(query->message->chat->id, TgBot::InputFile::fromFile(vps->screenshot_, "image/png"),
+R"(*Name*: `)" + vps->name_ + R"(`
+*Date*: __)" + date.str() + R"(__)", 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+        }
+
     }
 
 }

@@ -89,7 +89,7 @@ BashCommand VPS::virsh_exec(ACTION a, const std::string& input) noexcept
         if(!cmd.exit_status_)
             screenshot_ = filename;
         else
-            screenshot_ = std::string();
+            screenshot_.clear();
         break;
     }
     case ACTION::RENAME:
