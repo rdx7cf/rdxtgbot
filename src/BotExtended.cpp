@@ -69,7 +69,7 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
 
                 if(message->text.size() >= 32)
                 {
-                    getApi().sendMessage(message->chat->id, R"(*The name should be less than 32 characters\!*\)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    getApi().sendMessage(message->chat->id, R"(*The name should be less than 32 characters\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
                 else
