@@ -1,4 +1,5 @@
-#pragma once
+#ifndef USEREXTENDED_H
+#define USEREXTENDED_H
 
 #include <bitset>
 #include <string>
@@ -13,8 +14,8 @@ class UserExtended : public TgBot::User
 public:
     using Ptr = std::shared_ptr<UserExtended>;
 
-    std::bitset<4> activeTasks; // This bitmask remembers if user have some loop task active before the bot shutdown (one bit for each task).
-    std::time_t member_since;
+    std::bitset<4> active_tasks_; // This bitmask remembers if user have some loop task active before the bot shutdown (one bit for each task).
+    std::time_t member_since_;
 
     UserExtended(
             std::int64_t i,
@@ -31,8 +32,8 @@ public:
             unsigned long bset = 0b0000,
             std::int64_t ms = std::time(nullptr))
         :
-        activeTasks(bset),
-        member_since(ms)
+        active_tasks_(bset),
+        member_since_(ms)
     {
         id = i; username = uname;
         firstName = fname; lastName = lname;
@@ -47,7 +48,13 @@ public:
                  unsigned long bset = 0b0000,
                  std::time_t ms = std::time(nullptr)
                  )
-        : TgBot::User(*tgu), activeTasks(bset), member_since(ms) {}
+        : TgBot::User(*tgu), active_tasks_(bset), member_since_(ms) {}
+
+    bool operator==(const UserExtended&) const;
+    /*bool updateNeeded(const UserExtended&) const;
+    UserExtended& operator=(const UserExtended&);*/
 
 
 };
+
+#endif

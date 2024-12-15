@@ -1,8 +1,9 @@
-#pragma once
+#ifndef MYHTTPCLIENT_H
+#define MYHTTPCLIENT_H
 
 #include <string>
 #include <tgbot/tgbot.h>
-#include "logger.h"
+#include "Logger.h"
 
 // https://github.com/reo7sp/tgbot-cpp/issues/226
 
@@ -24,3 +25,5 @@ public:
         }
     }
 };
+
+#endif

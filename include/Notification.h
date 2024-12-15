@@ -1,9 +1,12 @@
-#pragma once
+#ifndef NOTIFICATION_H
+#define NOTIFICATION_H
+
 #include <string>
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "tmextended.h"
+
+#include "Ctime++.h"
 
 class Notification
 {
@@ -11,16 +14,16 @@ public:
     using Ptr = std::shared_ptr<Notification>;
     enum class TYPE {SYSTEM = -1, COMMERCIAL, CURRENCY};
 
-    std::int64_t id;
-    std::string owner;
-    std::string text;
-    bool active;
-    TYPE type;
-    std::string tpoints_str;
-    std::string wdays_str;
-    std::vector<TmExtended> schedule;
-    std::time_t added_on;
-    std::time_t expiring_on;
+    std::int64_t id_;
+    std::string owner_;
+    std::string text_;
+    bool active_;
+    TYPE type_;
+    std::string tpoints_str_;
+    std::string wdays_str_;
+    std::vector<TmExtended> schedule_;
+    std::time_t added_on_;
+    std::time_t expiring_on_;
 
     Notification(
         std::int64_t = 0,
@@ -33,4 +36,10 @@ public:
         const std::vector<TmExtended>& = std::vector<TmExtended>(),
         std::time_t = 0,
         std::time_t = 0);
+
+    bool operator==(const Notification&) const;
+    /*bool updateNeeded(const Notification&) const;
+    Notification& operator=(const Notification&);*/
 };
+
+#endif
