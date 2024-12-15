@@ -10,6 +10,16 @@ BotExtended::VPSBotAction::VPSBotAction(const TgBot::User::Ptr& owner, const TgB
     :  BotAction(owner, initial_message, bot, user_input), vps_(vps), action_(action)
 {}
 
+void BotExtended::BotAction::deleteMessages()
+{
+    std::for_each(inprogress_messages_.begin() + 1, inprogress_messages_.end(), [this](const TgBot::Message::Ptr& msg)
+    {
+         bot_->getApi().deleteMessage(msg->chat->id, msg->messageId);
+    });
+
+    inprogress_messages_.clear();
+}
+
 void BotExtended::VPSBotAction::perform()
 {
     vps_->perform(action_, user_input_);
@@ -18,12 +28,7 @@ void BotExtended::VPSBotAction::perform()
     auto controlmessage = inprogress_messages_[0];
     bot_->vpsInfoEditMessage(controlmessage, vps_, controlmessage->replyMarkup);
 
-    std::for_each(inprogress_messages_.begin() + 1, inprogress_messages_.end(), [this](const TgBot::Message::Ptr& msg)
-    {
-         bot_->getApi().deleteMessage(msg->chat->id, msg->messageId);
-    });
-
-    inprogress_messages_.clear();
+    deleteMessages();
 }
 
 BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client, const UserTable::Ptr& usertable, const NotificationTable::Ptr& notificationtable, const VPSTable::Ptr& vpstable, const std::string& url)
@@ -60,9 +65,18 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
             if(botaction_it != pending_actions_.end())
             {
                 auto botaction = *botaction_it;
-                botaction->user_input_ = message->text;
                 botaction->inprogress_messages_.push_back(message);
-                botaction->perform();
+
+                if(message->text.size() >= 32)
+                {
+                    getApi().sendMessage(message->chat->id, R"(*The name should be less than 32 characters\!*\.)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    botaction->deleteMessages();
+                }
+                else
+                {
+                    botaction->user_input_ = message->text;
+                    botaction->perform();
+                }
                 pending_actions_.erase(botaction_it);
             }
             else
@@ -374,7 +388,7 @@ void BotExtended::vpsProcedure(const TgBot::CallbackQuery::Ptr& query, const VPS
         vpsbotaction->inprogress_messages_.push_back(getApi().sendMessage(
                     query->message->chat->id,
 R"(*Current VPS name*: `)" + vps->name_ + R"(`
-Send me a new name for the specified VPS\. The name should be less than 32 characters \(excess characters will be cut off\)\.)",
+Send me a new name for the specified VPS\. The name should be less than 32 characters\.)",
                     false, 0, BotExtended::createInline({{{"✕ Cancel", "cancel"}}}), "MarkdownV2"));
     }
     else

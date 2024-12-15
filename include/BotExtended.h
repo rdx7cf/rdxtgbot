@@ -66,7 +66,7 @@ private:
                   const std::string& = std::string());
 
         virtual ~BotAction() {}
-
+        void deleteMessages();
         virtual void perform() = 0;
     };
 
