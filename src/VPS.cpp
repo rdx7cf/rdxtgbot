@@ -9,17 +9,13 @@ VPS::VPS(const std::string& u,
          const std::string& login,
          const std::string& password,
          const std::string& n,
-         const std::string& l_o): uuid_(u), id_(i), owner_(o), name_(n), last_output_(l_o)
+         const std::string& l_o): uuid_(u), id_(i), owner_(o), address_(address), login_(login), password_(password), name_(n), last_output_(l_o)
 {
     try
     {
         blocks_.reserve(16);
         netifstat_.reserve(16);
         fetch_info();
-
-        address_ = address.empty() ? "NOT ASSIGNED" : address;
-        login_ = login.empty() ? "NOT ASSIGNED" : login;
-        password_ = password.empty() ? "NOT ASSIGNED" : password;
     }
     catch(...)
     {

@@ -29,6 +29,9 @@ public:
     std::string uuid_;
     std::int64_t id_;
     std::int64_t owner_;
+    std::string address_;
+    std::string login_;
+    std::string password_;
     std::string name_;
     STATE state_;
     std::string cpu_count_;
@@ -36,9 +39,7 @@ public:
     std::vector<std::string> blocks_;
     std::vector<std::string> netifstat_;
 
-    std::string address_;
-    std::string login_;
-    std::string password_;
+
 
     std::string screenshot_;
 
