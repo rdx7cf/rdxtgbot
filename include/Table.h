@@ -133,13 +133,15 @@ bool Table<T>::add(const SptrT& entry)
 template<typename T>
 Table<T>::SptrT Table<T>::getBy(const std::function<bool(SptrT&)>& f)
 {
-    return *std::find_if(vec_.begin(), vec_.end(), f);
+    auto it = std::find_if(vec_.begin(), vec_.end(), f);
+    return  it == vec_.end() ? nullptr : *it;
 }
 
 template<typename T>
 Table<T>::SptrT Table<T>::getBy(const std::function<bool(const SptrT&)>& f) const
 {
-    return *std::find_if(vec_.cbegin(), vec_.cend(), f);
+    auto it = std::find_if(vec_.cbegin(), vec_.cend(), f);
+    return  it == vec_.end() ? nullptr : *it;
 }
 
 template<typename T>
