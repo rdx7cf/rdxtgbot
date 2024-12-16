@@ -82,6 +82,11 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
                     getApi().sendMessage(message->chat->id, R"(*The name should be less than 32 characters\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
+                else if(std::find(message->text.begin(), message->text.end(), '\'') != message->text.end())
+                {
+                    getApi().sendMessage(message->chat->id, R"(*The name contains a forbidden character: ' *)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    botaction->deleteMessages();
+                }
                 else
                 {
                     botaction->user_input_ = message->text;
@@ -427,36 +432,49 @@ void BotExtended::vpsInfoEditMessage(const TgBot::CallbackQuery::Ptr& query, con
     if(text.size() == 0)
     {
         std::vector<
-                std::pair<std::pair<std::string, std::string>, std::vector<
-                std::pair<std::string, std::string>>>> vec =
-
-        {     // vector< pair<string,string> , ... >
-            { // pair<string, string> // vector<pair<string, string>, vector...>
+                std::pair<std::string, std::vector<std::string>>> vec =
+        {
+            {
                 {
-                    {"*VPS Information*", {}}, {}
+                    "*__VPS Information__*", {}
                 },
                 {
-                    {"■ *Name*", std::string("`") + vps->name_ + "`"}, {}
+                    "■ *Name*: `" + vps->name_ + "`", {}
                 },
                 {
-                    {"■ *UUID*", std::string("`") + vps->uuid_ + "`"}, {}
+                    "■ *UUID*: `" + vps->uuid_ + "`", {}
                 },
                 {
-                    {"■ *State*", std::string("__") + VPS::string_state(vps->state_) + "__"}, {}
+                    "■ *State*: __" + VPS::string_state(vps->state_) + "__", {}
                 },
                 {
-                    {"■ *Threads*", vps->cpu_count_}, {}
+                    "■ *Threads*: " + vps->cpu_count_, {}
                 },
                 {
-                    {"■ *RAM*", vps->ram_}, {}
+                    "■ *RAM*: " + vps->ram_, {}
                 },
                 {
-                    {"■ *Storages*", {}},
+                    "■ *Storages*: ",
                     vps->blocks_
                 },
                 {
-                    {"■ *Network*", {}},
+                    "■ *Network*: ",
                     vps->netifstat_
+                },
+                {
+                    " ", {}
+                },
+                {
+                    "*__Connection Credentials__*", {}
+                },
+                {
+                    "■ *Address*: `" + vps->address_ + "`", {}
+                },
+                {
+                    "■ *Login*: `" + vps->login_ + "`", {}
+                },
+                {
+                    "■ *Password*: `" + vps->password_ + "`", {}
                 }
             }
         };
@@ -529,36 +547,49 @@ void BotExtended::vpsInfoEditMessage(const TgBot::Message::Ptr& message, const V
     if(text.size() == 0)
     {
         std::vector<
-                std::pair<std::pair<std::string, std::string>, std::vector<
-                std::pair<std::string, std::string>>>> vec =
-
-        {     // vector< pair<string,string> , ... >
-            { // pair<string, string> // vector<pair<string, string>, vector...>
+                std::pair<std::string, std::vector<std::string>>> vec =
+        {
+            {
                 {
-                    {"*VPS Information*", {}}, {}
+                    "*__VPS Information__*", {}
                 },
                 {
-                    {"■ *Name*", std::string("`") + vps->name_ + "`"}, {}
+                    "■ *Name*: `" + vps->name_ + "`", {}
                 },
                 {
-                    {"■ *UUID*", std::string("`") + vps->uuid_ + "`"}, {}
+                    "■ *UUID*: `" + vps->uuid_ + "`", {}
                 },
                 {
-                    {"■ *State*", std::string("__") + VPS::string_state(vps->state_) + "__"}, {}
+                    "■ *State*: __" + VPS::string_state(vps->state_) + "__", {}
                 },
                 {
-                    {"■ *Threads*", vps->cpu_count_}, {}
+                    "■ *Threads*: " + vps->cpu_count_, {}
                 },
                 {
-                    {"■ *RAM*", vps->ram_}, {}
+                    "■ *RAM*: " + vps->ram_, {}
                 },
                 {
-                    {"■ *Storages*", {}},
+                    "■ *Storages*: ",
                     vps->blocks_
                 },
                 {
-                    {"■ *Network*", {}},
+                    "■ *Network*: ",
                     vps->netifstat_
+                },
+                {
+                    " ", {}
+                },
+                {
+                    "*__Connection Credentials__*", {}
+                },
+                {
+                    "■ *Address*: `" + vps->address_ + "`", {}
+                },
+                {
+                    "■ *Login*: `" + vps->login_ + "`", {}
+                },
+                {
+                    "■ *Password*: `" + vps->password_ + "`", {}
                 }
             }
         };

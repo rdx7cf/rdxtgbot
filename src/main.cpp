@@ -184,7 +184,7 @@ Enter a number: )";
                 bot->notifyOne(user_id, message);
             }
             else
-                std::cout << "There's no user with this id_.";
+                std::cout << "There's no user with this id.";
 
             break;
         }
@@ -257,12 +257,12 @@ Enter a number: )";
         case 6:
         {
             std::cout << "\n<UPDATING A NOTIFICATION>\n";
-            std::cout << "Enter an id_ of a notification to update: ";
+            std::cout << "Enter an id of a notification to update: ";
 
             auto notif = notificationtable_ptr->getCopyBy([](const Notification::Ptr& entry) { return entry->id_ == enter_number(std::cin, std::cout); }); // Какой же здесь ад происходит...
             if(!notif)
             {
-                std::cout << "There's no notification with this id_.\n\n";
+                std::cout << "There's no notification with this id.\n\n";
                 break;
             }
             std::cout << "Choose a field to update:\n"
@@ -367,15 +367,16 @@ Enter a number: )";
                     usertable_ptr->sync();
             }
             else
-                std::cout << "There's no user with this id_.";
+                std::cout << "There's no user with this id.";
 
             break;
         }
         case 8:
         {
             std::cout << "\n<ADDING A VPS ENTRY>\n";
+            std::string uuid, address, login, password;
+
             std::cout << "Enter the VPS uuid: ";
-            std::string uuid;
             std::getline(std::cin, uuid);
 
             if(uuid.size() != 36)
@@ -383,7 +384,18 @@ Enter a number: )";
             else
             {
                 std::cout << "Enter the owner's Telegram ID: ";
-                VPS::Ptr vps = std::make_shared<VPS>(uuid, vpstable_ptr->getLastId() + 1, enter_number(std::cin, std::cout));
+                std::int64_t owner = enter_number(std::cin, std::cout);
+
+                std::cout << "Enter the VPS address: ";
+                std::getline(std::cin, address);
+
+                std::cout << "Enter the VPS login: ";
+                std::getline(std::cin, login);
+
+                std::cout << "Enter the VPS password: ";
+                std::getline(std::cin, password);
+
+                VPS::Ptr vps = std::make_shared<VPS>(uuid, vpstable_ptr->getLastId() + 1, owner, address, login, password);
 
                 vpstable_ptr->add(vps);
             }
@@ -393,17 +405,19 @@ Enter a number: )";
         case 9:
         {
             std::cout << "\n<UPDATING A VPS ENTRY>\n";
-            std::cout << "Enter an id_ of a VPS entry to update: ";
+            std::cout << "Enter an id of a VPS entry to update: ";
 
             auto vps = vpstable_ptr->getCopyBy([](const VPS::Ptr& entry) { return entry->id_ == enter_number(std::cin, std::cout); });
             if(!vps)
             {
-                std::cout << "There's no VPS entry with this id_.\n\n";
+                std::cout << "There's no VPS entry with this id.\n\n";
                 break;
             }
             std::cout << "Choose a field to update:\n"
                          "1. Owner's ID;\t2. VPS UUID;\n"
-                         "3. VPS name;\t4. Quit updating."
+                         "3. VPS name;\t4. Address;\n"
+                         "5. Login;\t6. Password;\n"
+                         "7. Quit updating.\n"
                          "Enter a number: ";
             switch(enter_number(std::cin, std::cout))
             {
@@ -431,6 +445,24 @@ Enter a number: )";
             {
                 std::cout << "Enter the VPS name: \n";
                 std::getline(std::cin, vps->name_);
+                break;
+            }
+            case 4:
+            {
+                std::cout << "Enter the VPS address: \n";
+                std::getline(std::cin, vps->address_);
+                break;
+            }
+            case 5:
+            {
+                std::cout << "Enter the VPS login: \n";
+                std::getline(std::cin, vps->login_);
+                break;
+            }
+            case 6:
+            {
+                std::cout << "Enter the VPS password: \n";
+                std::getline(std::cin, vps->password_);
                 break;
             }
             }

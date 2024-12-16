@@ -129,10 +129,13 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
 static int extract_vps(void* vps, int colcount, char** columns, char** colnames)
 {
     VPS::Ptr entry = std::make_shared<VPS>(
-                columns[2],
+                columns[1],
                 std::stol(columns[0]),
-                std::stol(columns[1]),
-                columns[3]);
+                std::stol(columns[2]),
+                columns[3],
+                columns[4],
+                columns[5],
+                columns[6]);
 
     static_cast<std::vector<VPS::Ptr>*>(vps)->push_back(entry);
 
@@ -527,7 +530,7 @@ VPSTable::VPSTable(const Table<VPS>::SptrF& file, int interval) : Table<VPS>(fil
         std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->sendQuery
                 (
-                    "CREATE TABLE IF NOT EXISTS vps (id INTEGER PRIMARY KEY AUTOINCREMENT,owner INTEGER,uuid TEXT UNIQUE,name BLOB);"
+                    "CREATE TABLE IF NOT EXISTS vps (id INTEGER PRIMARY KEY AUTOINCREMENT,owner INTEGER,uuid TEXT UNIQUE,name BLOB,address TEXT, login TEXT, password TEXT);"
                     "SELECT * FROM vps",
                     extract_vps,
                     &vec_
@@ -544,12 +547,18 @@ bool VPSTable::add(const VPS::Ptr& entry)
 
 
     file_->sendQuery(
-        (std::string)"INSERT INTO vps (owner, uuid, name) VALUES ("
+        (std::string)"INSERT INTO vps (owner, uuid, name, address, login, password) VALUES ("
         + std::to_string(entry->owner_)
         + std::string(", '")
         + entry->uuid_
         + std::string("', '")
         + entry->name_
+        + std::string("', '")
+        + entry->address_
+        + std::string("', '")
+        + entry->login_
+        + std::string("', '")
+        + entry->password_
         + std::string("');"));
 
     Logger::write(": INFO : DATABASE : New VPS [" + std::to_string(entry->id_) + "] [" + std::to_string(entry->owner_) + "] has been added.");
@@ -612,6 +621,9 @@ bool VPSTable::update(const VPS::Ptr& entry) noexcept
                 (std::string)"UPDATE vps SET owner=" + std::to_string(entry->owner_)
                 + std::string(", uuid='") + entry->uuid_
                 + std::string("', name='") + entry->name_
+                + std::string("', address='") + entry->address_
+                + std::string("', login='") + entry->login_
+                + std::string("', password='") + entry->password_
                 + std::string("' WHERE id=") + std::to_string(entry->id_)
             );
 
@@ -628,6 +640,9 @@ void VPSTable::sync() const
                     (std::string)"UPDATE vps SET owner=" + std::to_string(entry->owner_)
                     + std::string(", uuid='") + entry->uuid_
                     + std::string("', name='") + entry->name_
+                    + std::string("', address='") + entry->address_
+                    + std::string("', login='") + entry->login_
+                    + std::string("', password='") + entry->password_
                     + std::string("' WHERE id=") + std::to_string(entry->id_)
                 );
     };
@@ -643,6 +658,9 @@ void VPSTable::showTable(std::ostream& os) const noexcept
        << std::setw(18) << "OWNER"
        << std::setw(18) << "UUID"
        << std::setw(18) << "NAME"
+       << std::setw(18) << "ADDRESS"
+       << std::setw(18) << "LOGIN"
+       << std::setw(18) << "PASSWORD"
        << std::endl;
 
     auto f = [&os](const VPS::Ptr& entry)
@@ -652,6 +670,9 @@ void VPSTable::showTable(std::ostream& os) const noexcept
            << std::setw(18) << AUX::shortenString(std::to_string(entry->owner_), 16)
            << std::setw(18) << AUX::shortenString(entry->uuid_, 16)
            << std::setw(18) << AUX::shortenString(entry->name_, 16)
+           << std::setw(18) << AUX::shortenString(entry->address_, 16)
+           << std::setw(18) << AUX::shortenString(entry->login_, 16)
+           << std::setw(18) << AUX::shortenString(entry->password_, 16)
            << std::endl;
     };
 

@@ -2,13 +2,24 @@
 
 // VPS
 
-VPS::VPS(const std::string &u, std::int64_t i, std::int64_t o, const std::string& n, const std::string& l_o) : uuid_(u), id_(i), owner_(o), name_(n), last_output_(l_o)
+VPS::VPS(const std::string& u,
+         std::int64_t i,
+         std::int64_t o,
+         const std::string& address,
+         const std::string& login,
+         const std::string& password,
+         const std::string& n,
+         const std::string& l_o): uuid_(u), id_(i), owner_(o), name_(n), last_output_(l_o)
 {
     try
     {
         blocks_.reserve(16);
         netifstat_.reserve(16);
         fetch_info();
+
+        address_ = address.empty() ? "NOT ASSIGNED" : address;
+        login_ = login.empty() ? "NOT ASSIGNED" : login;
+        password_ = password.empty() ? "NOT ASSIGNED" : password;
     }
     catch(...)
     {
@@ -243,7 +254,7 @@ void VPS::fetch_info()
 
 
                 blocks_.push_back(
-                            {std::string("▸ *") + names_it->str() + "*", allocation  + " GiB / " + capacity + " GiB"}
+                            std::string("▸ *") + names_it->str() + "* — Allocation: " + allocation  + " GiB / Capacity: " + capacity + " GiB"
                             );
             }
 
@@ -267,7 +278,7 @@ void VPS::fetch_info()
 
 
                     netifstat_.push_back(
-                                {std::string("▸ *") + names_it->str() + "*", "Upload: " + upload  + " MiB / Download: " + download + " MiB"}
+                                std::string("▸ *") + names_it->str() + "* — Upload: " + upload  + " MiB / Download: " + download + " MiB"
                                 );
                 }
             }

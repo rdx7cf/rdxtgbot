@@ -33,20 +33,25 @@ public:
     STATE state_;
     std::string cpu_count_;
     std::string ram_;
-    std::vector<std::pair<std::string, std::string>> blocks_;
-    std::vector<std::pair<std::string, std::string>> netifstat_;
+    std::vector<std::string> blocks_;
+    std::vector<std::string> netifstat_;
+
+    std::string address_;
+    std::string login_;
+    std::string password_;
 
     std::string screenshot_;
 
     mutable std::string last_output_;
 
-    VPS(
-            const std::string& u,
-            std::int64_t i = 0,
-            std::int64_t o = 0,
-            const std::string& n = std::string(),
-            const std::string& l_o = R"(👁‍ _Awaiting new actions\.\.\._)"
-            );
+    VPS(const std::string& u,
+        std::int64_t i = 0,
+        std::int64_t o = 0,
+        const std::string& address = "",
+        const std::string& login = "",
+        const std::string& password = "",
+        const std::string& n = "",
+        const std::string& l_o = R"(👁‍ _Awaiting new actions\.\.\._)");
 
 
     void perform(ACTION, const std::string& = std::string()) noexcept;
