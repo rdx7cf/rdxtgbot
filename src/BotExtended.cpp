@@ -1,5 +1,7 @@
 #include "BotExtended.h"
 
+using namespace std::literals::chrono_literals;
+
 BotExtended::BotAction::BotAction(const TgBot::User::Ptr& owner, const TgBot::Message::Ptr& initial_message, const BotExtended* bot, const std::string& user_input)
     : owner_(owner), bot_(bot), user_input_(user_input)
 {
@@ -12,9 +14,16 @@ BotExtended::VPSBotAction::VPSBotAction(const TgBot::User::Ptr& owner, const TgB
 
 void BotExtended::BotAction::deleteMessages()
 {
+
     std::for_each(inprogress_messages_.begin() + 1, inprogress_messages_.end(), [this](const TgBot::Message::Ptr& msg)
     {
-         bot_->getApi().deleteMessage(msg->chat->id, msg->messageId);
+        std::this_thread::sleep_for(100ms);
+        try
+        {
+            bot_->getApi().deleteMessage(msg->chat->id, msg->messageId);
+        }
+        catch(const std::exception& e)
+        { Logger::write(std::string(": ERROR : BOT : ") + e.what() + "."); }
     });
 
     inprogress_messages_.clear();
@@ -51,6 +60,7 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
     {
         try
         {
+            std::this_thread::sleep_for(100ms);
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
@@ -218,6 +228,8 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
     getEvents().onCallbackQuery(
                 [this](TgBot::CallbackQuery::Ptr query)
     {
+        std::this_thread::sleep_for(100ms);
+
         if(getApi().blockedByUser(query->message->chat->id))
             return;
 
@@ -232,7 +244,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
             auto botaction_it = std::find_if(pending_actions_.begin(), pending_actions_.end(),
                                           [&query](const BotAction::Ptr& entry)
             {
-                if(entry->owner_->id == query->message->from->id)
+                if(entry->owner_->id == query->message->chat->id)
                 {
                     auto message_to_delete = std::find_if(entry->inprogress_messages_.begin(), entry->inprogress_messages_.end(), [&query](const TgBot::Message::Ptr& msg)
                     {
