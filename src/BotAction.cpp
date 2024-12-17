@@ -18,7 +18,7 @@ void BotAction::deleteMessages()
 
     std::for_each(inprogress_messages_.begin() + 1, inprogress_messages_.end(), [this](const TgBot::Message::Ptr& msg)
     {
-        std::this_thread::sleep_for(bot_->LATENCY);
+        std::this_thread::sleep_for(bot_->latency_);
         try
         {
             bot_->getApi().deleteMessage(msg->chat->id, msg->messageId);

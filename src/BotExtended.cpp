@@ -11,8 +11,16 @@
 #include "UserExtended.h"
 #include "BotAction.h"
 
-BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client, const UserTable::Ptr& usertable, const NotificationTable::Ptr& notificationtable, const VPSTable::Ptr& vpstable, const std::string& url)
-    : TgBot::Bot(token, http_client, url), usertable_(usertable), notificationtable_(notificationtable), vpstable_(vpstable)
+BotExtended::BotExtended(std::string token,
+                         const TgBot::HttpClient& http_client,
+                         const UserTable::Ptr& usertable,
+                         const NotificationTable::Ptr& notificationtable,
+                         const VPSTable::Ptr& vpstable,
+                         const std::string& url,
+                         std::chrono::milliseconds latency,
+                         std::int64_t master,
+                         const std::vector<char> forbidden_chars)
+    : TgBot::Bot(token, http_client, url), usertable_(usertable), notificationtable_(notificationtable), vpstable_(vpstable), latency_(latency), master_(master), forbidden_chars_(forbidden_chars)
 {
     getEvents().onAnyMessage(
                 [this](TgBot::Message::Ptr message)
@@ -31,7 +39,7 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
     {
         try
         {
-            std::this_thread::sleep_for(LATENCY);
+            std::this_thread::sleep_for(latency_);
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
@@ -48,9 +56,9 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
                     getApi().sendMessage(message->chat->id, R"(*The name should be less than 32 characters\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
-                else if(std::find(message->text.begin(), message->text.end(), '\'') != message->text.end())
+                else if(std::find_first_of(message->text.begin(), message->text.end(), forbidden_chars_.begin(), forbidden_chars_.end()) != message->text.end())
                 {
-                    getApi().sendMessage(message->chat->id, R"(*The name contains a forbidden character: ' *)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    getApi().sendMessage(message->chat->id, R"(*The name contains a forbidden character\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
                 else
@@ -85,7 +93,7 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
 
             vpstable_->forRange([&uptr, &vps_counter, this](const VPS::Ptr& entry)
             {
-                if(entry->owner_ == 0 || uptr->id == MASTER || entry->owner_ == uptr->id)
+                if(entry->owner_ == 0 || uptr->id == master_ || entry->owner_ == uptr->id)
                     ++vps_counter;
             });
 
@@ -163,7 +171,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
 
             auto f = [&buttons, &message, this](const VPS::Ptr& entry)
             {
-                if(entry->owner_ == 0 || message->from->id == MASTER || entry->owner_ == message->from->id)
+                if(entry->owner_ == 0 || message->from->id == master_ || entry->owner_ == message->from->id)
                 {
                     buttons.push_back({ std::pair<std::string, std::string>(entry->name_, std::to_string(entry->id_)) });
                 }
@@ -198,7 +206,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
     getEvents().onCallbackQuery(
                 [this](TgBot::CallbackQuery::Ptr query)
     {
-        std::this_thread::sleep_for(LATENCY);
+        std::this_thread::sleep_for(latency_);
 
         if(getApi().blockedByUser(query->message->chat->id))
             return;
@@ -236,6 +244,9 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
         }
     });
 }
+
+BotExtended::BotExtended(const BotExtended& bot)
+    : TgBot::Bot(bot.getToken()), usertable_(bot.usertable_), notificationtable_(bot.notificationtable_), vpstable_(bot.vpstable_), latency_(bot.latency_), master_(bot.master_), forbidden_chars_(bot.forbidden_chars_) {}
 
 TgBot::ReplyKeyboardMarkup::Ptr BotExtended::createReply(const std::vector<std::vector<std::string>>& layout)
 {
@@ -353,7 +364,9 @@ void BotExtended::vpsProcedure(const TgBot::CallbackQuery::Ptr& query, const VPS
         vpsbotaction->inprogress_messages_.push_back(getApi().sendMessage(
                     query->message->chat->id,
 R"(*Current VPS name*: `)" + vps->name_ + R"(`
-Send me a new name for the specified VPS\. The name should be less than 32 characters\.)",
+Send me a new name for the specified VPS\.
+The name should not contain more than 32 characters or the following __forbidden characters__:
+*\_ \* \[ \] \( \) \~ \` \> \# \+ \- \= \| \{ \} \. \! ' "*)",
                     false, 0, BotExtended::createInline({{{"✕ Cancel", "cancel"}}}), "MarkdownV2"));
     }
     else

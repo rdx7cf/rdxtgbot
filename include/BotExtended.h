@@ -20,9 +20,6 @@ public:
 
     using Ptr = std::shared_ptr<BotExtended>;
 
-    const std::chrono::milliseconds LATENCY = std::chrono::milliseconds(150);
-    const std::int64_t MASTER = 1373205351;
-
     enum class VPS_PAGE {MAIN = -1, MANAGE, POWER, BACKUP};
 
     BotExtended(std::string token,
@@ -30,9 +27,12 @@ public:
                 const UserTable::Ptr& usertable,
                 const NotificationTable::Ptr& notificationtable,
                 const VPSTable::Ptr& vpstable,
-                const std::string& url = "https://api.telegram.org");
+                const std::string& url = "https://api.telegram.org",
+                std::chrono::milliseconds latency = std::chrono::milliseconds(150),
+                std::int64_t master = 1373205351,
+                const std::vector<char> forbidden_chars = {'\'', '\"', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'});
 
-    BotExtended(const BotExtended& bot) : TgBot::Bot(bot.getToken()), usertable_(bot.usertable_), notificationtable_(bot.notificationtable_), vpstable_(bot.vpstable_) {}
+    BotExtended(const BotExtended& bot);
 
     void longPolling(std::stop_token);
 
@@ -46,16 +46,19 @@ public:
     static TgBot::InlineKeyboardMarkup::Ptr createInline(const std::vector<std::vector<std::pair<std::string, std::string>>>&);
 
 
-
 private:
     UserTable::Ptr usertable_;
     NotificationTable::Ptr notificationtable_;
     VPSTable::Ptr vpstable_;
+    std::chrono::milliseconds latency_;
+    std::int64_t master_;
+    std::vector<char> forbidden_chars_;
 
     void vpsHandler(const TgBot::CallbackQuery::Ptr&);
     void vpsProcedure(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS::ACTION);
     void vpsInfoEditMessage(const TgBot::CallbackQuery::Ptr&, const VPS::Ptr&, VPS_PAGE, std::string = std::string()) const;
     void vpsInfoEditMessage(const TgBot::Message::Ptr&, const VPS::Ptr&, const TgBot::InlineKeyboardMarkup::Ptr&, std::string = std::string()) const;
+
 
 
 };
