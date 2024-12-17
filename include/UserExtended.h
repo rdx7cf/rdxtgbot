@@ -3,11 +3,9 @@
 
 #include <bitset>
 #include <string>
-#include <vector>
-
 #include <tgbot/tgbot.h>
 
-
+#include "BotAction.h"
 
 class UserExtended : public TgBot::User
 {
@@ -16,6 +14,8 @@ public:
 
     std::bitset<4> active_tasks_; // This bitmask remembers if user have some loop task active before the bot shutdown (one bit for each task).
     std::time_t member_since_;
+    BotAction::List::Ptr pending_actions_;
+
 
     UserExtended(
             std::int64_t i,
@@ -30,10 +30,13 @@ public:
             bool cragm,
             bool siq,
             unsigned long bset = 0b0000,
-            std::int64_t ms = std::time(nullptr))
+            std::int64_t ms = std::time(nullptr),
+            const BotAction::List::Ptr& pending_actions = std::make_shared<BotAction::List>())
         :
         active_tasks_(bset),
-        member_since_(ms)
+        member_since_(ms),
+        pending_actions_(pending_actions)
+
     {
         id = i; username = uname;
         firstName = fname; lastName = lname;
@@ -51,10 +54,6 @@ public:
         : TgBot::User(*tgu), active_tasks_(bset), member_since_(ms) {}
 
     bool operator==(const UserExtended&) const;
-    /*bool updateNeeded(const UserExtended&) const;
-    UserExtended& operator=(const UserExtended&);*/
-
-
 };
 
 #endif

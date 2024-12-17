@@ -17,8 +17,10 @@
 #include "SQLFile.h"
 #include "MyHTTPclient.h"
 #include "Logger.h"
-#include "BotExtended.h"
+#include "UserExtended.h"
 #include "Notification.h"
+#include "VPS.h"
+#include "BotExtended.h"
 
 int enter_number(std::istream&, std::ostream&);
 
@@ -172,7 +174,7 @@ Enter a number: )";
             std::cout << "Enter user's Telegram ID: ";
             user_id = enter_number(std::cin, std::cout);
 
-            auto user = usertable_ptr->getCopyBy([&user_id](const Table<UserExtended>::SptrT& entry) { return entry->id == user_id; });
+            auto user = usertable_ptr->getCopyBy([&user_id](const std::shared_ptr<UserExtended>& entry) { return entry->id == user_id; });
             if(user)
             {
                 std::cout << "Enter a message for the user (CTRL+D to send): ";

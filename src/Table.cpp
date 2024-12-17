@@ -1,4 +1,7 @@
 #include "Table.h"
+#include "UserExtended.h"
+#include "Notification.h"
+#include "VPS.h"
 
 ///////////////////////
 // AUX SECTION OPEN //
@@ -469,7 +472,7 @@ bool NotificationTable::update(const Notification::Ptr& entry) noexcept
                 + std::string("', wdays='") + entry->wdays_str_
                 + std::string("', added_on=") + std::to_string(entry->added_on_)
                 + std::string(", expiring_on=") + std::to_string(entry->expiring_on_)
-                + std::string("', parse_mode='") + entry->parse_mode_
+                + std::string(", parse_mode='") + entry->parse_mode_
                 + std::string("' WHERE id=") + std::to_string(entry->id_)
             );
 
@@ -491,7 +494,7 @@ void NotificationTable::sync() const
                     + std::string("', wdays='") + entry->wdays_str_
                     + std::string("', added_on=") + std::to_string(entry->added_on_)
                     + std::string(", expiring_on=") + std::to_string(entry->expiring_on_)
-                    + std::string("', parse_mode='") + entry->parse_mode_
+                    + std::string(", parse_mode='") + entry->parse_mode_
                     + std::string("' WHERE id=") + std::to_string(entry->id_)
                 );
     };

@@ -1,4 +1,13 @@
 #include "BashCommand.h"
+#include <array>
+#include <csignal>
+#include <cstdlib>
+#include <iostream>
+#include <cerrno>
+#include <clocale>
+#include <cstring>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 void BashCommand::execute(const std::string& Command)
 {

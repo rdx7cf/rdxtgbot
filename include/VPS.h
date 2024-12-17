@@ -12,6 +12,19 @@
 #include "BashCommand.h"
 #include "Auxiliary.h"
 
+/*class Backup
+{
+    class File
+    {
+        std::string filename_;
+        std::int64_t size_bytes_;
+
+        std::int64_t
+    };
+
+
+};*/
+
 
 class VPS
 {

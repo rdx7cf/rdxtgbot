@@ -1,44 +1,15 @@
 #include "BotExtended.h"
+#include <algorithm>
+#include <thread>
+#include <functional>
+#include <iostream>
+#include <chrono>
 
-using namespace std::literals::chrono_literals;
-
-BotExtended::BotAction::BotAction(const TgBot::User::Ptr& owner, const TgBot::Message::Ptr& initial_message, const BotExtended* bot, const std::string& user_input)
-    : owner_(owner), bot_(bot), user_input_(user_input)
-{
-    inprogress_messages_.push_back(initial_message);
-}
-
-BotExtended::VPSBotAction::VPSBotAction(const TgBot::User::Ptr& owner, const TgBot::Message::Ptr& initial_message, const BotExtended* bot, const std::string& user_input, const VPS::Ptr& vps, VPS::ACTION action)
-    :  BotAction(owner, initial_message, bot, user_input), vps_(vps), action_(action)
-{}
-
-void BotExtended::BotAction::deleteMessages()
-{
-
-    std::for_each(inprogress_messages_.begin() + 1, inprogress_messages_.end(), [this](const TgBot::Message::Ptr& msg)
-    {
-        std::this_thread::sleep_for(100ms);
-        try
-        {
-            bot_->getApi().deleteMessage(msg->chat->id, msg->messageId);
-        }
-        catch(const std::exception& e)
-        { Logger::write(std::string(": ERROR : BOT : ") + e.what() + "."); }
-    });
-
-    inprogress_messages_.clear();
-}
-
-void BotExtended::VPSBotAction::perform()
-{
-    vps_->perform(action_, user_input_);
-    bot_->vpstable_->update(vps_);
-
-    auto controlmessage = inprogress_messages_[0];
-    bot_->vpsInfoEditMessage(controlmessage, vps_, controlmessage->replyMarkup);
-
-    deleteMessages();
-}
+#include "Logger.h"
+#include "BashCommand.h"
+#include "Auxiliary.h"
+#include "UserExtended.h"
+#include "BotAction.h"
 
 BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client, const UserTable::Ptr& usertable, const NotificationTable::Ptr& notificationtable, const VPSTable::Ptr& vpstable, const std::string& url)
     : TgBot::Bot(token, http_client, url), usertable_(usertable), notificationtable_(notificationtable), vpstable_(vpstable)
@@ -60,21 +31,16 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
     {
         try
         {
-            std::this_thread::sleep_for(100ms);
+            std::this_thread::sleep_for(LATENCY);
             if(getApi().blockedByUser(message->chat->id))
                 return;
 
-            std::lock_guard<std::mutex> lock_actions(mtx_actions_);
+            auto user = usertable_->getCopyBy([&message](const UserExtended::Ptr& entry){return entry->id == message->from->id;});
 
-
-            auto botaction_it = std::find_if(pending_actions_.begin(), pending_actions_.end(),
-                                          [&message](const BotAction::Ptr& entry) {
-                return entry->owner_->id == message->from->id;
-            });
-
-            if(botaction_it != pending_actions_.end())
+            if(user && !user->pending_actions_->isNoActions())
             {
-                auto botaction = *botaction_it;
+                auto botaction = user->pending_actions_->getAction();
+
                 botaction->inprogress_messages_.push_back(message);
 
                 if(message->text.size() >= 32)
@@ -92,7 +58,6 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
                     botaction->user_input_ = message->text;
                     botaction->perform();
                 }
-                pending_actions_.erase(botaction_it);
             }
             else
             {
@@ -118,7 +83,7 @@ BotExtended::BotExtended(std::string token, const TgBot::HttpClient& http_client
             std::int64_t vps_counter = 0;
 
 
-            vpstable_->forRange([&uptr, &vps_counter](const VPS::Ptr& entry)
+            vpstable_->forRange([&uptr, &vps_counter, this](const VPS::Ptr& entry)
             {
                 if(entry->owner_ == 0 || uptr->id == MASTER || entry->owner_ == uptr->id)
                     ++vps_counter;
@@ -196,7 +161,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
 
             std::vector<std::vector<std::pair<std::string, std::string>>> buttons;
 
-            auto f = [&buttons, &message](const VPS::Ptr& entry)
+            auto f = [&buttons, &message, this](const VPS::Ptr& entry)
             {
                 if(entry->owner_ == 0 || message->from->id == MASTER || entry->owner_ == message->from->id)
                 {
@@ -233,7 +198,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
     getEvents().onCallbackQuery(
                 [this](TgBot::CallbackQuery::Ptr query)
     {
-        std::this_thread::sleep_for(100ms);
+        std::this_thread::sleep_for(LATENCY);
 
         if(getApi().blockedByUser(query->message->chat->id))
             return;
@@ -244,29 +209,10 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
         }
         else if(query->data == "cancel")
         {
-            std::lock_guard<std::mutex> lock_actions(mtx_actions_);
+            auto user = usertable_->getCopyBy([&query](const UserExtended::Ptr& entry){return entry->id == query->from->id;});
 
-            auto botaction_it = std::find_if(pending_actions_.begin(), pending_actions_.end(),
-                                          [&query](const BotAction::Ptr& entry)
-            {
-                if(entry->owner_->id == query->message->chat->id)
-                {
-                    auto message_to_delete = std::find_if(entry->inprogress_messages_.begin(), entry->inprogress_messages_.end(), [&query](const TgBot::Message::Ptr& msg)
-                    {
-                       return query->message->messageId == msg->messageId;
-                    });
-
-                    if(message_to_delete != entry->inprogress_messages_.end())
-                        return true;
-                }
-
-                return false;
-            });
-
-            if(botaction_it != pending_actions_.end())
-            {
-                pending_actions_.erase(botaction_it);
-            }
+            if(user)
+                user->pending_actions_->cancelActionByMessageId(query->message->messageId);
 
             getApi().deleteMessage(query->message->chat->id, query->message->messageId);
         }
@@ -399,9 +345,11 @@ void BotExtended::vpsProcedure(const TgBot::CallbackQuery::Ptr& query, const VPS
 {
     if(a == VPS::ACTION::RENAME)
     {
-        auto vpsbotaction = std::make_shared<VPSBotAction>(query->from, query->message, this, std::string(), vps, a);
+        auto vpsbotaction = std::make_shared<VPSBotAction>(query->message, this, "", vps, a);
+        auto user = usertable_->getCopyBy([&query](const UserExtended::Ptr& entry){return entry->id == query->from->id;});
 
-        pending_actions_.push_back(vpsbotaction);
+        user->pending_actions_->addAction(vpsbotaction);
+
         vpsbotaction->inprogress_messages_.push_back(getApi().sendMessage(
                     query->message->chat->id,
 R"(*Current VPS name*: `)" + vps->name_ + R"(`

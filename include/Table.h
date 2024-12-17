@@ -1,10 +1,14 @@
 #ifndef TABLE_H
 #define TABLE_H
 
+#include <memory>
+#include <vector>
+
 #include "SQLFile.h"
-#include "UserExtended.h"
-#include "Notification.h"
-#include "VPS.h"
+
+class UserExtended;
+class Notification;
+class VPS;
 
 template<typename T>
 class Table
@@ -46,7 +50,6 @@ protected:
     mutable std::mutex mtx_vec_;
     std::vector<SptrT> vec_;
 
-    bool updateNeeded(const SptrT&, const SptrT&);
     SptrT getBy(const std::function<bool(SptrT&)>& f);
     SptrT getBy(const std::function<bool(const SptrT&)>& f) const;
 };
@@ -58,8 +61,8 @@ public:
 
     UserTable(const Table<UserExtended>::SptrF&, int = -1);
 
-    bool add(const UserExtended::Ptr&) override;
-    bool update(const UserExtended::Ptr&) noexcept override;
+    bool add(const Table<UserExtended>::SptrT&) override;
+    bool update(const Table<UserExtended>::SptrT&) noexcept override;
 
     void sync() const override;
     void showTable(std::ostream&) const noexcept override;
@@ -72,8 +75,8 @@ public:
 
     NotificationTable(const Table<Notification>::SptrF&, int = -1);
 
-    bool add(const Notification::Ptr&) override;
-    bool update(const Notification::Ptr&) noexcept override;
+    bool add(const Table<Notification>::SptrT&) override;
+    bool update(const Table<Notification>::SptrT&) noexcept override;
 
     void sync() const override;
     void showTable(std::ostream&) const noexcept override;
@@ -86,8 +89,8 @@ public:
 
     VPSTable(const Table<VPS>::SptrF&, int = -1);
 
-    bool add(const VPS::Ptr&) override;
-    bool update(const VPS::Ptr&) noexcept override;
+    bool add(const Table<VPS>::SptrT&) override;
+    bool update(const Table<VPS>::SptrT&) noexcept override;
 
     void sync() const override;
     void showTable(std::ostream&) const noexcept override;
