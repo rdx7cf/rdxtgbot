@@ -258,8 +258,8 @@ Enter a number: )";
         {
             std::cout << "\n<UPDATING A NOTIFICATION>\n";
             std::cout << "Enter an id of a notification to update: ";
-
-            auto notif = notificationtable_ptr->getCopyBy([](const Notification::Ptr& entry) { return entry->id_ == enter_number(std::cin, std::cout); }); // Какой же здесь ад происходит...
+            std::int64_t id = enter_number(std::cin, std::cout);
+            auto notif = notificationtable_ptr->getCopyBy([&id](const Notification::Ptr& entry) { return entry->id_ == id; }); // Какой же здесь ад происходит...
             if(!notif)
             {
                 std::cout << "There's no notification with this id.\n\n";
@@ -269,7 +269,8 @@ Enter a number: )";
                          "1. Owner name;\t\t2. Text;\n"
                          "3. On/Off;\t\t4. Switch ad. status;\n"
                          "5. Timepoints;\t6. Expiration date;\n"
-                         "7. Weekdays;\t\t8. Quit updating.\n"
+                         "7. Weekdays;\t\t8. Parse mode;\n"
+                         "9. Quit updating.\n"
                          "Enter a number: ";
             switch(enter_number(std::cin, std::cout))
             {
@@ -299,7 +300,7 @@ Enter a number: )";
             }
             case 3:
             {
-                std::cout << "ON / OFF (1 / 0) (previous: " + std::to_string(notif->active_) + ": ";
+                std::cout << "ON / OFF (1 / 0) (previous: " + std::to_string(notif->active_) + "): ";
                 notif->active_ = enter_number(std::cin, std::cout);
                 break;
             }
@@ -311,7 +312,7 @@ Enter a number: )";
             }
             case 5:
             {
-                std::cout << "Enter the time schedule_ ('15:30 17:30 00:00 01:05'): ";
+                std::cout << "Enter the time schedule ('15:30 17:30 00:00 01:05'): ";
                 std::getline(std::cin, notif->tpoints_str_);
                 notif->schedule_ = extractSchedule(notif->tpoints_str_, notif->wdays_str_);
                 if(notif->schedule_.size() == 0)
@@ -343,6 +344,12 @@ Enter a number: )";
                     notif->tpoints_str_.clear();
                     notif->wdays_str_.clear();
                 }
+                break;
+            }
+            case 8:
+            {
+                std::cout << "Enter a parse mode (previous: " + notif->parse_mode_ + "): ";
+                std::getline(std::cin, notif->parse_mode_);
                 break;
             }
 
@@ -406,8 +413,8 @@ Enter a number: )";
         {
             std::cout << "\n<UPDATING A VPS ENTRY>\n";
             std::cout << "Enter an id of a VPS entry to update: ";
-
-            auto vps = vpstable_ptr->getCopyBy([](const VPS::Ptr& entry) { return entry->id_ == enter_number(std::cin, std::cout); });
+            std::int64_t id = enter_number(std::cin, std::cout);
+            auto vps = vpstable_ptr->getCopyBy([&id](const VPS::Ptr& entry) { return entry->id_ == id; });
             if(!vps)
             {
                 std::cout << "There's no VPS entry with this id.\n\n";

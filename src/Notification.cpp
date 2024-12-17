@@ -9,8 +9,10 @@ Notification::Notification(std::int64_t i,
                            const std::string& wd_str,
                            const std::vector<TmExtended>& sch,
                            std::time_t ad_on,
-                           std::time_t ex_on)
-    : id_(i), owner_(o), text_(t), active_(a), type_(ty), tpoints_str_(tp_str), wdays_str_(wd_str), schedule_(sch), added_on_(ad_on), expiring_on_(ex_on) {}
+                           std::time_t ex_on,
+                           const std::string& parse_mode)
+    : id_(i), owner_(o), text_(t), active_(a), type_(ty), tpoints_str_(tp_str), wdays_str_(wd_str), schedule_(sch), added_on_(ad_on), expiring_on_(ex_on), parse_mode_(parse_mode)
+{}
 
 bool Notification::operator==(const Notification& rhs) const
 {

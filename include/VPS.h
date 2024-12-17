@@ -45,7 +45,7 @@ public:
 
     mutable std::string last_output_;
 
-    VPS(const std::string& u,
+    VPS(const std::string& u = std::string(),
         std::int64_t i = 0,
         std::int64_t o = 0,
         const std::string& address = "",

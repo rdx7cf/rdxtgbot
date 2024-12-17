@@ -640,11 +640,11 @@ void BotExtended::longPolling(std::stop_token tok)
 
 }
 
-void BotExtended::notifyOne(std::int64_t user_id, const std::string& message, const TgBot::GenericReply::Ptr& keyboard) const noexcept
+void BotExtended::notifyOne(std::int64_t user_id, const std::string& message, const TgBot::GenericReply::Ptr& keyboard, const std::string& parse_mode) const noexcept
 {
     try
     {
-        getApi().sendMessage(user_id, message, false, 0, keyboard);
+        getApi().sendMessage(user_id, message, false, 0, keyboard, parse_mode);
         Logger::write(": INFO : BOT : User [" + std::to_string(user_id) + "] has received the message.");
     }
     catch(const std::exception& e)
@@ -653,18 +653,18 @@ void BotExtended::notifyOne(std::int64_t user_id, const std::string& message, co
     }
 }
 
-void BotExtended::notifyAll(const std::string& message, Notification::TYPE flag, const TgBot::GenericReply::Ptr& keyboard) const noexcept
+void BotExtended::notifyAll(const std::string& message, Notification::TYPE flag, const TgBot::GenericReply::Ptr& keyboard, const std::string& parse_mode) const noexcept
 {
     Logger::write(": INFO : BOT : Notifying all users...");
 
-    auto f = [this, &message, &flag, &keyboard](UserExtended::Ptr& user)
+    auto f = [this, &message, &flag, &keyboard, &parse_mode](UserExtended::Ptr& user)
     {
         try
         {
             if(!getApi().blockedByUser(user->id))
             {
                 if(flag == Notification::TYPE::SYSTEM || user->active_tasks_[static_cast<int>(flag)])
-                        notifyOne(user->id, message, keyboard);
+                        notifyOne(user->id, message, keyboard, (parse_mode == "Not assigned" ? "" : parse_mode));
             }
             else
                 Logger::write(": INFO : BOT : User [" + std::to_string(user->id) + "] blocked the bot.");
@@ -697,7 +697,7 @@ void BotExtended::announcing(std::stop_token tok) const
                 }
                 if (((current.tm_hour == time_point.tm_hour && current.tm_min >= time_point.tm_min) || current.tm_hour > time_point.tm_hour) && !time_point.executed_) // Такое монструозное условие нужно для того, чтобы учитывалась разница и между часами, и между часами:минутами (то есть чтобы временная точка типа 15:30 также была допустима)
                 {
-                    notifyAll(notif->text_, notif->type_);
+                    notifyAll(notif->text_, notif->type_, nullptr, notif->parse_mode_);
                     time_point.executed_ = true;
                 }
                 else if((current.tm_hour < time_point.tm_hour || (current.tm_hour == time_point.tm_hour && current.tm_min < time_point.tm_min)) && time_point.executed_)

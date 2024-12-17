@@ -24,18 +24,20 @@ public:
     std::vector<TmExtended> schedule_;
     std::time_t added_on_;
     std::time_t expiring_on_;
+    std::string parse_mode_;
 
     Notification(
         std::int64_t = 0,
-        const std::string& = std::string(),
-        const std::string& = std::string(),
+        const std::string& = "",
+        const std::string& = "",
         bool = false,
         TYPE = static_cast<TYPE>(-1),
-        const std::string& = std::string(),
-        const std::string& = std::string(),
+        const std::string& = "",
+        const std::string& = "",
         const std::vector<TmExtended>& = std::vector<TmExtended>(),
         std::time_t = 0,
-        std::time_t = 0);
+        std::time_t = 0,
+        const std::string& parse_mode = "");
 
     bool operator==(const Notification&) const;
     /*bool updateNeeded(const Notification&) const;

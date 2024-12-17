@@ -111,7 +111,8 @@ static int extract_notif(void* notifs, int colcount, char** columns, char** coln
                 columns[6],
                 extractSchedule(columns[5], columns[6]),
                 std::stol(columns[7]),
-                std::stol(columns[8]));
+                std::stol(columns[8]),
+                columns[9]);
 
     if(entry->schedule_.size() == 0)
     {
@@ -340,7 +341,7 @@ NotificationTable::NotificationTable(const Table<Notification>::SptrF& file, int
         std::lock_guard<std::mutex> lock(mtx_vec_);
         file_->sendQuery
                 (
-                    "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN, type INTEGER,tpoints TEXT,wdays TEXT,added_on INTEGER,expiring_on INTEGER);"
+                    "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT,owner TEXT,text TEXT,active BOOLEAN, type INTEGER,tpoints TEXT,wdays TEXT,added_on INTEGER,expiring_on INTEGER,parse_mode TEXT);"
                     "SELECT * FROM notifications",
                     extract_notif,
                     &vec_
@@ -356,7 +357,7 @@ bool NotificationTable::add(const Notification::Ptr& entry)
         return false;
 
     file_->sendQuery(
-        (std::string)"INSERT INTO notifications (owner, text, active, type, tpoints, wdays, added_on, expiring_on) VALUES ('"
+        (std::string)"INSERT INTO notifications (owner, text, active, type, tpoints, wdays, added_on, expiring_on, parse_mode) VALUES ('"
         + std::string(entry->owner_)
         + std::string("', '")
         + std::string(entry->text_)
@@ -372,7 +373,9 @@ bool NotificationTable::add(const Notification::Ptr& entry)
         + std::to_string(entry->added_on_)
         + std::string(", ")
         + std::to_string(entry->expiring_on_)
-        + std::string(");"));
+        + std::string(", '")
+        + entry->parse_mode_
+        + std::string("');"));
 
     Logger::write(": INFO : DATABASE : New notification [" + std::to_string(entry->id_) + "] [" + entry->owner_ + "] has been added.");
 
@@ -447,6 +450,12 @@ bool NotificationTable::update(const Notification::Ptr& entry) noexcept
             existing->expiring_on_ = entry->expiring_on_;
         }
 
+        if(entry->parse_mode_ != existing->parse_mode_)
+        {
+            info_updated = true;
+            existing->parse_mode_ = entry->parse_mode_;
+        }
+
         if(!info_updated)
             return false;
     }
@@ -460,7 +469,8 @@ bool NotificationTable::update(const Notification::Ptr& entry) noexcept
                 + std::string("', wdays='") + entry->wdays_str_
                 + std::string("', added_on=") + std::to_string(entry->added_on_)
                 + std::string(", expiring_on=") + std::to_string(entry->expiring_on_)
-                + std::string(" WHERE id=") + std::to_string(entry->id_)
+                + std::string("', parse_mode='") + entry->parse_mode_
+                + std::string("' WHERE id=") + std::to_string(entry->id_)
             );
 
     Logger::write(": INFO : DATABASE : Notification [" + std::to_string(entry->id_) + "] [" + entry->owner_ + "] has been updated.");
@@ -481,7 +491,8 @@ void NotificationTable::sync() const
                     + std::string("', wdays='") + entry->wdays_str_
                     + std::string("', added_on=") + std::to_string(entry->added_on_)
                     + std::string(", expiring_on=") + std::to_string(entry->expiring_on_)
-                    + std::string(" WHERE id=") + std::to_string(entry->id_)
+                    + std::string("', parse_mode='") + entry->parse_mode_
+                    + std::string("' WHERE id=") + std::to_string(entry->id_)
                 );
     };
     forRange(f);
@@ -497,6 +508,7 @@ void NotificationTable::showTable(std::ostream& os) const noexcept
        << std::setw(8) << "TYPE"
        << std::setw(18) << "OWNER"
        << std::setw(18) << "TEXT"
+       << std::setw(18) << "PARSE MODE"
        << std::setw(18) << "SCHEDULE"
        << "ADDED ON"
        << "\t\t\t" << "EXPIRING ON"
@@ -512,6 +524,7 @@ void NotificationTable::showTable(std::ostream& os) const noexcept
            << std::setw(8) << std::to_string(static_cast<int>(entry->type_))
            << std::setw(18) << AUX::shortenString(entry->owner_, 16)
            << std::setw(18) << AUX::shortenString(entry->text_, 16)
+           << std::setw(18) << AUX::shortenString(entry->parse_mode_, 16)
            << std::setw(18) << AUX::shortenString(entry->tpoints_str_, 16)
            << std::put_time(&added_on_, "%d-%m-%Y %H:%M:%S")
            << "\t\t" << std::put_time(&expiring_on_, "%d-%m-%Y %H:%M:%S")
@@ -595,11 +608,31 @@ bool VPSTable::update(const VPS::Ptr& entry) noexcept
             existing->uuid_ = entry->uuid_;
         }
 
+        if(entry->address_ != existing->address_)
+        {
+            info_updated = true;
+            existing->address_ = entry->address_;
+        }
+
+        if(entry->login_ != existing->login_)
+        {
+            info_updated = true;
+            existing->login_ = entry->login_;
+        }
+
+        if(entry->password_ != existing->password_)
+        {
+            info_updated = true;
+            existing->password_ = entry->password_;
+        }
+
         if(entry->name_ != existing->name_)
         {
             info_updated = true;
             existing->name_ = entry->name_;
         }
+
+
 
         if(entry->state_ != existing->state_)
             existing->state_ = entry->state_;

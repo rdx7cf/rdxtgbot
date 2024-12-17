@@ -39,9 +39,9 @@ public:
 
     void longPolling(std::stop_token);
 
-    void notifyOne(std::int64_t, const std::string&, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
+    void notifyOne(std::int64_t, const std::string&, const TgBot::GenericReply::Ptr& = nullptr, const std::string& parse_mode = "") const noexcept;
 
-    void notifyAll(const std::string&, Notification::TYPE = Notification::TYPE::SYSTEM, const TgBot::GenericReply::Ptr& = nullptr) const noexcept;
+    void notifyAll(const std::string&, Notification::TYPE = Notification::TYPE::SYSTEM, const TgBot::GenericReply::Ptr& = nullptr, const std::string& parse_mode = "") const noexcept;
 
     void announcing(std::stop_token) const;
 
