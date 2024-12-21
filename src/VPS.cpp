@@ -1,4 +1,6 @@
 #include "VPS.h"
+#include "Auxiliary.h"
+#include "BashCommand.h"
 
 // VPS
 
@@ -91,7 +93,7 @@ BashCommand VPS::virsh_exec(ACTION a, const std::string& input) noexcept
         break;
     case ACTION::SCREENSHOT:
     {
-        std::string filename = "screenshots/" + std::to_string(id_) + ".png";
+        std::string filename = "vps/screenshots/" + std::to_string(id_) + ".png";
         cmd.execute(std::string("virsh screenshot ") + uuid_ + " " + filename);
         if(!cmd.exit_status_)
             screenshot_ = filename;
@@ -116,10 +118,10 @@ BashCommand VPS::virsh_exec(ACTION a, const std::string& input) noexcept
         cmd.execute(std::string("virsh reset ") + uuid_);
         break;
     case ACTION::SAVE:
-        cmd.execute(std::string("virsh save ") + uuid_ + " hibernate/" + std::to_string(id_) + ".hib --running");
+        cmd.execute(std::string("virsh save ") + uuid_ + " vps/hibernate/" + std::to_string(id_) + ".hib --running");
         break;
     case ACTION::RESTORE:
-        cmd.execute(std::string("virsh restore hibernate/" + std::to_string(id_) + ".hib --running"));
+        cmd.execute(std::string("virsh restore vps/hibernate/" + std::to_string(id_) + ".hib --running"));
         break;
     case ACTION::STOP:
         cmd.execute(std::string("virsh destroy ") + uuid_);
@@ -250,7 +252,7 @@ void VPS::fetch_info()
 
 
                 blocks_.push_back(
-                            std::string("▸ *") + names_it->str() + "* — Allocation: " + allocation  + " GiB / Capacity: " + capacity + " GiB"
+                            std::string("▸ *") + names_it->str() + "* — __A__: " + allocation  + " GiB / __C__: " + capacity + " GiB"
                             );
             }
 
@@ -274,7 +276,7 @@ void VPS::fetch_info()
 
 
                     netifstat_.push_back(
-                                std::string("▸ *") + names_it->str() + "* — Upload: " + upload  + " MiB / Download: " + download + " MiB"
+                                std::string("▸ *") + names_it->str() + "* — __U__: " + upload  + " MiB / __D__: " + download + " MiB"
                                 );
                 }
             }

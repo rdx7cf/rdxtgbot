@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "SQLFile.h"
+#include "Logger.h"
+#include "Ctime++.h"
 
 class UserExtended;
 class Notification;

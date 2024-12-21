@@ -1,4 +1,5 @@
 #include "Logger.h"
+#include "Ctime++.h"
 
 std::string Logger::filename_ {"./log.log"};
 

@@ -7,8 +7,6 @@
 #include <ctime>
 #include <iomanip>
 
-#include "Ctime++.h"
-
 
 struct Logger
 {

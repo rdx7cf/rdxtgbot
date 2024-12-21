@@ -19,7 +19,7 @@ BotExtended::BotExtended(std::string token,
                          const std::string& url,
                          std::chrono::milliseconds latency,
                          std::int64_t master,
-                         const std::vector<char> forbidden_chars)
+                         const std::vector<char>& forbidden_chars)
     : TgBot::Bot(token, http_client, url), usertable_(usertable), notificationtable_(notificationtable), vpstable_(vpstable), latency_(latency), master_(master), forbidden_chars_(forbidden_chars)
 {
     getEvents().onAnyMessage(
@@ -208,13 +208,10 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
     {
         std::this_thread::sleep_for(latency_);
 
-        if(getApi().blockedByUser(query->message->chat->id))
+        if(getApi().blockedByUser(query->message->chat->id) || query->data == "blank")
             return;
-
-        if(query->data == "close")
-        {
+        else if(query->data == "close")
             getApi().deleteMessage(query->message->chat->id, query->message->messageId);
-        }
         else if(query->data == "cancel")
         {
             auto user = usertable_->getCopyBy([&query](const UserExtended::Ptr& entry){return entry->id == query->from->id;});
@@ -370,7 +367,12 @@ The name should not contain more than 32 characters or the following __forbidden
                     false, 0, BotExtended::createInline({{{"✕ Cancel", "cancel"}}}), "MarkdownV2"));
     }
     else
+    {
+        getApi().editMessageReplyMarkup(
+                    query->message->chat->id,
+                    query->message->messageId, "", BotExtended::createInline({{{"⧖ Please wait...", "blank"}}}));
         vps->perform(a);
+    }
 
     if(a == VPS::ACTION::SCREENSHOT)
     {

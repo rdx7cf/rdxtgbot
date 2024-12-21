@@ -8,9 +8,7 @@
 
 #include <tgbot/tgbot.h>
 
-
-#include "BashCommand.h"
-#include "Auxiliary.h"
+class BashCommand;
 
 /*class Backup
 {

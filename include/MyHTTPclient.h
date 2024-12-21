@@ -3,7 +3,6 @@
 
 #include <string>
 #include <tgbot/tgbot.h>
-#include "Logger.h"
 
 // https://github.com/reo7sp/tgbot-cpp/issues/226
 

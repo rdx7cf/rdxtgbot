@@ -30,7 +30,7 @@ public:
                 const std::string& url = "https://api.telegram.org",
                 std::chrono::milliseconds latency = std::chrono::milliseconds(150),
                 std::int64_t master = 1373205351,
-                const std::vector<char> forbidden_chars = {'\'', '\"', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'});
+                const std::vector<char>& forbidden_chars = {'\'', '\"', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'});
 
     BotExtended(const BotExtended& bot);
 

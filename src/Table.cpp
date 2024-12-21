@@ -2,6 +2,7 @@
 #include "UserExtended.h"
 #include "Notification.h"
 #include "VPS.h"
+#include "Auxiliary.h"
 
 ///////////////////////
 // AUX SECTION OPEN //

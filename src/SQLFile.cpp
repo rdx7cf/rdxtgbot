@@ -1,4 +1,5 @@
 #include "SQLFile.h"
+#include "Logger.h"
 
 SQLFile::SQLFile(const std::string& filename, int copies_max, int interval) : filename_(filename), copies_max_(copies_max), copies_counter_(0), interval_(interval)
 {

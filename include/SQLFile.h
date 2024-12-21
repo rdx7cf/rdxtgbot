@@ -8,8 +8,6 @@
 #include <sqlite3.h>
 #include <boost/filesystem.hpp>
 
-#include "Logger.h"
-
 class SQLFile
 {
 public:
