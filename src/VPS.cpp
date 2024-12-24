@@ -86,16 +86,15 @@ VPS& VPS::operator=(const VPS& rhs)
 BashCommand VPS::virsh_exec(ACTION a, const std::string& input) noexcept
 {
     BashCommand cmd;
-
     switch(a)
     {
     case ACTION::INFO:
-        cmd.execute(std::string("virsh domstats ") + uuid_);
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh domstats ") + uuid_);
         break;
     case ACTION::SCREENSHOT:
     {
         std::string filename = "vps/screenshots/" + std::to_string(id_) + ".png";
-        cmd.execute(std::string("virsh screenshot ") + uuid_ + " " + filename);
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh screenshot ") + uuid_ + " " + filename);
         if(!cmd.exit_status_)
             screenshot_ = filename;
         else
@@ -104,31 +103,31 @@ BashCommand VPS::virsh_exec(ACTION a, const std::string& input) noexcept
     }
     case ACTION::RENAME:
         name_ = input;
-        cmd.execute(std::string("virsh domrename ") + uuid_ + ' ' + '"' + name_ + '"');
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh domrename ") + uuid_ + ' ' + '"' + name_ + '"');
         break;
     case ACTION::REBOOT:
-        cmd.execute(std::string("virsh destroy ") + uuid_ + " && virsh start " + uuid_);
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh destroy ") + uuid_ + " && virsh start " + uuid_);
         break;
     case ACTION::SUSPEND:
-        cmd.execute(std::string("virsh suspend ") + uuid_);
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh suspend ") + uuid_);
         break;
     case ACTION::RESUME:
-        cmd.execute(std::string("virsh resume ") + uuid_);
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh resume ") + uuid_);
         break;
     case ACTION::RESET:
-        cmd.execute(std::string("virsh reset ") + uuid_);
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh reset ") + uuid_);
         break;
     case ACTION::SAVE:
-        cmd.execute(std::string("virsh save ") + uuid_ + " vps/hibernate/" + std::to_string(id_) + ".hib --running");
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh save ") + uuid_ + " vps/hibernate/" + std::to_string(id_) + ".hib --running");
         break;
     case ACTION::RESTORE:
-        cmd.execute(std::string("virsh restore vps/hibernate/" + std::to_string(id_) + ".hib --running"));
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh restore vps/hibernate/" + std::to_string(id_) + ".hib --running"));
         break;
     case ACTION::STOP:
-        cmd.execute(std::string("virsh destroy ") + uuid_);
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh destroy ") + uuid_);
         break;
     case ACTION::START:
-        cmd.execute(std::string("virsh start ") + uuid_);
+        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh start ") + uuid_);
         break;
     case ACTION::SHOW:
         break;
@@ -140,7 +139,7 @@ BashCommand VPS::virsh_exec(ACTION a, const std::string& input) noexcept
 BashCommand VPS::virsh_exec(const std::string& command) noexcept
 {
     BashCommand cmd;
-    cmd.execute(std::string("virsh ") + command);
+    cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh ") + command);
     return cmd;
 }
 
