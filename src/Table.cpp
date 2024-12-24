@@ -8,27 +8,6 @@
 // AUX SECTION OPEN //
 /////////////////////
 
-/*static std::vector<std::string> split(const std::string& str, char delim) noexcept
-{
-    using iter = std::string::const_iterator;
-
-    std::vector<std::string> ret;
-
-    iter i = str.begin();
-    while(i != str.end())
-    {
-        i = findIf(i, str.end(), [&delim](const char c){return c != delim;});
-        iter j = findIf(i, str.end(), [&delim](const char c){return c == delim;});
-
-        if(i != str.end())
-            ret.push_back(std::string(i, j));
-
-        i = j;
-    }
-
-    return ret;
-}*/
-
 std::vector<TmExtended> extractSchedule(const std::string& raw_tpoint, const std::string& raw_wday) noexcept
 {
 

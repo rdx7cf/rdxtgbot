@@ -22,12 +22,12 @@ public:
 
         void addAction(const BotAction::Ptr&);
         BotAction::Ptr getAction();
-        bool isNoActions();
+        bool isNoActions() const;
         bool cancelActionByMessageId(std::int32_t);
 
     private:
         std::list<BotAction::Ptr> pending_actions_;
-        std::mutex mtx_q_;
+        mutable std::mutex mtx_q_;
 
     };
 

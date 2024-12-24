@@ -1,5 +1,6 @@
 #include "VPS.h"
 #include "Auxiliary.h"
+#include "Logger.h"
 #include "BashCommand.h"
 
 // VPS

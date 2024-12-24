@@ -8,6 +8,7 @@
 #include <cstring>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "Logger.h"
 
 void BashCommand::execute(const std::string& Command)
 {
@@ -97,14 +98,32 @@ void BashCommand::execute(const std::string& Command)
     do
     {
         bytes = ::read(outfd[READ_END], buffer.data(), buffer.size());
-        std_out_.append(buffer.data(), bytes);
+        try
+        {
+            std_out_.append(buffer.data(), bytes);
+        }
+        catch(const std::exception& e)
+        {
+            std_out_ = "The output is probably too big...";
+            Logger::write(std::string(": ERROR : CMD : ") + e.what() + ".");
+            break;
+        }
     }
     while(bytes > 0);
 
     do
     {
         bytes = ::read(errfd[READ_END], buffer.data(), buffer.size());
-        std_err_.append(buffer.data(), bytes);
+        try
+        {
+            std_err_.append(buffer.data(), bytes);
+        }
+        catch(const std::exception& e)
+        {
+            std_err_ = "The output is probably too big...";
+            Logger::write(std::string(": ERROR : CMD : ") + e.what() + ".");
+            break;
+        }
     }
     while(bytes > 0);
 

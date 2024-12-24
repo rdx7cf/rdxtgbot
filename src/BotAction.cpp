@@ -56,7 +56,7 @@ BotAction::Ptr BotAction::List::getAction()
     return result;
 }
 
-bool BotAction::List::isNoActions()
+bool BotAction::List::isNoActions() const
 {
     std::lock_guard<std::mutex> lock(mtx_q_);
     return pending_actions_.empty();
