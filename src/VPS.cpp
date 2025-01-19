@@ -103,7 +103,6 @@ BashCommand VPS::virsh_exec(ACTION a, const std::string& input) noexcept
     }
     case ACTION::RENAME:
         name_ = input;
-        cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh domrename ") + uuid_ + ' ' + '"' + name_ + '"');
         break;
     case ACTION::REBOOT:
         cmd.execute(std::string("LC_ALL=en_US.UTF8 virsh destroy ") + uuid_ + " && virsh start " + uuid_);
@@ -217,9 +216,6 @@ void VPS::fetch_info()
 
     if(!cmd.exit_status_)
     {
-        reg = R"((?<=Domain: ').*(?='))";
-        name_ = boost::sregex_iterator(cmd.std_out_.begin(), cmd.std_out_.end(), reg)->str();
-
         reg = R"((?<=state=)\d+)";
         state_ = static_cast<STATE>(std::stoi(boost::sregex_iterator(cmd.std_out_.begin(), cmd.std_out_.end(), reg)->str()));
 
