@@ -1,4 +1,5 @@
-#include "sqlfile.h"
+#include "SQLFile.h"
+#include "Logger.h"
 
 SQLFile::SQLFile(const std::string& filename, int copies_max, int interval) : filename_(filename), copies_max_(copies_max), copies_counter_(0), interval_(interval)
 {
@@ -10,7 +11,7 @@ SQLFile::SQLFile(const std::string& filename, int copies_max, int interval) : fi
 
         Logger::write(err_msg_);
 
-        throw sqlfile_exception(err_msg_);
+        throw SQLFileException(err_msg_);
     }
 }
 
@@ -19,7 +20,7 @@ SQLFile::~SQLFile()
     sqlite3_close(connection_);
 }
 
-void SQLFile::send_query(const std::string& query, int (*callback)(void*, int, char**, char**), void* container) const noexcept
+void SQLFile::sendQuery(const std::string& query, int (*callback)(void*, int, char**, char**), void* container) const noexcept
 {
     std::lock_guard<std::mutex> lock(mtx_sql_);
 
@@ -42,7 +43,7 @@ void SQLFile::backup() const
     Logger::write(": INFO : FILESYSTEM : File '" + filename_ + "' has been copied.");
 }
 
-void SQLFile::auto_backup(std::stop_token tok) const noexcept
+void SQLFile::autoBackup(std::stop_token tok) const noexcept
 {
     if(interval_ < 0)
         return;

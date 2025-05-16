@@ -1,10 +1,11 @@
-#pragma once
+#ifndef LOGGER_H
+#define LOGGER_H
+
+
 #include <string>
 #include <fstream>
 #include <ctime>
 #include <iomanip>
-
-#include "ctime++.h"
 
 
 struct Logger
@@ -14,3 +15,5 @@ struct Logger
     static std::string filename_;
     static void write(const std::string& message);
 };
+
+#endif

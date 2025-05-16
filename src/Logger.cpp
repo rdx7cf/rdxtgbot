@@ -1,4 +1,5 @@
-#include "logger.h"
+#include "Logger.h"
+#include "Ctime++.h"
 
 std::string Logger::filename_ {"./log.log"};
 
@@ -9,7 +10,7 @@ void Logger::write(const std::string& message)
     if(!file.is_open())
         throw std::runtime_error("Unable to open the log file '" + filename_ + "'.\n");
 
-    std::tm now = localtime_ts(std::time(nullptr));
+    std::tm now = localtimeTs(std::time(nullptr));
 
     file <<
      "[" << std::put_time(&now, "%d-%m-%Y %H:%M:%S") << "] "

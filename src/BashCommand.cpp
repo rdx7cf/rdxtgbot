@@ -1,4 +1,14 @@
-#include "bashcommand.h"
+#include "BashCommand.h"
+#include <array>
+#include <csignal>
+#include <cstdlib>
+#include <iostream>
+#include <cerrno>
+#include <clocale>
+#include <cstring>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include "Logger.h"
 
 void BashCommand::execute(const std::string& Command)
 {
@@ -52,7 +62,7 @@ void BashCommand::execute(const std::string& Command)
         ::close(outfd[WRITE_END]);  // Parent does not write to stdout
         ::close(errfd[WRITE_END]);  // Parent does not write to stderr
 
-        if(::write(infd[WRITE_END], StdIn.data(), StdIn.size()) < 0)
+        if(::write(infd[WRITE_END], std_in_.data(), std_in_.size()) < 0)
         {
             throw std::runtime_error(std::strerror(errno));
         }
@@ -88,20 +98,38 @@ void BashCommand::execute(const std::string& Command)
     do
     {
         bytes = ::read(outfd[READ_END], buffer.data(), buffer.size());
-        StdOut.append(buffer.data(), bytes);
+        try
+        {
+            std_out_.append(buffer.data(), bytes);
+        }
+        catch(const std::exception& e)
+        {
+            std_out_ = "The output is probably too big...";
+            Logger::write(std::string(": ERROR : CMD : ") + e.what() + ".");
+            break;
+        }
     }
     while(bytes > 0);
 
     do
     {
         bytes = ::read(errfd[READ_END], buffer.data(), buffer.size());
-        StdErr.append(buffer.data(), bytes);
+        try
+        {
+            std_err_.append(buffer.data(), bytes);
+        }
+        catch(const std::exception& e)
+        {
+            std_err_ = "The output is probably too big...";
+            Logger::write(std::string(": ERROR : CMD : ") + e.what() + ".");
+            break;
+        }
     }
     while(bytes > 0);
 
     if(WIFEXITED(status))
     {
-        ExitStatus = WEXITSTATUS(status);
+        exit_status_ = WEXITSTATUS(status);
     }
 
     cleanup();

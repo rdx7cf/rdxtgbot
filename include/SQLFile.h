@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SQLFILE_H
+#define SQLFILE_H
 
 #include <string>
 #include <map>
@@ -7,22 +8,20 @@
 #include <sqlite3.h>
 #include <boost/filesystem.hpp>
 
-#include "logger.h"
-
 class SQLFile
 {
 public:
-    class sqlfile_exception : public std::runtime_error
+    class SQLFileException : public std::runtime_error
     {
     public:
-        sqlfile_exception(const std::string& what) : std::runtime_error(what) {}
+        SQLFileException(const std::string& what) : std::runtime_error(what) {}
     };
 
     SQLFile(const std::string&, int = 5, int = -1);
     ~SQLFile();
 
-    void send_query(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr) const noexcept;
-    void auto_backup(std::stop_token) const noexcept;
+    void sendQuery(const std::string&, int (*)(void*, int, char**, char**) = nullptr, void* = nullptr) const noexcept;
+    void autoBackup(std::stop_token) const noexcept;
 
 private:
     mutable std::mutex mtx_sql_;
@@ -35,3 +34,5 @@ private:
 
     void backup() const;
 };
+
+#endif
