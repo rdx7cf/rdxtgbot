@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 
     signal(SIGINT, SIG_IGN); // No occasional ctrl + C.
 
-    std::time_t now = std::time(nullptr);    
+    std::time_t now = std::time(nullptr);
     std::cout << "\nBOT HAS BEEN INITIALIZED ON: " << std::put_time(std::localtime(&now), "%d-%m-%Y %H-%M-%S") << std::endl;
     std::cout << "BOT USERNAME: " << bot->getApi().getMe()->username << '\t' << "BOT ID: " << bot->getApi().getMe()->id << std::endl;
 
