@@ -34,12 +34,16 @@ int main(int argc, char** argv)
 
     An API token for your bot.
 
--D '[PATH_TO_DATABASE]'
+-D '[DATABASE_PATH]'
 
     A path of a SQLite3 database file which contains user and ad tables.
     The program will create one (but not the directories) if the specified doesn't exist.
 
--V '[PATH_TO_IMAGES]'
+-B '[BACKUPS_PATH]'
+
+    A path of a directory which contains VPS backup directories with compressed images and XML configuration files.
+
+-V '[IMAGES_PATH]'
 
     A path of a directory which contains VPS directories with images and a config file.
     The newly images will be automaticaly added to the VPS base.
@@ -125,7 +129,6 @@ int main(int argc, char** argv)
     Logger::write("BOT INITIALIZING...");
     Logger::write("-------------------");
 
-    // Using std::bind is a workaround for GCC10.
     std::jthread longPolling(&BotExtended::longPolling, bot);
 
     std::jthread auto_syncing_users(&Table<UserExtended>::autoSync, usertable_ptr);

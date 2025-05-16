@@ -31,6 +31,8 @@ add_executable(tgbot
     include/VPS.h                   src/VPS.cpp
     include/Table.h                 src/Table.cpp
     include/BotAction.h             src/BotAction.cpp
+    include/Backup.h
+    src/Backup.cpp
 
 
 

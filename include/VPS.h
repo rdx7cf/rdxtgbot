@@ -10,19 +10,6 @@
 
 class BashCommand;
 
-/*class Backup
-{
-    class File
-    {
-        std::string filename_;
-        std::int64_t size_bytes_;
-
-        std::int64_t
-    };
-
-
-};*/
-
 
 class VPS
 {
@@ -35,7 +22,7 @@ public:
         SHOW = 20                                                           // 20-: Backup management.
                       };
 
-    enum class STATE  {RUNNING = 1, BLOCKED, PAUSED, SHUTDOWN, CRASHED, DYING};
+    enum class STATE  {RUNNING = 1, BLOCKED, PAUSED, SHUTDOWN, CRASHED, DYING, BACKUP_RESTORING};
 
     std::string uuid_;
     std::int64_t id_;
