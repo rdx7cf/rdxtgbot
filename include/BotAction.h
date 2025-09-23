@@ -14,6 +14,7 @@ class BotAction
 {
 public:
     using Ptr = std::shared_ptr<BotAction>;
+    enum class TYPE {VPS};
 
     class List
     {
@@ -52,6 +53,7 @@ public:
 
     using Ptr = std::shared_ptr<VPSBotAction>;
 
+    BotAction::TYPE type_;
     VPS::Ptr vps_;
     VPS::ACTION action_;
 

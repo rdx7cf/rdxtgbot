@@ -53,12 +53,12 @@ BotExtended::BotExtended(std::string token,
 
                 if(message->text.size() >= 32)
                 {
-                    getApi().sendMessage(message->chat->id, R"(*The name should be less than 32 characters\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    getApi().sendMessage(message->chat->id, R"(*The input should be less than 32 characters\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
                 else if(std::find_first_of(message->text.begin(), message->text.end(), forbidden_chars_.begin(), forbidden_chars_.end()) != message->text.end())
                 {
-                    getApi().sendMessage(message->chat->id, R"(*The name contains a forbidden character\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    getApi().sendMessage(message->chat->id, R"(*The input contains a forbidden character\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
                 else
@@ -66,6 +66,7 @@ BotExtended::BotExtended(std::string token,
                     botaction->user_input_ = message->text;
                     botaction->perform();
                 }
+
             }
             else
             {
@@ -626,7 +627,7 @@ void BotExtended::notifyAll(const std::string& message, Notification::TYPE flag,
         {
             if(!getApi().blockedByUser(user->id))
             {
-                if(flag == Notification::TYPE::SYSTEM || user->active_tasks_[static_cast<int>(flag)])
+                if(flag == Notification::TYPE::SYSTEM || user->active_tasks_ & static_cast<unsigned>(flag))
                         notifyOne(user->id, message, keyboard, (parse_mode == "Not assigned" ? "" : parse_mode));
             }
             else
