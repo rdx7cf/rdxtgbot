@@ -95,6 +95,14 @@ int main(int argc, char** argv)
     else
         throw std::runtime_error("No Database file specified!");
 
+    // SET BACKUP DIRECTORY
+    it = std::find(params.begin(), params.end(), "-B");
+
+    if(it != params.end())
+        std::cout << "Placeholder" << std::endl;
+    else
+        throw std::runtime_error("No Backup directory specified!");
+
     // SET COPIES COUNTER
     it = std::find(params.begin(), params.end(), "-C");
 
@@ -124,6 +132,9 @@ int main(int argc, char** argv)
         Logger::filename_ = *(++it);
     else
         std::cout << "** No log file specified, using the default file: './log.log'." << std::endl;
+
+
+
 
     Logger::write("-------------------");
     Logger::write("BOT INITIALIZING...");

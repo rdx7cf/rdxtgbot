@@ -12,7 +12,7 @@ class UserExtended : public TgBot::User
 public:
     using Ptr = std::shared_ptr<UserExtended>;
 
-    std::bitset<4> active_tasks_; // This bitmask remembers if user have some loop task active before the bot shutdown (one bit for each task).
+    unsigned active_tasks_; // This bitmask remembers if user has some loop task active before the bot shutdown (one bit for each task).
     std::time_t member_since_;
     BotAction::List::Ptr pending_actions_;
 
@@ -29,7 +29,7 @@ public:
             bool cjg,
             bool cragm,
             bool siq,
-            unsigned long bset = 0b0000,
+            unsigned bset = 0b0000,
             std::int64_t ms = std::time(nullptr),
             const BotAction::List::Ptr& pending_actions = std::make_shared<BotAction::List>())
         :

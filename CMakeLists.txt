@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project(tgbot)
+project(rdxtgbot)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,7 +16,7 @@ if (CURL_FOUND)
     include_directories(${CURL_INCLUDE_DIRS})
     add_definitions(-DHAVE_CURL)
 endif()
-add_executable(tgbot
+add_executable(rdxtgbot
                                     src/main.cpp
     include/Auxiliary.h             src/Auxiliary.cpp
     include/BashCommand.h           src/BashCommand.cpp
@@ -44,4 +44,4 @@ add_executable(tgbot
 
 )
 
-target_link_libraries(tgbot libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES} ${CURL_LIBRARIES})
+target_link_libraries(rdxtgbot libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES} ${CURL_LIBRARIES})

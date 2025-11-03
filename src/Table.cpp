@@ -178,7 +178,7 @@ bool UserTable::add(const UserExtended::Ptr& entry)
         + std::string(", ")
         + std::to_string(entry->supportsInlineQueries)
         + std::string(", '")
-        + entry->active_tasks_.to_string()
+        + std::to_string(entry->active_tasks_)
         + std::string("', ")
         + std::to_string(entry->member_since_)
         + std::string(");"));
@@ -207,35 +207,65 @@ bool UserTable::update(const UserExtended::Ptr& entry) noexcept
          // Updating the entry in the vector.
 
          if(entry->username != existing->username)
+         {
+             info_updated = true;
              existing->username = entry->username;
+         }
 
 
          if(entry->firstName != existing->firstName)
+         {
+             info_updated = true;
              existing->firstName = entry->firstName;
+         }
 
          if(entry->lastName != existing->lastName)
+         {
+             info_updated = true;
              existing->lastName = entry->lastName;
+         }
 
          if(entry->languageCode != existing->languageCode)
+         {
+             info_updated = true;
              existing->languageCode = entry->languageCode;
+         }
 
          if(entry->isBot != existing->isBot)
+         {
+             info_updated = true;
              existing->isBot = entry->isBot;
+         }
 
          if(entry->isPremium != existing->isPremium)
+         {
+             info_updated = true;
              existing->isPremium = entry->isPremium;
+         }
 
          if(entry->addedToAttachmentMenu != existing->addedToAttachmentMenu)
+         {
+             info_updated = true;
              existing->addedToAttachmentMenu = entry->addedToAttachmentMenu;
+         }
 
          if(entry->canJoinGroups != existing->canJoinGroups)
+         {
+             info_updated = true;
              existing->canJoinGroups = entry->canJoinGroups;
+         }
 
          if(entry->canReadAllGroupMessages != existing->canReadAllGroupMessages)
+         {
+             info_updated = true;
              existing->canReadAllGroupMessages = entry->canReadAllGroupMessages;
+         }
 
          if(entry->supportsInlineQueries != existing->supportsInlineQueries)
+         {
+             info_updated = true;
              existing->supportsInlineQueries = entry->supportsInlineQueries;
+         }
 
          if(entry->active_tasks_ != existing->active_tasks_)
          {
@@ -250,7 +280,7 @@ bool UserTable::update(const UserExtended::Ptr& entry) noexcept
 
 
     file_->sendQuery(
-                std::string("UPDATE users SET activetasks='") + entry->active_tasks_.to_string()
+                std::string("UPDATE users SET activetasks='") + std::to_string(entry->active_tasks_)
                 + std::string(" WHERE tg_id=") + std::to_string(entry->id)
             );
 
