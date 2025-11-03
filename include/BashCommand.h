@@ -3,7 +3,7 @@
 
 #include <string>
 
-class BashCommand // https://dev.to/aggsol/calling-shell-commands-from-c-8ej
+class BashCommand
 {
 public:
     int             exit_status_ = 0;
