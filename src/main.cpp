@@ -388,7 +388,7 @@ Enter a number: )";
             if(user)
             {
                 std::string temp;
-                std::cout << "Current tasks bitmask: " << user->active_tasks_.to_string() << '\n';
+                std::cout << "Current tasks bitmask: " << std::to_string(user->active_tasks_) << '\n';
                 std::cout << "Enter a new bitmask (0000, 0001, 0011, etc.): ";
                 std::getline(std::cin, temp);
                 user->active_tasks_ = std::stoul(temp, 0, 2);

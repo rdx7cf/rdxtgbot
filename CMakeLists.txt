@@ -1,47 +1,56 @@
-cmake_minimum_required(VERSION 3.11)
-project(rdxtgbot)
+cmake_minimum_required(VERSION 3.16)
+
+project(rdxtgbot LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DTGBOT_DISABLE_NAGLES_ALGORITHM -DTGBOT_CHANGE_SOCKET_BUFFER_SIZE -DTGBOT_CHANGE_READ_BUFFER_SIZE")
-set(Boost_USE_MULTITHREADED ON)
+
+add_compile_definitions(
+    HAVE_CURL
+    TGBOT_DISABLE_NAGLES_ALGORITHM
+    TGBOT_CHANGE_SOCKET_BUFFER_SIZE
+    TGBOT_CHANGE_READ_BUFFER_SIZE
+)
+
+add_compile_options(-Wall)
 
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(SQLite3 REQUIRED)
-find_package(Boost COMPONENTS system filesystem REQUIRED)
-find_package(CURL)
-include_directories(/usr/local/include ./include ${OPENSSL_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${SQLite3_INCLUDE_DIR})
-if (CURL_FOUND)
-    include_directories(${CURL_INCLUDE_DIRS})
-    add_definitions(-DHAVE_CURL)
-endif()
+find_package(Boost REQUIRED COMPONENTS system filesystem)
+find_package(CURL REQUIRED)
+
+# Собираем библиотеку вместе с проектом
+add_subdirectory(tgbot-cpp)
+
 add_executable(rdxtgbot
-                                    src/main.cpp
-    include/Auxiliary.h             src/Auxiliary.cpp
-    include/BashCommand.h           src/BashCommand.cpp
-    include/BotExtended.h           src/BotExtended.cpp
-    include/Ctime++.h               src/Ctime++.cpp
+    src/main.cpp
 
-    include/Logger.h                src/Logger.cpp
-    include/MyHTTPclient.h
-    include/Notification.h          src/Notification.cpp
-    include/SQLFile.h               src/SQLFile.cpp
-    include/UserExtended.h          src/UserExtended.cpp
-    include/VPS.h                   src/VPS.cpp
-    include/Table.h                 src/Table.cpp
-    include/BotAction.h             src/BotAction.cpp
-    include/Backup.h
+    src/Auxiliary.cpp
+    src/BashCommand.cpp
+    src/BotExtended.cpp
+    src/Ctime++.cpp
+    src/Logger.cpp
+    src/Notification.cpp
+    src/SQLFile.cpp
+    src/UserExtended.cpp
+    src/VPS.cpp
+    src/Table.cpp
+    src/BotAction.cpp
     src/Backup.cpp
-
-
-
-
-
-
-
-
-
 )
 
-target_link_libraries(rdxtgbot libTgBot.a ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${SQLite3_LIBRARIES} ${CURL_LIBRARIES})
+target_include_directories(rdxtgbot PRIVATE
+    include
+)
+
+target_link_libraries(rdxtgbot PRIVATE
+    TgBot
+    CURL::libcurl
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    SQLite::SQLite3
+    Boost::system
+    Boost::filesystem
+    Threads::Threads
+)

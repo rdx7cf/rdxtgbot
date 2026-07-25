@@ -304,7 +304,7 @@ void UserTable::sync() const
                     + std::string(", tg_CJG=") + std::to_string(user->canJoinGroups)
                     + std::string(", tg_CRAGM=") + std::to_string(user->canReadAllGroupMessages)
                     + std::string(", tg_SIQ=") + std::to_string(user->supportsInlineQueries)
-                    + std::string(", activetasks='") + user->active_tasks_.to_string()
+                    + std::string(", activetasks='") + std::to_string(user->active_tasks_)
                     + std::string("', membersince=") + std::to_string(user->member_since_)
                     + std::string(" WHERE tg_id=") + std::to_string(user->id)
                 );
@@ -333,7 +333,7 @@ void UserTable::showTable(std::ostream& os) const noexcept
 
         os << std::left
            << std::setw(18) << std::to_string(entry->id)
-           << std::setw(8) <<  entry->active_tasks_.to_string()
+           << std::setw(8) <<  std::to_string(entry->active_tasks_)
            << std::setw(6) <<  (entry->isBot ? "Yes" : "No")
            << std::setw(6) <<  entry->languageCode
            << std::setw(6) <<  (entry->isPremium ? "Yes" : "No")

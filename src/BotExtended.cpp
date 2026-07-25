@@ -53,12 +53,12 @@ BotExtended::BotExtended(std::string token,
 
                 if(message->text.size() >= 32)
                 {
-                    getApi().sendMessage(message->chat->id, R"(*The input should be less than 32 characters\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    getApi().sendMessage(message->chat->id, R"(*The input should be less than 32 characters\!*)", nullptr, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
                 else if(std::find_first_of(message->text.begin(), message->text.end(), forbidden_chars_.begin(), forbidden_chars_.end()) != message->text.end())
                 {
-                    getApi().sendMessage(message->chat->id, R"(*The input contains a forbidden character\!*)", false, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
+                    getApi().sendMessage(message->chat->id, R"(*The input contains a forbidden character\!*)", nullptr, 0, BotExtended::createInline({{{"✕ Close", "close"}}}), "MarkdownV2");
                     botaction->deleteMessages();
                 }
                 else
@@ -70,7 +70,7 @@ BotExtended::BotExtended(std::string token,
             }
             else
             {
-                getApi().sendMessage(message->chat->id, "They haven't taught me this command yet.", false, 0);
+                getApi().sendMessage(message->chat->id, "They haven't taught me this command yet.", nullptr, 0);
             }
 
         }
@@ -112,7 +112,7 @@ BotExtended::BotExtended(std::string token,
 
 Type `/info` for help\.
                         )",
-                        false, 0, nullptr, "MarkdownV2");
+                        nullptr, 0, nullptr, "MarkdownV2");
         }
         catch (const std::exception& e)
         {
@@ -152,7 +152,7 @@ __*VPS Control Panel*__
 
 Got any questions? Ask them [here](tg://user?id=1373205351)\.
                         )",
-                        false, 0, nullptr, "MarkdownV2");
+                        nullptr, 0, nullptr, "MarkdownV2");
         }
         catch (const std::exception& e)
         {
@@ -189,7 +189,7 @@ Got any questions? Ask them [here](tg://user?id=1373205351)\.
                             R"(
 *Here are the VPS available to you:*
 )",
-                            false, 0, BotExtended::createInline(buttons), "MarkdownV2");
+                            nullptr, 0, BotExtended::createInline(buttons), "MarkdownV2");
             }
             else
             {
@@ -365,7 +365,7 @@ R"(*Current VPS name*: `)" + vps->name_ + R"(`
 Send me a new name for the specified VPS\.
 The name should not contain more than 32 characters or the following __forbidden characters__:
 *\_ \* \[ \] \( \) \~ \` \> \# \+ \- \= \| \{ \} \. \! ' "*)",
-                    false, 0, BotExtended::createInline({{{"✕ Cancel", "cancel"}}}), "MarkdownV2"));
+                    nullptr, 0, BotExtended::createInline({{{"✕ Cancel", "cancel"}}}), "MarkdownV2"));
     }
     else
     {
@@ -496,7 +496,7 @@ void BotExtended::vpsInfoEditMessage(const TgBot::CallbackQuery::Ptr& query, con
                     query->message->messageId,
                     "",
                     "MarkdownV2",
-                    false,
+                    nullptr,
                     buttons
                     );
     }
@@ -571,7 +571,7 @@ void BotExtended::vpsInfoEditMessage(const TgBot::Message::Ptr& message, const V
                     message->messageId,
                     "",
                     "MarkdownV2",
-                    false,
+                    nullptr,
                     markup
                     );
     }
@@ -608,7 +608,7 @@ void BotExtended::notifyOne(std::int64_t user_id, const std::string& message, co
 {
     try
     {
-        getApi().sendMessage(user_id, message, false, 0, keyboard, parse_mode);
+        getApi().sendMessage(user_id, message, nullptr, 0, keyboard, parse_mode);
         Logger::write(": INFO : BOT : User [" + std::to_string(user_id) + "] has received the message.");
     }
     catch(const std::exception& e)
